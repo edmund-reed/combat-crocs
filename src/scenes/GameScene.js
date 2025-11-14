@@ -4,17 +4,15 @@ class GameScene extends Phaser.Scene {
   }
 
   init() {
-    // Initialize game state
-    this.currentPlayer = 0;
+    // Initialize game state - now delegates to managers
     this.players = [];
-    this.turnTimer = 0;
-    this.gameStarted = false;
     this.terrain = null;
     this.currentWeapon = "BAZOOKA";
-    this.aiming = false;
-    this.aimDirection = 0;
     this.aimLine = null; // Yellow direction arrow
-    this.turnInProgress = false; // Prevents next player from moving
+
+    // Initialize system managers
+    this.turnManager = TurnManager.getInstance(this);
+    this.healthBarManager = HealthBarManager.getInstance();
   }
 
   preload() {
@@ -47,7 +45,7 @@ class GameScene extends Phaser.Scene {
     this.setupInput();
 
     // Initialize turn system
-    this.startTurn();
+    this.turnManager.startTurn();
 
     // Add slight camera shake effect occasionally
     this.time.addEvent({
@@ -188,81 +186,20 @@ class GameScene extends Phaser.Scene {
     });
   }
 
-  startTurn() {
-    // Log position before starting turn
-    this.players.forEach((player) => {
-      console.log(
-        `Player ${player.id} position before turn: (${player.x}, ${player.y})`
-      );
-    });
-
-    this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
-    this.turnTimer = Config.TURN_TIME_LIMIT / 1000;
-
-    const currentPlayerObj = this.players[this.currentPlayer];
-    currentPlayerObj.canMove = true;
-    currentPlayerObj.canShoot = true;
-
-    this.playerIndicator.setText(`Player ${currentPlayerObj.id}'s Turn`);
-    this.playerIndicator.setFill(
-      currentPlayerObj.id === 1 ? "#00FF00" : "#FFD23F"
-    );
-
-    // Highlight current player
-    currentPlayerObj.graphics.setAlpha(1.0);
-    this.players[
-      (this.currentPlayer + 1) % this.players.length
-    ].graphics.setAlpha(0.5);
-
-    // Clear aim line at start of turn
-    this.clearAimLine();
-
-    // Log position after starting turn
-    console.log(
-      `Starting turn for Player ${currentPlayerObj.id} at position: (${currentPlayerObj.x}, ${currentPlayerObj.y})`
-    );
-  }
-
   handleAiming(pointer) {
-    if (!this.gameStarted || !this.players[this.currentPlayer].canShoot) return;
+    const currentPlayer = this.turnManager.getCurrentPlayer();
+    if (!currentPlayer.canShoot) return;
 
-    const player = this.players[this.currentPlayer];
     const angle = Phaser.Math.Angle.Between(
-      player.x,
-      player.y,
+      currentPlayer.x,
+      currentPlayer.y,
       pointer.worldX,
       pointer.worldY
     );
-    player.aimAngle = angle;
+    currentPlayer.aimAngle = angle;
 
     // Update aim line when mouse moves
     this.updateAimLine();
-  }
-
-  handleShooting(pointer) {
-    const player = this.players[this.currentPlayer];
-    if (!player.canShoot || this.turnInProgress) return;
-
-    console.log(
-      `Player ${player.id} shooting at (${pointer.worldX}, ${pointer.worldY})`
-    );
-
-    // Player physics continues normally while projectile flies
-    // They just lose movement control during projectile flight
-
-    // Prevent shooting while turn is in progress
-    this.turnInProgress = true;
-    WeaponManager.createProjectile(
-      this,
-      player,
-      pointer.worldX,
-      pointer.worldY
-    );
-    player.canShoot = false;
-    player.canMove = false; // Lock movement during projectile flight
-
-    // Clear aim line
-    this.clearAimLine();
   }
 
   // Initialize the scalable health system for all players
@@ -316,19 +253,8 @@ class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    if (!this.gameStarted) {
-      this.gameStarted = true;
-    }
-
-    // Update turn timer
-    this.turnTimer = Math.max(0, this.turnTimer - delta / 1000);
-    this.timerText.setText(`Time: ${Math.ceil(this.turnTimer)}`);
-
-    // End turn if timer runs out and player hasn't started shooting yet
-    if (this.turnTimer <= 0 && !this.turnInProgress) {
-      console.log("Turn timer expired, starting next turn");
-      this.startTurn();
-    }
+    // Delegate timer and turn management to TurnManager
+    this.turnManager.updateTimer(delta);
 
     // PHYSICS: Update ALL players (gravity, position sync) - runs even during projectile flight
     this.players.forEach((player) => {
@@ -336,8 +262,9 @@ class GameScene extends Phaser.Scene {
     });
 
     // CONTROLS: Only current player gets movement controls when they can move
-    if (this.players[this.currentPlayer].canMove) {
-      const currentPlayer = this.players[this.currentPlayer];
+    const currentPlayerIndex = this.turnManager.getCurrentPlayerIndex();
+    if (this.players[currentPlayerIndex].canMove) {
+      const currentPlayer = this.players[currentPlayerIndex];
       PlayerManager.handleMovement(
         this,
         currentPlayer,
@@ -346,11 +273,9 @@ class GameScene extends Phaser.Scene {
       );
     }
 
-    // Clean physics flow: Players continue their jump/fall during projectile flight
-    // Movement controls are restored only when their turn begins
-
     // Update aim line continuously when player can shoot (follows player movement)
-    if (this.players[this.currentPlayer].canShoot) {
+    const currentPlayer = this.turnManager.getCurrentPlayer();
+    if (currentPlayer.canShoot) {
       this.updateAimLine();
     } else {
       this.clearAimLine();
@@ -374,13 +299,13 @@ class GameScene extends Phaser.Scene {
     this.clearAimLine();
 
     // Only show aiming when player can shoot
-    if (!this.players[this.currentPlayer].canShoot) return;
+    const currentPlayer = this.turnManager.getCurrentPlayer();
+    if (!currentPlayer.canShoot) return;
 
-    const player = this.players[this.currentPlayer];
     const mouse = this.input.activePointer;
     const angle = Phaser.Math.Angle.Between(
-      player.x,
-      player.y,
+      currentPlayer.x,
+      currentPlayer.y,
       mouse.worldX,
       mouse.worldY
     );
@@ -388,15 +313,15 @@ class GameScene extends Phaser.Scene {
     // Create yellow direction arrow
     this.aimLine = this.add.graphics();
     this.aimLine.lineStyle(4, 0xffd23f); // Thick yellow line
-    this.aimLine.moveTo(player.x, player.y);
+    this.aimLine.moveTo(currentPlayer.x, currentPlayer.y);
 
     // Show direction with arrowhead (extended line for better visibility)
     const lineLength = Math.max(
       150,
-      300 - Math.abs(player.body.velocity.y) * 5
+      300 - Math.abs(currentPlayer.body.velocity.y) * 5
     );
-    const endX = player.x + Math.cos(angle) * lineLength;
-    const endY = player.y + Math.sin(angle) * lineLength;
+    const endX = currentPlayer.x + Math.cos(angle) * lineLength;
+    const endY = currentPlayer.y + Math.sin(angle) * lineLength;
 
     this.aimLine.lineTo(endX, endY);
     this.aimLine.strokePath();
@@ -424,39 +349,25 @@ class GameScene extends Phaser.Scene {
   }
 
   handleShooting(pointer) {
-    const player = this.players[this.currentPlayer];
-    if (!player.canShoot || this.turnInProgress) return;
+    const player = this.turnManager.getCurrentPlayer();
+    if (!player.canShoot || this.turnManager.isTurnInProgress()) return;
 
     console.log(
       `Player ${player.id} shooting at (${pointer.worldX}, ${pointer.worldY})`
     );
-    // Prevent shooting while turn is in progress
-    this.turnInProgress = true;
+
+    // Lock player and launch projectile
+    this.turnManager.lockPlayerForProjectile();
     WeaponManager.createProjectile(
       this,
       player,
       pointer.worldX,
       pointer.worldY
     );
-    player.canShoot = false;
-    player.canMove = false; // Lock movement during projectile flight
-
-    // Clear aim line
-    this.clearAimLine();
   }
 
   endProjectileTurn() {
-    // Reset turn state and start next player's turn
-    console.log("Projectile turn ended, resetting turnInProgress to false");
-    this.turnInProgress = false;
-
-    // Small delay before starting next turn
-    this.time.addEvent({
-      delay: 500, // 0.5 seconds delay for explosion effect
-      callback: () => {
-        console.log("Starting next turn from endProjectileTurn");
-        this.startTurn();
-      },
-    });
+    // Delegate to TurnManager for proper turn transitions
+    this.turnManager.endProjectileTurn();
   }
 }
