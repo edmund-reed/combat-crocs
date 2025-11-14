@@ -71,8 +71,10 @@ class ExplosionManager {
               index + 1
             } hit for ${damage} damage`
           );
-          player.health = Math.max(0, player.health - damage);
-          UIManager.updateHealthBars(this.scene);
+
+          // Use HealthBarManager to apply damage instead of direct health modification
+          const healthBarManager = HealthBarManager.getInstance();
+          healthBarManager.applyDamage(index + 1, damage); // Player ID is index + 1
         } else {
           console.log(
             `🛡️ Player ${index + 1} protected by terrain from explosion`

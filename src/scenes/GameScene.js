@@ -25,6 +25,9 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
+    // Make GameScene accessible globally for HealthBarManager
+    window.currentGameScene = this;
+
     // Create the basic terrain
     this.createTerrain();
 
@@ -33,6 +36,9 @@ class GameScene extends Phaser.Scene {
 
     // Set up physics world bounds
     this.matter.world.setBounds(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
+
+    // Initialize scalable health system (before UI)
+    this.initializeHealthSystem();
 
     // Create UI elements
     this.createUI();
@@ -259,25 +265,38 @@ class GameScene extends Phaser.Scene {
     this.clearAimLine();
   }
 
+  // Initialize the scalable health system for all players
+  initializeHealthSystem() {
+    const healthBarManager = HealthBarManager.getInstance();
+    healthBarManager.initializeHealthForPlayers(this.players);
+  }
+
   updateHealthDisplay() {
     UIManager.updateHealthBars(this);
   }
 
-  endGame(winner) {
+  endGame(winningTeam) {
     // Don't pause the scene - keep input working
     const overlay = this.add.graphics();
     overlay.fillStyle(0x000000, 0.8);
     overlay.fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
 
-    // Use TextHelper for game over text
-    const gameOverText = TextHelper.createGameOverText(
+    // Use TextHelper for game over text (pass team winner)
+    const gameOverText = TextHelper.createCustom(
       this,
       Config.GAME_WIDTH / 2,
       Config.GAME_HEIGHT / 2,
-      winner
+      `Team ${winningTeam} Wins!\n\nClick to return to menu`,
+      32,
+      "#FFD23F",
+      "#000000",
+      2
     );
+    gameOverText.setOrigin(0.5);
+    gameOverText.setAlign("center");
 
-    // Handle the click to return to menu
+    // Make interactive and handle the click to return to menu
+    gameOverText.setInteractive();
     gameOverText.on("pointerdown", () => {
       this.scene.stop();
       this.scene.start("MenuScene");
@@ -292,6 +311,8 @@ class GameScene extends Phaser.Scene {
       this.scene.stop();
       this.scene.start("MenuScene");
     });
+
+    console.log(`🏆 Game Over - Team ${winningTeam} victorious!`);
   }
 
   update(time, delta) {

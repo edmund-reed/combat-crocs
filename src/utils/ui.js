@@ -1,42 +1,24 @@
 // UI utilities for Combat Crocs
 
 class UIManager {
-  // Create health bars
+  // Create health bars - now delegates to HealthBarManager/Renderer
   static createHealthBars(scene) {
-    scene.healthBars = [];
+    const healthBarManager = HealthBarManager.getInstance();
+    healthBarManager.initializeHealthBars(scene, scene.players.length);
 
-    scene.players.forEach((player, index) => {
-      const bar = scene.add.graphics();
-      bar.fillStyle(0xff0000);
-      bar.fillRect(20, 20 + index * 40, 200, 20);
-      bar.fillStyle(0x00ff00);
-      bar.fillRect(20, 20 + index * 40, 200 * (player.health / 100), 20);
-
-      // Player label using TextHelper
-      TextHelper.createHealthLabel(scene, 30, 22 + index * 40, player.id);
-
-      scene.healthBars.push(bar);
-    });
+    // Create text labels for health bars
+    HealthBarRenderer.createLabels(scene, scene.players.length);
   }
 
-  // Update health display
+  // Update health display - now delegates to HealthBarRenderer
   static updateHealthBars(scene) {
-    scene.healthBars.forEach((bar, index) => {
-      bar.clear();
-      const player = scene.players[index];
-
-      bar.fillStyle(0xff0000);
-      bar.fillRect(20, 20 + index * 40, 200, 20);
-
-      bar.fillStyle(0x00ff00);
-      const healthWidth = 200 * (player.health / 100);
-      bar.fillRect(20, 20 + index * 40, healthWidth, 20);
-
-      // Check for game over
-      if (player.health <= 0) {
-        scene.endGame(index === 0 ? 2 : 1);
-      }
-    });
+    // This method is now handled by HealthBarManager.updateHealthDisplay()
+    // Keeping for backward compatibility but deprecated
+    console.warn(
+      "⚠️ UIManager.updateHealthBars() is deprecated - use HealthBarManager.updateHealthDisplay()"
+    );
+    const healthBarManager = HealthBarManager.getInstance();
+    healthBarManager.updateHealthDisplay();
   }
 
   // Create weapon display
