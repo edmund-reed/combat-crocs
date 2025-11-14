@@ -1,8 +1,22 @@
 // Weapon utilities for Combat Crocs
 
 class WeaponManager {
+  static instance = null;
+
+  constructor(scene) {
+    this.scene = scene;
+    console.log("🎯 WeaponManager initialized");
+  }
+
+  static getInstance(scene) {
+    if (!WeaponManager.instance) {
+      WeaponManager.instance = new WeaponManager(scene);
+    }
+    return WeaponManager.instance;
+  }
+
   // Create and fire a weapon
-  static createProjectile(scene, player, targetX, targetY) {
+  fireProjectile(player, targetX, targetY) {
     const angle = Phaser.Math.Angle.Between(
       player.x,
       player.y,
@@ -17,7 +31,7 @@ class WeaponManager {
     };
 
     // Create physics body first
-    const body = scene.matter.add.circle(
+    const body = this.scene.matter.add.circle(
       player.x + Math.cos(angle) * 40,
       player.y + Math.sin(angle) * 40,
       5,
@@ -28,7 +42,7 @@ class WeaponManager {
     );
 
     // Create projectile graphics
-    const projectile = scene.add.graphics({
+    const projectile = this.scene.add.graphics({
       x: body.position.x,
       y: body.position.y,
     });
@@ -36,7 +50,7 @@ class WeaponManager {
     projectile.fillCircle(0, 0, 5);
 
     // Add manual debug outline (green circle)
-    const debugOutline = scene.add.graphics({
+    const debugOutline = this.scene.add.graphics({
       x: body.position.x,
       y: body.position.y,
     });
@@ -46,13 +60,13 @@ class WeaponManager {
     body.projectileOwner = player.id;
 
     // Set velocity using Matter.js method (not the body method that doesn't exist)
-    scene.matter.body.setVelocity(body, velocity);
+    this.scene.matter.body.setVelocity(body, velocity);
 
     // Add trail effect
-    this.addProjectileTrail(scene, body);
+    this.addProjectileTrail(body);
 
     // Handle collisions
-    this.setupProjectileCollision(scene, body, projectile);
+    this.setupProjectileCollision(body, projectile);
 
     // Store references for position updating and cleanup
     body.projectileGraphics = projectile;
@@ -62,10 +76,10 @@ class WeaponManager {
     setTimeout(() => {
       if (!body.destroyed && body.world) {
         console.log("Projectile timeout reached, cleaning up and ending turn");
-        scene.matter.world.remove(body);
+        this.scene.matter.world.remove(body);
         projectile.destroy();
         debugOutline.destroy();
-        scene.endProjectileTurn();
+        this.scene.endProjectileTurn();
       }
     }, 5000);
 
@@ -345,6 +359,13 @@ class WeaponManager {
 
   static getCurrentWeapon() {
     return "BAZOOKA";
+  }
+
+  // Backward compatibility: static method that GameScene calls
+  static createProjectile(scene, player, targetX, targetY) {
+    // Use the instance method
+    const instance = WeaponManager.getInstance(scene);
+    return instance.fireProjectile(player, targetX, targetY);
   }
 }
 
