@@ -122,10 +122,14 @@ class WeaponManager {
           if (pair.bodyA === projectileBody || pair.bodyB === projectileBody) {
             console.log("Projectile collision detected!");
             hasHit = true;
+
+            // Get current weapon to determine explosion properties
+            const weapon = WeaponManager.getCurrentWeapon();
             ExplosionManager.getInstance(this.scene).createExplosion(
               projectileBody.position.x,
               projectileBody.position.y,
-              projectileBody.projectileOwner
+              projectileBody.projectileOwner,
+              weapon
             );
             this.scene.matter.world.remove(projectileBody);
             projectileGraphics.destroy();
@@ -145,8 +149,16 @@ class WeaponManager {
     return Math.max(y1a, y2a) < Math.min(y1b, y2b);
   }
 
+  // Track the currently selected weapon
   static getCurrentWeapon() {
+    // For now return BAZOOKA, but this can be made dynamic
     return "BAZOOKA";
+  }
+
+  // Get weapon definition for current weapon
+  static getCurrentWeaponDefinition() {
+    const weapon = WeaponManager.getCurrentWeapon();
+    return WEAPON_DEFINITIONS[weapon];
   }
 
   // Backward compatibility: static method that GameScene calls

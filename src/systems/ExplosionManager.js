@@ -8,7 +8,8 @@ class ExplosionManager {
 
   constructor(scene) {
     this.scene = scene;
-    console.log("💥 ExplosionManager initialized");
+    this.explosionRenderer = new ExplosionRenderer(scene);
+    console.log("💥 ExplosionManager initialized - handling combat logic");
   }
 
   static getInstance(scene) {
@@ -21,26 +22,25 @@ class ExplosionManager {
   /**
    * Create explosion effect at location
    */
-  createExplosion(x, y, projectileOwner = null) {
-    const radius = 200; // Much larger for development testing
+  createExplosion(x, y, projectileOwner = null, weapon = null) {
+    // Get weapon definition to determine explosion radius
+    let weaponDef = null;
+    if (weapon && WEAPON_DEFINITIONS[weapon]) {
+      weaponDef = WEAPON_DEFINITIONS[weapon];
+    } else {
+      // Fallback to BAZOOKA if no weapon specified
+      weaponDef = WEAPON_DEFINITIONS.BAZOOKA;
+    }
+
+    const radius = weaponDef.radius; // Weapon-specific blast radius!
     console.log(
       `ACTUAL EXPLOSION at (${x.toFixed(1)}, ${y.toFixed(1)}) from ${
         projectileOwner ? `Player ${projectileOwner}` : "timeout"
-      }. Radius: ${radius}`
+      } with ${weaponDef.name}. Radius: ${radius}`
     );
 
-    // Explosion graphics
-    const explosion = this.scene.add.graphics({ x: x, y: y });
-    explosion.fillStyle(0xff4500);
-    explosion.fillCircle(0, 0, radius);
-
-    this.scene.tweens.add({
-      targets: explosion,
-      scaleX: 0,
-      scaleY: 0,
-      duration: 300,
-      onComplete: () => explosion.destroy(),
-    });
+    // Delegate visual effects to ExplosionRenderer
+    this.explosionRenderer.createExplosionEffect(x, y, projectileOwner);
 
     // Damage nearby players (check for terrain protection)
     this.scene.players.forEach((player, index) => {
@@ -83,9 +83,6 @@ class ExplosionManager {
       }
     });
 
-    // Screen shake
-    this.scene.cameras.main.shake(200, 0.02);
-
     return projectileOwner;
   }
 
@@ -99,148 +96,14 @@ class ExplosionManager {
     playerX,
     playerY
   ) {
-    // Simple terrain blocking check - check if there's a platform between explosion and player
-
-    console.log(
-      `Checking terrain blocking: explosion(${explosionX.toFixed(
-        0
-      )}, ${explosionY.toFixed(0)}) to player(${playerX.toFixed(
-        0
-      )}, ${playerY.toFixed(0)})`
+    // Delegate to TerrainCollisionChecker for terrain collision logic
+    return TerrainCollisionChecker.isExplosionBlockedByTerrain(
+      scene,
+      explosionX,
+      explosionY,
+      playerX,
+      playerY
     );
-
-    // Platform positions from TerrainManager (hardcoded for now)
-    const platforms = [
-      { x: 400, y: 575, width: 200, height: 50, name: "Left Platform" },
-      { x: 700, y: 525, width: 150, height: 50, name: "Middle Platform" },
-      { x: 950, y: 475, width: 100, height: 50, name: "Right Platform" },
-    ];
-
-    // Check each platform
-    for (const platform of platforms) {
-      const blocked = ExplosionManager.platformBlocksPath(
-        platform,
-        explosionX,
-        explosionY,
-        playerX,
-        playerY
-      );
-
-      if (blocked) {
-        console.log(
-          `❌ BLOCKED by ${platform.name} at (${platform.x}, ${platform.y})`
-        );
-        return true;
-      } else {
-        console.log(
-          `✅ ${platform.name} at (${platform.x}, ${platform.y}) does NOT block`
-        );
-      }
-    }
-
-    console.log("✅ No terrain blocking found");
-    return false;
-  }
-
-  /**
-   * Check if a specific platform blocks the line of sight
-   */
-  static platformBlocksPath(
-    platform,
-    explosionX,
-    explosionY,
-    playerX,
-    playerY
-  ) {
-    const { x: platX, y: platY, width: platW, height: platH } = platform;
-
-    console.log(
-      `Checking platform ${platform.name}: explosion(${explosionX.toFixed(
-        0
-      )}, ${explosionY.toFixed(0)}) vs player(${playerX.toFixed(
-        0
-      )}, ${playerY.toFixed(0)})`
-    );
-
-    // Platform bounds
-    const platLeft = platX - platW / 2;
-    const platRight = platX + platW / 2;
-    const platTop = platY - platH / 2;
-    const platBottom = platY + platH / 2;
-
-    // Calculate if platform is BETWEEN explosion and player (line-of-sight blocking)
-    // This is geometric line segment intersection, but simplified:
-
-    // Check if the platform blocks the direct path from explosion to player
-    const explosionSide =
-      explosionY <= platTop
-        ? "above"
-        : explosionY >= platBottom
-        ? "below"
-        : "beside";
-    const playerSide =
-      playerY <= platTop ? "above" : playerY >= platBottom ? "below" : "beside";
-
-    console.log(
-      `Explosion position: ${explosionSide} platform, Player position: ${playerSide} platform`
-    );
-
-    // PROTECTION LOGIC: Shield only when platform physically blocks blast path
-
-    // ✅ PROTECT: Platform BETWEEN explosion and player
-    if (explosionSide === "above" && playerSide === "below") {
-      console.log(
-        `🎯 PROTECTION: Platform above blocks explosion from reaching below`
-      );
-      return true;
-    }
-
-    // ✅ PROTECT: Platform beside blocks horizontal blast
-    if (explosionSide === "beside" && playerSide === "below") {
-      console.log(
-        `🎯 PROTECTION: Platform beside blocks explosion from reaching below`
-      );
-      return true;
-    }
-
-    // ❌ NO PROTECTION: Explosion and player on same "vertical side"
-    // Special case: Player shooting upward at platform above them
-    if (explosionSide === "below" && playerSide === "below") {
-      console.log(
-        `❌ NO PROTECTION: Explosion below platform, player below - no shield`
-      );
-      return false;
-    }
-
-    // Side-by-side or above-together scenarios
-    if (explosionSide === playerSide) {
-      console.log(
-        `❌ NO PROTECTION: Explosion (${explosionSide}) same side as player (${playerSide})`
-      );
-      return false;
-    }
-
-    // Add protection for traditional horizontal scenarios
-    const explosionLeftOfPlatform = explosionX < platLeft;
-    const playerRightOfPlatform = playerX > platRight;
-    if (explosionLeftOfPlatform && playerRightOfPlatform) {
-      console.log(
-        `🛡️ HORIZONTAL PROTECTION: Right side shielded from explosion`
-      );
-      return true;
-    }
-
-    const explosionRightOfPlatform = explosionX > platRight;
-    const playerLeftOfPlatform = playerX < platLeft;
-    if (explosionRightOfPlatform && playerLeftOfPlatform) {
-      console.log(
-        `🛡️ HORIZONTAL PROTECTION: Left side shielded from explosion`
-      );
-      return true;
-    }
-
-    console.log(`❌ No line-of-sight protection from ${platform.name}`);
-    return false;
   }
 }
 
