@@ -88,19 +88,19 @@ class WeaponManager {
   }
 
   // Add visual trail to projectile
-  static addProjectileTrail(scene, projectileBody) {
-    scene.time.addEvent({
+  addProjectileTrail(projectileBody) {
+    this.scene.time.addEvent({
       delay: 100,
       repeat: 10,
       callback: () => {
         if (!projectileBody.destroyed) {
-          const trail = scene.add.graphics({
+          const trail = this.scene.add.graphics({
             x: projectileBody.position.x,
             y: projectileBody.position.y,
           });
           trail.fillStyle(0xff4500);
           trail.fillCircle(0, 0, 2);
-          scene.tweens.add({
+          this.scene.tweens.add({
             targets: trail,
             alpha: 0,
             duration: 500,
@@ -112,10 +112,10 @@ class WeaponManager {
   }
 
   // Setup collision detection for projectiles
-  static setupProjectileCollision(scene, projectileBody, projectileGraphics) {
+  setupProjectileCollision(projectileBody, projectileGraphics) {
     let hasHit = false;
 
-    scene.matter.world.on("collisionstart", (event) => {
+    this.scene.matter.world.on("collisionstart", (event) => {
       if (!projectileBody.destroyed && !hasHit) {
         event.pairs.forEach((pair) => {
           // Check if this collision involves our projectile
@@ -123,18 +123,17 @@ class WeaponManager {
             console.log("Projectile collision detected!");
             hasHit = true;
             this.createExplosion(
-              scene,
               projectileBody.position.x,
               projectileBody.position.y,
               projectileBody.projectileOwner
             );
-            scene.matter.world.remove(projectileBody);
+            this.scene.matter.world.remove(projectileBody);
             projectileGraphics.destroy();
             if (projectileBody.debugOutline) {
               projectileBody.debugOutline.destroy();
             }
             // Call endProjectileTurn to advance to next player
-            scene.endProjectileTurn();
+            this.scene.endProjectileTurn();
           }
         });
       }
@@ -142,7 +141,7 @@ class WeaponManager {
   }
 
   // Create explosion effect
-  static createExplosion(scene, x, y, projectileOwner = null) {
+  createExplosion(x, y, projectileOwner = null) {
     const radius = 200; // Much larger for development testing
     console.log(
       `ACTUAL EXPLOSION at (${x.toFixed(1)}, ${y.toFixed(1)}) from ${
@@ -151,11 +150,11 @@ class WeaponManager {
     );
 
     // Explosion graphics
-    const explosion = scene.add.graphics({ x: x, y: y });
+    const explosion = this.scene.add.graphics({ x: x, y: y });
     explosion.fillStyle(0xff4500);
     explosion.fillCircle(0, 0, radius);
 
-    scene.tweens.add({
+    this.scene.tweens.add({
       targets: explosion,
       scaleX: 0,
       scaleY: 0,
@@ -164,7 +163,7 @@ class WeaponManager {
     });
 
     // Damage nearby players (check for terrain protection)
-    scene.players.forEach((player, index) => {
+    this.scene.players.forEach((player, index) => {
       const distance = Phaser.Math.Distance.Between(x, y, player.x, player.y);
       console.log(
         `Player ${index + 1} distance: ${distance.toFixed(1)}, health: ${
@@ -177,7 +176,13 @@ class WeaponManager {
         const isOwnExplosion = projectileOwner === player.id;
         const blockedByTerrain = isOwnExplosion
           ? false
-          : this.isExplosionBlockedByTerrain(scene, x, y, player.x, player.y);
+          : WeaponManager.isExplosionBlockedByTerrain(
+              this.scene,
+              x,
+              y,
+              player.x,
+              player.y
+            );
 
         if (!blockedByTerrain) {
           const damage = Math.max(0, 100 - (distance / radius) * 75);
@@ -187,7 +192,7 @@ class WeaponManager {
             } hit for ${damage} damage`
           );
           player.health = Math.max(0, player.health - damage);
-          scene.updateHealthDisplay();
+          UIManager.updateHealthBars(this.scene);
         } else {
           console.log(
             `🛡️ Player ${index + 1} protected by terrain from explosion`
@@ -197,7 +202,7 @@ class WeaponManager {
     });
 
     // Screen shake
-    scene.cameras.main.shake(200, 0.02);
+    this.scene.cameras.main.shake(200, 0.02);
 
     return projectileOwner;
   }
