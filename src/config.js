@@ -17,6 +17,9 @@ const Config = {
   // Weapon settings imported from WeaponDefinitions.js
   WEAPON_TYPES: WEAPON_DEFINITIONS,
 
+  // UI settings imported from UIConfig.js
+  UI: UI_CONFIG,
+
   // AI settings
   AI_ACCURACY_LEVELS: {
     LOW: 0.3, // 30% accuracy
@@ -27,7 +30,7 @@ const Config = {
   // Turn settings
   TURN_TIME_LIMIT: 30000, // 30 seconds in milliseconds
 
-  // Orlando theme colors
+  // Orlando theme colors (available for terrain, players, etc.)
   COLORS: {
     ORANGE: 0xff6b35,
     BRIGHT_ORANGE: 0xf7931e,

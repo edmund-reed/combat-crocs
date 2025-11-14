@@ -161,11 +161,8 @@ class GameScene extends Phaser.Scene {
   }
 
   createUI() {
-    UIManager.createHealthBars(this);
-    UIManager.createWeaponDisplay(this);
-    UIManager.createTimerDisplay(this);
-    UIManager.createTurnIndicator(this);
-    UIManager.createInstructions(this);
+    // 🎨 Single UI initialization call - delegates to UIManager comprehensive setup
+    UIManager.initializeGameUI(this);
   }
 
   setupInput() {
@@ -272,21 +269,15 @@ class GameScene extends Phaser.Scene {
     overlay.fillStyle(0x000000, 0.8);
     overlay.fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
 
-    const gameOverText = this.add
-      .text(
-        Config.GAME_WIDTH / 2,
-        Config.GAME_HEIGHT / 2,
-        `Player ${winner} Wins!\n\nClick to return to menu`,
-        {
-          font: "bold 32px Arial",
-          fill: "#FFD23F",
-          align: "center",
-        }
-      )
-      .setOrigin(0.5);
+    // Use TextHelper for game over text
+    const gameOverText = TextHelper.createGameOverText(
+      this,
+      Config.GAME_WIDTH / 2,
+      Config.GAME_HEIGHT / 2,
+      winner
+    );
 
-    // Make it interactive and handle the click
-    gameOverText.setInteractive();
+    // Handle the click to return to menu
     gameOverText.on("pointerdown", () => {
       this.scene.stop();
       this.scene.start("MenuScene");

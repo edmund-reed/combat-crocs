@@ -12,11 +12,8 @@ class UIManager {
       bar.fillStyle(0x00ff00);
       bar.fillRect(20, 20 + index * 40, 200 * (player.health / 100), 20);
 
-      // Player label
-      scene.add.text(30, 22 + index * 40, `Player ${player.id}`, {
-        font: "12px Arial",
-        fill: "#FFFFFF",
-      });
+      // Player label using TextHelper
+      TextHelper.createHealthLabel(scene, 30, 22 + index * 40, player.id);
 
       scene.healthBars.push(bar);
     });
@@ -44,61 +41,51 @@ class UIManager {
 
   // Create weapon display
   static createWeaponDisplay(scene) {
-    scene.weaponText = scene.add.text(
+    scene.weaponText = TextHelper.createWeaponDisplay(
+      scene,
       Config.GAME_WIDTH - 200,
       20,
-      `Weapon: ${Config.WEAPON_TYPES[WeaponManager.getCurrentWeapon()].name}`,
-      {
-        font: "16px Arial",
-        fill: "#FFD23F",
-      }
+      Config.WEAPON_TYPES[WeaponManager.getCurrentWeapon()].name
     );
   }
 
   // Create timer display
   static createTimerDisplay(scene) {
-    scene.timerText = scene.add.text(Config.GAME_WIDTH - 200, 50, "Time: 30", {
-      font: "16px Arial",
-      fill: "#FFFFFF",
-    });
+    scene.timerText = TextHelper.createTimerDisplay(
+      scene,
+      Config.GAME_WIDTH - 200,
+      50
+    );
   }
 
   // Create turn indicator
   static createTurnIndicator(scene) {
-    scene.playerIndicator = scene.add
-      .text(Config.GAME_WIDTH / 2, 20, "Player 1's Turn", {
-        font: "20px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5);
+    scene.playerIndicator = TextHelper.createTurnIndicator(
+      scene,
+      Config.GAME_WIDTH / 2,
+      20,
+      0 // Default to player 1 initially
+    );
   }
 
   // Create instructions
   static createInstructions(scene) {
-    const instructionsText = scene.add
-      .text(
-        Config.GAME_WIDTH / 2,
-        50,
-        "Move: Arrow Keys | Aim: Mouse | Shoot: Click | Jump: Spacebar",
-        {
-          font: "14px Arial",
-          fill: "#FFFFFF",
-          stroke: "#000000",
-          strokeThickness: 2,
-        }
-      )
-      .setOrigin(0.5);
-
-    return instructionsText;
+    return TextHelper.createInstructions(scene, Config.GAME_WIDTH / 2, 50);
   }
 
   // Update turn display
   static updateTurnIndicator(scene, currentPlayer) {
-    const player = scene.players[currentPlayer];
-    scene.playerIndicator.setText(`Player ${player.id}'s Turn`);
-    scene.playerIndicator.setFill(player.id === 1 ? "#00FF00" : "#FFD23F");
+    // Recreate turn indicator with proper styling using TextHelper
+    if (scene.playerIndicator) {
+      scene.playerIndicator.destroy();
+    }
+
+    scene.playerIndicator = TextHelper.createTurnIndicator(
+      scene,
+      Config.GAME_WIDTH / 2,
+      20,
+      currentPlayer
+    );
 
     // Highlight current player
     scene.players.forEach((p, index) => {
@@ -109,6 +96,20 @@ class UIManager {
   // Update timer display
   static updateTimer(scene, timeLeft) {
     scene.timerText.setText(`Time: ${Math.ceil(timeLeft)}`);
+  }
+
+  // 🎯 Initialize all game UI elements (comprehensive single method)
+  static initializeGameUI(scene) {
+    console.log("🎨 UIManager: Initializing complete game UI setup");
+
+    // Create all UI elements in logical sequence
+    UIManager.createHealthBars(scene);
+    UIManager.createWeaponDisplay(scene);
+    UIManager.createTimerDisplay(scene);
+    UIManager.createTurnIndicator(scene);
+    UIManager.createInstructions(scene);
+
+    console.log("✅ UIManager: Game UI initialization completed");
   }
 }
 
