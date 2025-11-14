@@ -13,11 +13,6 @@ class CombatCrocsGame {
 
     // Game state management
     this.initializeGameState();
-
-    console.log("Combat Crocs Game Initialized!");
-    console.log(
-      "Controls: Arrow keys to move/jump, SPACE to jump, Mouse click to shoot"
-    );
   }
 
   initializeGameState() {
@@ -55,8 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.CombatCrocsInstance = new CombatCrocsGame();
 
   // Add some debugging info for development
-  console.log("Phaser version:", Phaser.VERSION);
-  console.log("Game configuration loaded:", Config);
 
   // Add keyboard shortcuts for development
   document.addEventListener("keydown", (event) => {
@@ -84,10 +77,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (currentScene) {
         if (currentScene.scene.isPaused()) {
           currentScene.scene.resume();
-          console.log("Game resumed");
         } else {
           currentScene.scene.pause();
-          console.log("Game paused");
         }
       }
     }

@@ -12,8 +12,6 @@ class TurnManager {
     this.turnTimer = 0;
     this.turnInProgress = false;
     this.gameStarted = false;
-
-    console.log("🎲 TurnManager initialized - managing turn-based gameplay");
   }
 
   static getInstance(scene) {
@@ -25,13 +23,6 @@ class TurnManager {
 
   // Start a new turn for the next player
   startTurn() {
-    // Log position before starting turn
-    this.scene.players.forEach((player) => {
-      console.log(
-        `Player ${player.id} position before turn: (${player.x}, ${player.y})`
-      );
-    });
-
     // Advance to next player
     this.currentPlayer = (this.currentPlayer + 1) % this.scene.players.length;
     this.turnTimer = Config.TURN_TIME_LIMIT / 1000;
@@ -49,23 +40,16 @@ class TurnManager {
 
     // Clear aim line at start of turn
     this.clearAimLine();
-
-    // Log position after starting turn
-    console.log(
-      `Starting turn for Player ${currentPlayerObj.id} at position: (${currentPlayerObj.x}, ${currentPlayerObj.y})`
-    );
   }
 
   // Called when projectile finishes (explosion or timeout)
   endProjectileTurn() {
-    console.log("Projectile turn ended, resetting turnInProgress to false");
     this.turnInProgress = false;
 
     // Small delay before starting next turn (for explosion effect)
     this.scene.time.addEvent({
       delay: 500, // 0.5 seconds
       callback: () => {
-        console.log("Starting next turn from endProjectileTurn");
         this.startTurn();
       },
     });
@@ -116,7 +100,6 @@ class TurnManager {
 
     // End turn if timer runs out and player hasn't started shooting yet
     if (this.turnTimer <= 0 && !this.turnInProgress) {
-      console.log("Turn timer expired, starting next turn");
       this.startTurn();
     }
 
@@ -163,7 +146,6 @@ class TurnManager {
 
   // Force end current turn (for debugging or special cases)
   forceEndTurn() {
-    console.log("Force ending current turn");
     this.unlockPlayer();
     this.endProjectileTurn();
   }

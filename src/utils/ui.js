@@ -82,7 +82,6 @@ class UIManager {
 
   // 🎯 Initialize all game UI elements (comprehensive single method)
   static initializeGameUI(scene) {
-    console.log("🎨 UIManager: Initializing complete game UI setup");
 
     // Create all UI elements in logical sequence
     UIManager.createHealthBars(scene);
@@ -91,7 +90,6 @@ class UIManager {
     UIManager.createTurnIndicator(scene);
     UIManager.createInstructions(scene);
 
-    console.log("✅ UIManager: Game UI initialization completed");
   }
 }
 

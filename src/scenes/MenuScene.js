@@ -79,7 +79,6 @@ class MenuScene extends Phaser.Scene {
         this.introMusic.play();
       }
     } catch (error) {
-      console.log("Audio loading error:", error.message);
     }
 
     // Title text

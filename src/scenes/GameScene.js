@@ -19,7 +19,6 @@ class GameScene extends Phaser.Scene {
     // Load crocodile character sprites
     this.load.image("croc1", "src/assets/croc1.png");
     this.load.image("croc2", "src/assets/croc2.png");
-    console.log("🔄 Loading crocodile sprites...");
   }
 
   create() {
@@ -248,8 +247,6 @@ class GameScene extends Phaser.Scene {
       this.scene.stop();
       this.scene.start("MenuScene");
     });
-
-    console.log(`🏆 Game Over - Team ${winningTeam} victorious!`);
   }
 
   update(time, delta) {
@@ -351,10 +348,6 @@ class GameScene extends Phaser.Scene {
   handleShooting(pointer) {
     const player = this.turnManager.getCurrentPlayer();
     if (!player.canShoot || this.turnManager.isTurnInProgress()) return;
-
-    console.log(
-      `Player ${player.id} shooting at (${pointer.worldX}, ${pointer.worldY})`
-    );
 
     // Lock player and launch projectile
     this.turnManager.lockPlayerForProjectile();

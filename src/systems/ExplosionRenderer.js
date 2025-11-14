@@ -6,19 +6,12 @@
 class ExplosionRenderer {
   constructor(scene) {
     this.scene = scene;
-    console.log("💥 ExplosionRenderer initialized - handling visual effects");
   }
 
   /**
    * Create visual explosion effect at location
    */
   createExplosionEffect(x, y, projectileOwner = null) {
-    console.log(
-      `ACTUAL EXPLOSION EFFECT at (${x.toFixed(1)}, ${y.toFixed(1)}) from ${
-        projectileOwner ? `Player ${projectileOwner}` : "timeout"
-      }`
-    );
-
     // Animated explosion graphics
     const explosion = this.scene.add.graphics({ x: x, y: y });
     explosion.fillStyle(0xff4500); // Orange-red explosion color

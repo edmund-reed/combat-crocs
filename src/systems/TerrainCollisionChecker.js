@@ -14,16 +14,6 @@ class TerrainCollisionChecker {
     playerX,
     playerY
   ) {
-    // Simple terrain blocking check - check if there's a platform between explosion and player
-
-    console.log(
-      `Checking terrain blocking: explosion(${explosionX.toFixed(
-        0
-      )}, ${explosionY.toFixed(0)}) to player(${playerX.toFixed(
-        0
-      )}, ${playerY.toFixed(0)})`
-    );
-
     // Platform positions from TerrainManager (hardcoded for now)
     const platforms = [
       { x: 400, y: 575, width: 200, height: 50, name: "Left Platform" },
@@ -31,29 +21,6 @@ class TerrainCollisionChecker {
       { x: 950, y: 475, width: 100, height: 50, name: "Right Platform" },
     ];
 
-    // Check each platform
-    for (const platform of platforms) {
-      const blocked = TerrainCollisionChecker.platformBlocksPath(
-        platform,
-        explosionX,
-        explosionY,
-        playerX,
-        playerY
-      );
-
-      if (blocked) {
-        console.log(
-          `❌ BLOCKED by ${platform.name} at (${platform.x}, ${platform.y})`
-        );
-        return true;
-      } else {
-        console.log(
-          `✅ ${platform.name} at (${platform.x}, ${platform.y}) does NOT block`
-        );
-      }
-    }
-
-    console.log("✅ No terrain blocking found");
     return false;
   }
 
@@ -68,14 +35,6 @@ class TerrainCollisionChecker {
     playerY
   ) {
     const { x: platX, y: platY, width: platW, height: platH } = platform;
-
-    console.log(
-      `Checking platform ${platform.name}: explosion(${explosionX.toFixed(
-        0
-      )}, ${explosionY.toFixed(0)}) vs player(${playerX.toFixed(
-        0
-      )}, ${playerY.toFixed(0)})`
-    );
 
     // Platform bounds
     const platLeft = platX - platW / 2;
@@ -96,42 +55,26 @@ class TerrainCollisionChecker {
     const playerSide =
       playerY <= platTop ? "above" : playerY >= platBottom ? "below" : "beside";
 
-    console.log(
-      `Explosion position: ${explosionSide} platform, Player position: ${playerSide} platform`
-    );
-
     // PROTECTION LOGIC: Shield only when platform physically blocks blast path
 
     // ✅ PROTECT: Platform BETWEEN explosion and player
     if (explosionSide === "above" && playerSide === "below") {
-      console.log(
-        `🎯 PROTECTION: Platform above blocks explosion from reaching below`
-      );
       return true;
     }
 
     // ✅ PROTECT: Platform beside blocks horizontal blast
     if (explosionSide === "beside" && playerSide === "below") {
-      console.log(
-        `🎯 PROTECTION: Platform beside blocks explosion from reaching below`
-      );
       return true;
     }
 
     // ❌ NO PROTECTION: Explosion and player on same "vertical side"
     // Special case: Player shooting upward at platform above them
     if (explosionSide === "below" && playerSide === "below") {
-      console.log(
-        `❌ NO PROTECTION: Explosion below platform, player below - no shield`
-      );
       return false;
     }
 
     // Side-by-side or above-together scenarios
     if (explosionSide === playerSide) {
-      console.log(
-        `❌ NO PROTECTION: Explosion (${explosionSide}) same side as player (${playerSide})`
-      );
       return false;
     }
 
@@ -139,22 +82,15 @@ class TerrainCollisionChecker {
     const explosionLeftOfPlatform = explosionX < platLeft;
     const playerRightOfPlatform = playerX > platRight;
     if (explosionLeftOfPlatform && playerRightOfPlatform) {
-      console.log(
-        `🛡️ HORIZONTAL PROTECTION: Right side shielded from explosion`
-      );
       return true;
     }
 
     const explosionRightOfPlatform = explosionX > platRight;
     const playerLeftOfPlatform = playerX < platLeft;
     if (explosionRightOfPlatform && playerLeftOfPlatform) {
-      console.log(
-        `🛡️ HORIZONTAL PROTECTION: Left side shielded from explosion`
-      );
       return true;
     }
 
-    console.log(`❌ No line-of-sight protection from ${platform.name}`);
     return false;
   }
 
@@ -191,7 +127,6 @@ class TerrainCollisionChecker {
       if (
         TerrainCollisionChecker.rectsIntersect(projectileRect, platformRect)
       ) {
-        console.log(`🎯 Terrain hit! Projectile hit ${platform.name}`);
         return true;
       }
     }

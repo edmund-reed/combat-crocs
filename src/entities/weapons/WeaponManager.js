@@ -5,7 +5,6 @@ class WeaponManager {
 
   constructor(scene) {
     this.scene = scene;
-    console.log("🎯 WeaponManager initialized");
   }
 
   static getInstance(scene) {
@@ -75,7 +74,6 @@ class WeaponManager {
     // Auto-cleanup timeout (if projectile doesn't hit anything)
     setTimeout(() => {
       if (!body.destroyed && body.world) {
-        console.log("Projectile timeout reached, cleaning up and ending turn");
         this.scene.matter.world.remove(body);
         projectile.destroy();
         debugOutline.destroy();
@@ -120,7 +118,6 @@ class WeaponManager {
         event.pairs.forEach((pair) => {
           // Check if this collision involves our projectile
           if (pair.bodyA === projectileBody || pair.bodyB === projectileBody) {
-            console.log("Projectile collision detected!");
             hasHit = true;
 
             // Get current weapon to determine explosion properties

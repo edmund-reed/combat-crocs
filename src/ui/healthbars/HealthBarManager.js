@@ -10,7 +10,6 @@ class HealthBarManager {
     this.healthBars = []; // Visual bar graphics
     this.playerHealth = []; // Health values for all players (dynamic)
     this.players = []; // Reference to actual player objects
-    console.log("❤️ HealthBarManager initialized - managing health logic");
   }
 
   static getInstance() {
@@ -25,15 +24,8 @@ class HealthBarManager {
     const oldHealth = this.playerHealth[playerId - 1];
     this.playerHealth[playerId - 1] = Math.max(0, oldHealth - damage);
 
-    console.log(
-      `💔 Player ${playerId} damage: ${damage} (Health: ${oldHealth} → ${
-        this.playerHealth[playerId - 1]
-      })`
-    );
-
     // Check for game over
     if (this.playerHealth[playerId - 1] <= 0) {
-      console.log(`💀 Player ${playerId} defeated!`);
       this.triggerGameOver(playerId);
     }
 
@@ -61,19 +53,11 @@ class HealthBarManager {
     if (isTeamEliminated) {
       // Find the winning team (the one that still has players alive)
       const winningTeam = this.getWinningTeam();
-      console.log(
-        `🏆 Team ${winningTeam} wins! (Player ${defeatedPlayerId} from Team ${defeatedTeam} was defeated)`
-      );
 
       // Let GameScene handle the game over UI
       if (window.currentGameScene && window.currentGameScene.endGame) {
         window.currentGameScene.endGame(winningTeam); // Pass winning team instead of individual player
       }
-    } else {
-      // Team still has other players, game continues
-      console.log(
-        `Team ${defeatedTeam} still has players remaining - game continues`
-      );
     }
   }
 
@@ -113,7 +97,6 @@ class HealthBarManager {
   resetHealth() {
     // Reset all players to full health
     this.playerHealth.fill(100);
-    console.log("🔄 Health reset for new game");
   }
 
   // Initialize health system for given number of players
@@ -125,13 +108,9 @@ class HealthBarManager {
       index % 2 === 0 ? 1 : 2
     ); // Alternate teams for simple 1v1, 2v2, etc.
 
-    console.log(
-      `❤️ HealthBarManager: Initialized for ${playerList.length} players`
-    );
     this.playerHealth.forEach((health, index) => {
       const playerNum = index + 1;
       const team = this.playerTeams[index];
-      console.log(`  Player ${playerNum} (Team ${team}): ${health} HP`);
     });
   }
 

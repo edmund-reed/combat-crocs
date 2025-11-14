@@ -5,7 +5,6 @@ class PlayerManager {
   static createPlayer(scene, id, x, y, color) {
     // Choose sprite based on player ID
     const spriteKey = id === 1 ? "croc1" : "croc2";
-    console.log(`🐊 Creating Player ${id} with sprite: ${spriteKey}`);
 
     // Create player sprite
     const playerSprite = scene.add.sprite(x, y, spriteKey);
@@ -15,12 +14,6 @@ class PlayerManager {
     // Flip sprite based on player position (Player 1 faces right, Player 2 faces left)
     const shouldFaceLeft = id === 2;
     playerSprite.setFlipX(shouldFaceLeft);
-
-    console.log(
-      `🖼️ Created sprite ${spriteKey} at (${x}, ${y}) with scale 0.12, facing ${
-        shouldFaceLeft ? "left" : "right"
-      }`
-    );
 
     // Create physics body (keep same collision box)
     const body = scene.matter.add.rectangle(x, y, 30, 20, {
@@ -110,9 +103,6 @@ class PlayerManager {
         x: player.body.velocity.x,
         y: -Config.PLAYER_JUMP_FORCE,
       });
-      console.log(
-        `🦘 PLAYER JUMPED! (Velocity Y: ${player.body.velocity.y.toFixed(2)})`
-      );
 
       // Mark as having jumped this turn
       player.hasJumpedThisTurn = true;
@@ -123,15 +113,12 @@ class PlayerManager {
         callback: () => {
           if (Math.abs(player.body.velocity.y) < 3) {
             player.hasJumpedThisTurn = false;
-            console.log("Reset jump ability after landing");
           }
         },
         loop: true,
       });
     } else if (spaceKey.isDown && !canJump) {
-      console.log(
-        `❌ Jump blocked - On ground: ${isActuallyOnGround}, Already jumped: ${player.hasJumpedThisTurn}`
-      );
+      // Jump is blocked - on cooldown or not on ground
     }
 
     // Add slight rotation based on movement
@@ -144,17 +131,8 @@ class PlayerManager {
     // Check if velocity is low (close to zero) - the main indicator of being on ground
     const lowVelocity = Math.abs(player.body.velocity.y) < 3;
 
-    // Only log when jumping or landing (not every frame while standing)
-    if (!lowVelocity || player.lastGroundCheckResult !== lowVelocity) {
-      console.log(
-        `Ground check: Y=${player.y.toFixed(
-          1
-        )}, Velocity Y=${player.body.velocity.y.toFixed(
-          3
-        )}, On ground=${lowVelocity}`
-      );
-      player.lastGroundCheckResult = lowVelocity;
-    }
+    // Store result for next frame comparison
+    player.lastGroundCheckResult = lowVelocity;
 
     return lowVelocity;
   }

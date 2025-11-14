@@ -18,11 +18,6 @@ class HealthBarRenderer {
       healthBars.push(bar);
     }
 
-    console.log(
-      "🎨 HealthBarRenderer: Created health bars for",
-      numPlayers,
-      "players"
-    );
     return healthBars;
   }
 
@@ -40,12 +35,6 @@ class HealthBarRenderer {
       bar.fillStyle(0x00ff00);
       const healthWidth = 200 * (health / 100);
       bar.fillRect(20, 20 + index * 40, healthWidth, 20);
-
-      console.log(
-        `🎨 HealthBarRenderer: Updated Player ${
-          index + 1
-        } bar to ${health}% health`
-      );
     });
   }
 
@@ -58,11 +47,6 @@ class HealthBarRenderer {
       labels.push(label);
     }
 
-    console.log(
-      "📝 HealthBarRenderer: Created health labels for",
-      numPlayers,
-      "players"
-    );
     return labels;
   }
 
@@ -73,7 +57,6 @@ class HealthBarRenderer {
         bar.destroy();
       }
     });
-    console.log("🗑️ HealthBarRenderer: Destroyed health bars");
   }
 
   // Clean up health bar text labels
@@ -83,7 +66,6 @@ class HealthBarRenderer {
         label.destroy();
       }
     });
-    console.log("🗑️ HealthBarRenderer: Destroyed health labels");
   }
 }
 
