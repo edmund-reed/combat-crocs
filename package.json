@@ -1,0 +1,23 @@
+{
+  "name": "combat-crocs",
+  "version": "1.0.0",
+  "description": "Worms-style turn-based strategy game featuring crocodiles in an Orlando setting",
+  "main": "src/game.js",
+  "scripts": {
+    "start": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true && python3 -m http.server 3000",
+    "start:fallback": "python -m SimpleHTTPServer 3000",
+    "dev": "python3 -m http.server 3000"
+  },
+  "keywords": [
+    "game",
+    "phaser",
+    "worms",
+    "strategy",
+    "turn-based"
+  ],
+  "author": "Combat Crocs Team",
+  "license": "MIT",
+  "dependencies": {
+    "phaser": "^3.60.8"
+  }
+}

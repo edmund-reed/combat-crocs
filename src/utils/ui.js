@@ -1,0 +1,115 @@
+// UI utilities for Combat Crocs
+
+class UIManager {
+  // Create health bars
+  static createHealthBars(scene) {
+    scene.healthBars = [];
+
+    scene.players.forEach((player, index) => {
+      const bar = scene.add.graphics();
+      bar.fillStyle(0xff0000);
+      bar.fillRect(20, 20 + index * 40, 200, 20);
+      bar.fillStyle(0x00ff00);
+      bar.fillRect(20, 20 + index * 40, 200 * (player.health / 100), 20);
+
+      // Player label
+      scene.add.text(30, 22 + index * 40, `Player ${player.id}`, {
+        font: "12px Arial",
+        fill: "#FFFFFF",
+      });
+
+      scene.healthBars.push(bar);
+    });
+  }
+
+  // Update health display
+  static updateHealthBars(scene) {
+    scene.healthBars.forEach((bar, index) => {
+      bar.clear();
+      const player = scene.players[index];
+
+      bar.fillStyle(0xff0000);
+      bar.fillRect(20, 20 + index * 40, 200, 20);
+
+      bar.fillStyle(0x00ff00);
+      const healthWidth = 200 * (player.health / 100);
+      bar.fillRect(20, 20 + index * 40, healthWidth, 20);
+
+      // Check for game over
+      if (player.health <= 0) {
+        scene.endGame(index === 0 ? 2 : 1);
+      }
+    });
+  }
+
+  // Create weapon display
+  static createWeaponDisplay(scene) {
+    scene.weaponText = scene.add.text(
+      Config.GAME_WIDTH - 200,
+      20,
+      `Weapon: ${Config.WEAPON_TYPES[WeaponManager.getCurrentWeapon()].name}`,
+      {
+        font: "16px Arial",
+        fill: "#FFD23F",
+      }
+    );
+  }
+
+  // Create timer display
+  static createTimerDisplay(scene) {
+    scene.timerText = scene.add.text(Config.GAME_WIDTH - 200, 50, "Time: 30", {
+      font: "16px Arial",
+      fill: "#FFFFFF",
+    });
+  }
+
+  // Create turn indicator
+  static createTurnIndicator(scene) {
+    scene.playerIndicator = scene.add
+      .text(Config.GAME_WIDTH / 2, 20, "Player 1's Turn", {
+        font: "20px Arial",
+        fill: "#FFD23F",
+        stroke: "#FF6B35",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5);
+  }
+
+  // Create instructions
+  static createInstructions(scene) {
+    const instructionsText = scene.add
+      .text(
+        Config.GAME_WIDTH / 2,
+        50,
+        "Move: Arrow Keys | Aim: Mouse | Shoot: Click | Jump: Spacebar",
+        {
+          font: "14px Arial",
+          fill: "#FFFFFF",
+          stroke: "#000000",
+          strokeThickness: 2,
+        }
+      )
+      .setOrigin(0.5);
+
+    return instructionsText;
+  }
+
+  // Update turn display
+  static updateTurnIndicator(scene, currentPlayer) {
+    const player = scene.players[currentPlayer];
+    scene.playerIndicator.setText(`Player ${player.id}'s Turn`);
+    scene.playerIndicator.setFill(player.id === 1 ? "#00FF00" : "#FFD23F");
+
+    // Highlight current player
+    scene.players.forEach((p, index) => {
+      p.graphics.setAlpha(index === currentPlayer ? 1.0 : 0.5);
+    });
+  }
+
+  // Update timer display
+  static updateTimer(scene, timeLeft) {
+    scene.timerText.setText(`Time: ${Math.ceil(timeLeft)}`);
+  }
+}
+
+window.UIManager = UIManager;
