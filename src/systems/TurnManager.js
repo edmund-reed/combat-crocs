@@ -8,7 +8,7 @@ class TurnManager {
 
   constructor(scene) {
     this.scene = scene;
-    this.currentPlayer = 0;
+    this.currentPlayer = -1; // Start at -1 so first startTurn() gives Player 1 (index 0)
     this.turnTimer = 0;
     this.turnInProgress = false;
     this.gameStarted = false;
@@ -38,8 +38,8 @@ class TurnManager {
     // Highlight current player visually
     this.updatePlayerHighlighting();
 
-    // Clear aim line at start of turn
-    this.clearAimLine();
+    // Emit turn change event for aim line updates
+    this.scene.events.emit("turnChange");
   }
 
   // Called when projectile finishes (explosion or timeout)
@@ -80,7 +80,8 @@ class TurnManager {
     player.canShoot = false;
     player.canMove = false; // Lock movement during projectile flight
     this.turnInProgress = true;
-    this.clearAimLine();
+
+    // Note: InputManager will handle clearing aim line when it detects turnInProgress
   }
 
   // Unlock player after turn is complete

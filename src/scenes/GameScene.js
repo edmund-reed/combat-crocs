@@ -13,6 +13,7 @@ class GameScene extends Phaser.Scene {
     // Initialize system managers
     this.turnManager = TurnManager.getInstance(this);
     this.healthBarManager = HealthBarManager.getInstance();
+    this.inputManager = InputManager.getInstance(this);
   }
 
   preload() {
@@ -169,36 +170,8 @@ class GameScene extends Phaser.Scene {
   }
 
   setupInput() {
-    // Keyboard controls
-    this.cursors = this.input.keyboard.createCursorKeys();
-    this.spaceKey = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.SPACE
-    );
-
-    // Mouse aiming
-    this.input.on("pointermove", this.handleAiming, this);
-    this.input.on("pointerdown", this.handleShooting, this);
-
-    // Clear aim line on turn change
-    this.events.on("turnChange", () => {
-      this.clearAimLine();
-    });
-  }
-
-  handleAiming(pointer) {
-    const currentPlayer = this.turnManager.getCurrentPlayer();
-    if (!currentPlayer.canShoot) return;
-
-    const angle = Phaser.Math.Angle.Between(
-      currentPlayer.x,
-      currentPlayer.y,
-      pointer.worldX,
-      pointer.worldY
-    );
-    currentPlayer.aimAngle = angle;
-
-    // Update aim line when mouse moves
-    this.updateAimLine();
+    // Delegate all input handling to InputManager (GAME CONCERN: Player interaction)
+    this.inputManager.initialize();
   }
 
   // Initialize the scalable health system for all players
@@ -265,17 +238,14 @@ class GameScene extends Phaser.Scene {
       PlayerManager.handleMovement(
         this,
         currentPlayer,
-        this.cursors,
-        this.spaceKey
+        this.inputManager.getCursors(),
+        this.inputManager.getSpaceKey()
       );
-    }
 
-    // Update aim line continuously when player can shoot (follows player movement)
-    const currentPlayer = this.turnManager.getCurrentPlayer();
-    if (currentPlayer.canShoot) {
-      this.updateAimLine();
-    } else {
-      this.clearAimLine();
+      // Update aiming line every frame if player can shoot (follows character movement)
+      if (currentPlayer.canShoot) {
+        this.inputManager.updateAimLine();
+      }
     }
 
     // Update projectile positions and debug outlines
@@ -290,73 +260,6 @@ class GameScene extends Phaser.Scene {
         }
       }
     });
-  }
-
-  updateAimLine() {
-    this.clearAimLine();
-
-    // Only show aiming when player can shoot
-    const currentPlayer = this.turnManager.getCurrentPlayer();
-    if (!currentPlayer.canShoot) return;
-
-    const mouse = this.input.activePointer;
-    const angle = Phaser.Math.Angle.Between(
-      currentPlayer.x,
-      currentPlayer.y,
-      mouse.worldX,
-      mouse.worldY
-    );
-
-    // Create yellow direction arrow
-    this.aimLine = this.add.graphics();
-    this.aimLine.lineStyle(4, 0xffd23f); // Thick yellow line
-    this.aimLine.moveTo(currentPlayer.x, currentPlayer.y);
-
-    // Show direction with arrowhead (extended line for better visibility)
-    const lineLength = Math.max(
-      150,
-      300 - Math.abs(currentPlayer.body.velocity.y) * 5
-    );
-    const endX = currentPlayer.x + Math.cos(angle) * lineLength;
-    const endY = currentPlayer.y + Math.sin(angle) * lineLength;
-
-    this.aimLine.lineTo(endX, endY);
-    this.aimLine.strokePath();
-
-    // Add arrowhead
-    const arrowSize = 12;
-    this.aimLine.moveTo(endX, endY);
-    this.aimLine.lineTo(
-      endX - Math.cos(angle - Math.PI / 6) * arrowSize,
-      endY - Math.sin(angle - Math.PI / 6) * arrowSize
-    );
-    this.aimLine.moveTo(endX, endY);
-    this.aimLine.lineTo(
-      endX - Math.cos(angle + Math.PI / 6) * arrowSize,
-      endY - Math.sin(angle + Math.PI / 6) * arrowSize
-    );
-    this.aimLine.strokePath();
-  }
-
-  clearAimLine() {
-    if (this.aimLine) {
-      this.aimLine.destroy();
-      this.aimLine = null;
-    }
-  }
-
-  handleShooting(pointer) {
-    const player = this.turnManager.getCurrentPlayer();
-    if (!player.canShoot || this.turnManager.isTurnInProgress()) return;
-
-    // Lock player and launch projectile
-    this.turnManager.lockPlayerForProjectile();
-    WeaponManager.createProjectile(
-      this,
-      player,
-      pointer.worldX,
-      pointer.worldY
-    );
   }
 
   endProjectileTurn() {
