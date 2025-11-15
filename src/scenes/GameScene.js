@@ -13,9 +13,6 @@ class GameScene extends Phaser.Scene {
     this.turnTimer = 0;
     this.gameStarted = false;
     this.terrain = null;
-    this.currentWeapon = "BAZOOKA";
-    this.aiming = false;
-    this.aimDirection = 0;
     this.aimLine = null; // Yellow direction arrow
     this.turnInProgress = false; // Prevents next player from moving
   }
@@ -203,77 +200,6 @@ class GameScene extends Phaser.Scene {
     }
 
     console.log("All player positions assigned successfully!");
-  }
-
-  getActualTerrainHeightAtX(x) {
-    // Better terrain height calculation
-    // Since terrain is generated procedurally, we need a more accurate method
-    const baseHeight = Config.GAME_HEIGHT - 200;
-    const heightVariation =
-      Math.sin(x * 0.01) * 60 +
-      Math.sin(x * 0.02) * 30 +
-      Math.sin(x * 0.005) * 100;
-
-    return baseHeight + heightVariation;
-  }
-
-  createPlayer(id, x, y, color) {
-    const playerGraphics = this.add.graphics({ x: x, y: y });
-
-    // Draw crocodile as geometric shapes
-    playerGraphics.fillStyle(color);
-
-    // Body
-    playerGraphics.fillRect(-15, -10, 30, 20);
-
-    // Head
-    playerGraphics.fillRect(15, -8, 12, 16);
-
-    // Legs (simple rectangles)
-    playerGraphics.fillRect(-12, 10, 8, 12);
-    playerGraphics.fillRect(4, 10, 8, 12);
-
-    // Tail
-    playerGraphics.fillRect(-20, -5, 8, 10);
-
-    // Eye and teeth (bright colors)
-    playerGraphics.fillStyle(0xffd23f);
-    playerGraphics.fillRect(18, -4, 4, 4);
-
-    playerGraphics.fillStyle(0xffffff);
-    playerGraphics.fillRect(21, -3, 6, 3);
-    playerGraphics.fillRect(27, -3, 6, 3);
-
-    // Create physics body
-    const body = this.matter.add.rectangle(x, y, 30, 20, {
-      friction: 0.1,
-      restitution: 0.1,
-      density: 0.01,
-    });
-
-    const player = {
-      id: id,
-      graphics: playerGraphics,
-      body: body,
-      x: x,
-      y: y,
-      health: 100,
-      color: color,
-      aimAngle: 0,
-      canMove: false,
-      canShoot: false,
-    };
-
-    // Don't set gameObject to avoid Phaser emit expectations
-    // We'll track physics manually
-
-    return player;
-  }
-
-  updatePlayerPhysics(player) {
-    // Cancel any existing velocity and position on ground
-    this.matter.body.setVelocity(player.body, { x: 0, y: 0 });
-    this.matter.body.setPosition(player.body, { x: player.x, y: player.y });
   }
 
   createUI() {
@@ -537,28 +463,6 @@ class GameScene extends Phaser.Scene {
         }
       }
     });
-  }
-
-  handleShooting(pointer) {
-    const player = this.players[this.currentPlayer];
-    if (!player.canShoot || this.turnInProgress) return;
-
-    console.log(
-      `Player ${player.id} shooting at (${pointer.worldX}, ${pointer.worldY})`
-    );
-    // Prevent shooting while turn is in progress
-    this.turnInProgress = true;
-    WeaponManager.createProjectile(
-      this,
-      player,
-      pointer.worldX,
-      pointer.worldY
-    );
-    player.canShoot = false;
-    player.canMove = false; // Lock movement during projectile flight
-
-    // Clear aim line
-    UIManager.clearAimLine(this);
   }
 
   endProjectileTurn() {
