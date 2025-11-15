@@ -125,21 +125,118 @@ class UIManager {
     return instructionsText;
   }
 
-  // Update turn display
-  static updateTurnIndicator(scene, currentPlayer) {
-    const player = scene.players[currentPlayer];
-    scene.playerIndicator.setText(`Player ${player.id}'s Turn`);
-    scene.playerIndicator.setFill(player.id === 1 ? "#00FF00" : "#FFD23F");
-
-    // Highlight current player
-    scene.players.forEach((p, index) => {
-      p.graphics.setAlpha(index === currentPlayer ? 1.0 : 0.5);
-    });
-  }
-
   // Update timer display
   static updateTimer(scene, timeLeft) {
     scene.timerText.setText(`Time: ${Math.ceil(timeLeft)}`);
+  }
+
+  // Show game end screen
+  static showGameEndScreen(scene, winnerTeam) {
+    // Don't pause the scene - keep input working
+    const overlay = scene.add.graphics();
+    overlay.fillStyle(0x000000, 0.8);
+    overlay.fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
+
+    const gameOverText = scene.add
+      .text(
+        Config.GAME_WIDTH / 2,
+        Config.GAME_HEIGHT / 2,
+        `${winnerTeam} Wins!\n\nClick to return to menu`,
+        {
+          font: "bold 32px Arial",
+          fill: "#FFD23F",
+          align: "center",
+        }
+      )
+      .setOrigin(0.5);
+
+    // Make it interactive and handle the click
+    gameOverText.setInteractive();
+    gameOverText.on("pointerdown", () => {
+      scene.scene.stop();
+      scene.scene.start("MenuScene");
+    });
+
+    // Also allow clicking anywhere on the overlay
+    overlay.setInteractive(
+      new Phaser.Geom.Rectangle(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT),
+      Phaser.Geom.Rectangle.Contains
+    );
+    overlay.on("pointerdown", () => {
+      scene.scene.stop();
+      scene.scene.start("MenuScene");
+    });
+  }
+
+  // Update aiming line graphics
+  static updateAimLine(scene) {
+    UIManager.clearAimLine(scene);
+
+    // Only show aiming when player can shoot
+    const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
+    if (!scene.players[currentPlayerIndex].canShoot) return;
+
+    const player = scene.players[currentPlayerIndex];
+    const mouse = scene.input.activePointer;
+    const angle = Phaser.Math.Angle.Between(
+      player.x,
+      player.y,
+      mouse.worldX,
+      mouse.worldY
+    );
+
+    // Create yellow direction arrow
+    scene.aimLine = scene.add.graphics();
+    scene.aimLine.lineStyle(4, 0xffd23f); // Thick yellow line
+    scene.aimLine.moveTo(player.x, player.y);
+
+    // Show direction with arrowhead (extended line for better visibility)
+    const lineLength = Math.max(
+      150,
+      300 - Math.abs(player.body.velocity.y) * 5
+    );
+    const endX = player.x + Math.cos(angle) * lineLength;
+    const endY = player.y + Math.sin(angle) * lineLength;
+
+    scene.aimLine.lineTo(endX, endY);
+    scene.aimLine.strokePath();
+
+    // Add arrowhead
+    const arrowSize = 12;
+    scene.aimLine.moveTo(endX, endY);
+    scene.aimLine.lineTo(
+      endX - Math.cos(angle - Math.PI / 6) * arrowSize,
+      endY - Math.sin(angle - Math.PI / 6) * arrowSize
+    );
+    scene.aimLine.moveTo(endX, endY);
+    scene.aimLine.lineTo(
+      endX - Math.cos(angle + Math.PI / 6) * arrowSize,
+      endY - Math.sin(angle + Math.PI / 6) * arrowSize
+    );
+    scene.aimLine.strokePath();
+  }
+
+  // Clear aiming line graphics
+  static clearAimLine(scene) {
+    if (scene.aimLine) {
+      scene.aimLine.destroy();
+      scene.aimLine = null;
+    }
+  }
+
+  // Delegated methods from TurnManager for better separation
+  static updateTurnIndicator(scene, currentPlayer) {
+    const playerName = `Player ${currentPlayer.id}`;
+    scene.playerIndicator.setText(`${playerName}'s Turn`);
+    scene.playerIndicator.setFill(
+      currentPlayer.id.startsWith("A") ? "#00FF00" : "#FFD23F"
+    );
+  }
+
+  static updatePlayerHighlighting(scene, currentPlayerIndex) {
+    scene.players.forEach((player, index) => {
+      player.graphics.setAlpha(index === currentPlayerIndex ? 1.0 : 0.5);
+    });
   }
 }
 
