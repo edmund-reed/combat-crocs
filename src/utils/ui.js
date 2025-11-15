@@ -125,18 +125,6 @@ class UIManager {
     return instructionsText;
   }
 
-  // Update turn display
-  static updateTurnIndicator(scene, currentPlayer) {
-    const player = scene.players[currentPlayer];
-    scene.playerIndicator.setText(`Player ${player.id}'s Turn`);
-    scene.playerIndicator.setFill(player.id === 1 ? "#00FF00" : "#FFD23F");
-
-    // Highlight current player
-    scene.players.forEach((p, index) => {
-      p.graphics.setAlpha(index === currentPlayer ? 1.0 : 0.5);
-    });
-  }
-
   // Update timer display
   static updateTimer(scene, timeLeft) {
     scene.timerText.setText(`Time: ${Math.ceil(timeLeft)}`);
@@ -185,9 +173,10 @@ class UIManager {
     UIManager.clearAimLine(scene);
 
     // Only show aiming when player can shoot
-    if (!scene.players[scene.currentPlayer].canShoot) return;
+    const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
+    if (!scene.players[currentPlayerIndex].canShoot) return;
 
-    const player = scene.players[scene.currentPlayer];
+    const player = scene.players[currentPlayerIndex];
     const mouse = scene.input.activePointer;
     const angle = Phaser.Math.Angle.Between(
       player.x,
@@ -233,6 +222,21 @@ class UIManager {
       scene.aimLine.destroy();
       scene.aimLine = null;
     }
+  }
+
+  // Delegated methods from TurnManager for better separation
+  static updateTurnIndicator(scene, currentPlayer) {
+    const playerName = `Player ${currentPlayer.id}`;
+    scene.playerIndicator.setText(`${playerName}'s Turn`);
+    scene.playerIndicator.setFill(
+      currentPlayer.id.startsWith("A") ? "#00FF00" : "#FFD23F"
+    );
+  }
+
+  static updatePlayerHighlighting(scene, currentPlayerIndex) {
+    scene.players.forEach((player, index) => {
+      player.graphics.setAlpha(index === currentPlayerIndex ? 1.0 : 0.5);
+    });
   }
 }
 

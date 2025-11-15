@@ -5,16 +5,13 @@ class GameScene extends Phaser.Scene {
 
   init() {
     // Initialize game state
-    this.currentPlayer = 0;
     this.players = [];
-    this.currentTeam = "A"; // Current team whose turn it is
-    this.teamAPlayerIndex = 0; // Which player in team A plays next
-    this.teamBPlayerIndex = 0; // Which player in team B plays next
-    this.turnTimer = 0;
     this.gameStarted = false;
     this.terrain = null;
     this.aimLine = null; // Yellow direction arrow
-    this.turnInProgress = false; // Prevents next player from moving
+
+    // Initialize turn manager
+    this.turnManager = new TurnManager(this);
   }
 
   preload() {
@@ -41,7 +38,7 @@ class GameScene extends Phaser.Scene {
     this.setupInput();
 
     // Initialize turn system
-    this.startTurn();
+    this.turnManager.startTurn();
 
     // Add slight camera shake effect occasionally
     this.time.addEvent({
@@ -227,126 +224,14 @@ class GameScene extends Phaser.Scene {
     });
   }
 
-  startTurn() {
-    // Log position before starting turn
-    this.players.forEach((player) => {
-      console.log(
-        `Player ${player.id} position before turn: (${player.x}, ${player.y})`
-      );
-    });
-
-    // Team-based turn system: advance to next player
-    this.currentPlayer = this.getNextPlayerIndex();
-    console.log(
-      `Current team state: currentTeam=${this.currentTeam}, teamAPlayerIndex=${this.teamAPlayerIndex}, teamBPlayerIndex=${this.teamBPlayerIndex}`
-    );
-    this.turnTimer = Config.TURN_TIME_LIMIT / 1000;
-
-    const currentPlayerObj = this.players[this.currentPlayer];
-    currentPlayerObj.canMove = true;
-    currentPlayerObj.canShoot = true;
-
-    // Display player name based on team-based ID system
-    const playerName =
-      typeof currentPlayerObj.id === "string" && currentPlayerObj.id.length >= 2
-        ? `Player ${currentPlayerObj.id}` // Already includes team prefix like "A1", "B2"
-        : `Player ${currentPlayerObj.id}`;
-
-    this.playerIndicator.setText(`${playerName}'s Turn`);
-
-    // Color based on team (A = green, B = yellow/orange)
-    const isTeamA =
-      typeof currentPlayerObj.id === "string" &&
-      currentPlayerObj.id.startsWith("A");
-    this.playerIndicator.setFill(isTeamA ? "#00FF00" : "#FFD23F");
-
-    // Highlight current player
-    currentPlayerObj.graphics.setAlpha(1.0);
-
-    // Dim all other players
-    this.players.forEach((player, index) => {
-      if (index !== this.currentPlayer) {
-        player.graphics.setAlpha(0.5);
-      }
-    });
-
-    // Clear aim line at start of turn
-    UIManager.clearAimLine(this);
-
-    // Log position after starting turn
-    console.log(
-      `Starting turn for Player ${currentPlayerObj.id} at position: (${currentPlayerObj.x}, ${currentPlayerObj.y})`
-    );
-  }
-
-  // Get the next player index using proper team alternation
-  getNextPlayerIndex() {
-    const teamACount = window.CombatCrocs.gameState.game.teamACount || 1;
-    const teamBCount = window.CombatCrocs.gameState.game.teamBCount || 1;
-
-    // Try up to teamACount + teamBCount attempts to find a living player
-    let attempts = 0;
-    const maxAttempts = this.players.length;
-
-    while (attempts < maxAttempts) {
-      let targetPlayerId;
-      let targetTeam;
-
-      // Determine which team should play next
-      if (this.currentTeam === "A") {
-        targetPlayerId = `A${this.teamAPlayerIndex + 1}`;
-        targetTeam = "A";
-      } else {
-        targetTeam = "B";
-        targetPlayerId = `B${this.teamBPlayerIndex + 1}`;
-      }
-
-      // Find the player
-      const playerIndex = this.players.findIndex(
-        (player) => player.id === targetPlayerId
-      );
-
-      if (playerIndex >= 0) {
-        const player = this.players[playerIndex];
-
-        // Check if this player is alive
-        if (player.health > 0) {
-          // Player is alive - switch to other team for next turn
-          this.currentTeam = this.currentTeam === "A" ? "B" : "A";
-
-          // Advance the player index for the team that is about to play
-          if (targetTeam === "A") {
-            this.teamAPlayerIndex = (this.teamAPlayerIndex + 1) % teamACount;
-          } else {
-            this.teamBPlayerIndex = (this.teamBPlayerIndex + 1) % teamBCount;
-          }
-
-          return playerIndex;
-        } else {
-          // Player is dead - advance to next player on same team
-          console.log(
-            `Player ${targetPlayerId} is dead, skipping to next player`
-          );
-          if (targetTeam === "A") {
-            this.teamAPlayerIndex = (this.teamAPlayerIndex + 1) % teamACount;
-          } else {
-            this.teamBPlayerIndex = (this.teamBPlayerIndex + 1) % teamBCount;
-          }
-        }
-      }
-
-      attempts++;
-    }
-
-    // Emergency fallback - should not happen if game end detection works properly
-    console.warn("No living players found - this should not happen!");
-    return 0;
-  }
-
   handleAiming(pointer) {
-    if (!this.gameStarted || !this.players[this.currentPlayer].canShoot) return;
+    if (
+      !this.gameStarted ||
+      !this.players[this.turnManager.getCurrentPlayerIndex()].canShoot
+    )
+      return;
 
-    const player = this.players[this.currentPlayer];
+    const player = this.players[this.turnManager.getCurrentPlayerIndex()];
     const angle = Phaser.Math.Angle.Between(
       player.x,
       player.y,
@@ -360,8 +245,8 @@ class GameScene extends Phaser.Scene {
   }
 
   handleShooting(pointer) {
-    const player = this.players[this.currentPlayer];
-    if (!player.canShoot || this.turnInProgress) return;
+    const player = this.players[this.turnManager.getCurrentPlayerIndex()];
+    if (!player.canShoot || this.turnManager.isTurnInProgress()) return;
 
     console.log(
       `Player ${player.id} shooting at (${pointer.worldX}, ${pointer.worldY})`
@@ -371,7 +256,7 @@ class GameScene extends Phaser.Scene {
     // They just lose movement control during projectile flight
 
     // Prevent shooting while turn is in progress
-    this.turnInProgress = true;
+    this.turnManager.endCurrentTurn();
     WeaponManager.createProjectile(
       this,
       player,
@@ -416,13 +301,13 @@ class GameScene extends Phaser.Scene {
     }
 
     // Update turn timer
-    this.turnTimer = Math.max(0, this.turnTimer - delta / 1000);
-    this.timerText.setText(`Time: ${Math.ceil(this.turnTimer)}`);
+    const currentTurnTime = this.turnManager.updateTurnTimer(delta / 1000);
+    this.timerText.setText(`Time: ${currentTurnTime}`);
 
     // End turn if timer runs out and player hasn't started shooting yet
-    if (this.turnTimer <= 0 && !this.turnInProgress) {
+    if (this.turnManager.shouldEndTurn()) {
       console.log("Turn timer expired, starting next turn");
-      this.startTurn();
+      this.turnManager.startTurn();
     }
 
     // PHYSICS: Update ALL players (gravity, position sync) - runs even during projectile flight
@@ -431,8 +316,9 @@ class GameScene extends Phaser.Scene {
     });
 
     // CONTROLS: Only current player gets movement controls when they can move
-    if (this.players[this.currentPlayer].canMove) {
-      const currentPlayer = this.players[this.currentPlayer];
+    const currentPlayerIndex = this.turnManager.getCurrentPlayerIndex();
+    if (this.players[currentPlayerIndex].canMove) {
+      const currentPlayer = this.players[currentPlayerIndex];
       PlayerManager.handleMovement(
         this,
         currentPlayer,
@@ -445,7 +331,7 @@ class GameScene extends Phaser.Scene {
     // Movement controls are restored only when their turn begins
 
     // Update aim line continuously when player can shoot (follows player movement)
-    if (this.players[this.currentPlayer].canShoot) {
+    if (this.players[currentPlayerIndex].canShoot) {
       UIManager.updateAimLine(this);
     } else {
       UIManager.clearAimLine(this);
@@ -466,16 +352,17 @@ class GameScene extends Phaser.Scene {
   }
 
   endProjectileTurn() {
-    // Reset turn state and start next player's turn
-    console.log("Projectile turn ended, resetting turnInProgress to false");
-    this.turnInProgress = false;
+    // Reset turn state and start next player's turn with explosion effect delay
+    console.log(
+      "Projectile turn ended, starting next turn after explosion delay"
+    );
 
-    // Small delay before starting next turn
+    // Small delay before starting next turn (for explosion effect)
     this.time.addEvent({
       delay: 500, // 0.5 seconds delay for explosion effect
       callback: () => {
         console.log("Starting next turn from endProjectileTurn");
-        this.startTurn();
+        this.turnManager.startTurn();
       },
     });
   }
