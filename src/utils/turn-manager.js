@@ -9,7 +9,11 @@ class TurnManager {
     this.teamBPlayerIndex = 0; // Which player in team B plays next
     this.turnTimer = 0;
     this.turnInProgress = false; // Prevents next player from moving
-    this.currentWeapon = "BAZOOKA"; // Current player's selected weapon
+    this.weaponByTeam = {
+      // Separate weapon selections per team
+      A: "BAZOOKA",
+      B: "BAZOOKA",
+    };
   }
 
   startTurn() {
@@ -95,13 +99,13 @@ class TurnManager {
   }
 
   getCurrentWeapon() {
-    return this.currentWeapon;
+    return this.weaponByTeam[this.currentTeam];
   }
 
   setCurrentWeapon(weaponType) {
     if (Config.WEAPON_TYPES[weaponType]) {
-      this.currentWeapon = weaponType;
-      console.log(`Weapon switched to: ${weaponType}`);
+      this.weaponByTeam[this.currentTeam] = weaponType;
+      console.log(`Team ${this.currentTeam} weapon switched to: ${weaponType}`);
     }
   }
 }

@@ -41,6 +41,12 @@ class UIManager {
         bar.fillStyle(0xff0000);
         bar.fillRect(20, 20 + index * 40, 200, 20);
 
+        // First death - remove physics body so weapons don't collide with corpse
+        if (player.body && !player.body.isRemoved) {
+          scene.matter.world.remove(player.body);
+          player.body.isRemoved = true;
+        }
+
         // Replace player sprite with gravestone
         this.showGravestone(scene, player);
       }
