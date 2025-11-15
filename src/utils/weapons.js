@@ -173,7 +173,7 @@ class WeaponManager {
             } hit for ${damage} damage`
           );
           player.health = Math.max(0, player.health - damage);
-          scene.updateHealthDisplay();
+          UIManager.updateHealthBars(scene);
 
           // Check if the game should end after damage
           if (scene.checkGameEnd) {

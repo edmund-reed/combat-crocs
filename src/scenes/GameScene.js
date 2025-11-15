@@ -297,7 +297,7 @@ class GameScene extends Phaser.Scene {
 
     // Clear aim line on turn change
     this.events.on("turnChange", () => {
-      this.clearAimLine();
+      UIManager.clearAimLine(this);
     });
   }
 
@@ -345,7 +345,7 @@ class GameScene extends Phaser.Scene {
     });
 
     // Clear aim line at start of turn
-    this.clearAimLine();
+    UIManager.clearAimLine(this);
 
     // Log position after starting turn
     console.log(
@@ -430,7 +430,7 @@ class GameScene extends Phaser.Scene {
     player.aimAngle = angle;
 
     // Update aim line when mouse moves
-    this.updateAimLine();
+    UIManager.updateAimLine(this);
   }
 
   handleShooting(pointer) {
@@ -456,11 +456,7 @@ class GameScene extends Phaser.Scene {
     player.canMove = false; // Lock movement during projectile flight
 
     // Clear aim line
-    this.clearAimLine();
-  }
-
-  updateHealthDisplay() {
-    UIManager.updateHealthBars(this);
+    UIManager.clearAimLine(this);
   }
 
   checkGameEnd() {
@@ -477,52 +473,15 @@ class GameScene extends Phaser.Scene {
 
     if (!teamAAlive && teamBAlive) {
       // Team B wins
-      this.showGameEnd("Team B");
+      UIManager.showGameEndScreen(this, "Team B");
       return true;
     } else if (teamAAlive && !teamBAlive) {
       // Team A wins
-      this.showGameEnd("Team A");
+      UIManager.showGameEndScreen(this, "Team A");
       return true;
     }
 
     return false; // Game continues
-  }
-
-  showGameEnd(winnerTeam) {
-    // Don't pause the scene - keep input working
-    const overlay = this.add.graphics();
-    overlay.fillStyle(0x000000, 0.8);
-    overlay.fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
-
-    const gameOverText = this.add
-      .text(
-        Config.GAME_WIDTH / 2,
-        Config.GAME_HEIGHT / 2,
-        `${winnerTeam} Wins!\n\nClick to return to menu`,
-        {
-          font: "bold 32px Arial",
-          fill: "#FFD23F",
-          align: "center",
-        }
-      )
-      .setOrigin(0.5);
-
-    // Make it interactive and handle the click
-    gameOverText.setInteractive();
-    gameOverText.on("pointerdown", () => {
-      this.scene.stop();
-      this.scene.start("MenuScene");
-    });
-
-    // Also allow clicking anywhere on the overlay
-    overlay.setInteractive(
-      new Phaser.Geom.Rectangle(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT),
-      Phaser.Geom.Rectangle.Contains
-    );
-    overlay.on("pointerdown", () => {
-      this.scene.stop();
-      this.scene.start("MenuScene");
-    });
   }
 
   update(time, delta) {
@@ -561,9 +520,9 @@ class GameScene extends Phaser.Scene {
 
     // Update aim line continuously when player can shoot (follows player movement)
     if (this.players[this.currentPlayer].canShoot) {
-      this.updateAimLine();
+      UIManager.updateAimLine(this);
     } else {
-      this.clearAimLine();
+      UIManager.clearAimLine(this);
     }
 
     // Update projectile positions and debug outlines
@@ -578,59 +537,6 @@ class GameScene extends Phaser.Scene {
         }
       }
     });
-  }
-
-  updateAimLine() {
-    this.clearAimLine();
-
-    // Only show aiming when player can shoot
-    if (!this.players[this.currentPlayer].canShoot) return;
-
-    const player = this.players[this.currentPlayer];
-    const mouse = this.input.activePointer;
-    const angle = Phaser.Math.Angle.Between(
-      player.x,
-      player.y,
-      mouse.worldX,
-      mouse.worldY
-    );
-
-    // Create yellow direction arrow
-    this.aimLine = this.add.graphics();
-    this.aimLine.lineStyle(4, 0xffd23f); // Thick yellow line
-    this.aimLine.moveTo(player.x, player.y);
-
-    // Show direction with arrowhead (extended line for better visibility)
-    const lineLength = Math.max(
-      150,
-      300 - Math.abs(player.body.velocity.y) * 5
-    );
-    const endX = player.x + Math.cos(angle) * lineLength;
-    const endY = player.y + Math.sin(angle) * lineLength;
-
-    this.aimLine.lineTo(endX, endY);
-    this.aimLine.strokePath();
-
-    // Add arrowhead
-    const arrowSize = 12;
-    this.aimLine.moveTo(endX, endY);
-    this.aimLine.lineTo(
-      endX - Math.cos(angle - Math.PI / 6) * arrowSize,
-      endY - Math.sin(angle - Math.PI / 6) * arrowSize
-    );
-    this.aimLine.moveTo(endX, endY);
-    this.aimLine.lineTo(
-      endX - Math.cos(angle + Math.PI / 6) * arrowSize,
-      endY - Math.sin(angle + Math.PI / 6) * arrowSize
-    );
-    this.aimLine.strokePath();
-  }
-
-  clearAimLine() {
-    if (this.aimLine) {
-      this.aimLine.destroy();
-      this.aimLine = null;
-    }
   }
 
   handleShooting(pointer) {
@@ -652,7 +558,7 @@ class GameScene extends Phaser.Scene {
     player.canMove = false; // Lock movement during projectile flight
 
     // Clear aim line
-    this.clearAimLine();
+    UIManager.clearAimLine(this);
   }
 
   endProjectileTurn() {

@@ -141,6 +141,99 @@ class UIManager {
   static updateTimer(scene, timeLeft) {
     scene.timerText.setText(`Time: ${Math.ceil(timeLeft)}`);
   }
+
+  // Show game end screen
+  static showGameEndScreen(scene, winnerTeam) {
+    // Don't pause the scene - keep input working
+    const overlay = scene.add.graphics();
+    overlay.fillStyle(0x000000, 0.8);
+    overlay.fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
+
+    const gameOverText = scene.add
+      .text(
+        Config.GAME_WIDTH / 2,
+        Config.GAME_HEIGHT / 2,
+        `${winnerTeam} Wins!\n\nClick to return to menu`,
+        {
+          font: "bold 32px Arial",
+          fill: "#FFD23F",
+          align: "center",
+        }
+      )
+      .setOrigin(0.5);
+
+    // Make it interactive and handle the click
+    gameOverText.setInteractive();
+    gameOverText.on("pointerdown", () => {
+      scene.scene.stop();
+      scene.scene.start("MenuScene");
+    });
+
+    // Also allow clicking anywhere on the overlay
+    overlay.setInteractive(
+      new Phaser.Geom.Rectangle(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT),
+      Phaser.Geom.Rectangle.Contains
+    );
+    overlay.on("pointerdown", () => {
+      scene.scene.stop();
+      scene.scene.start("MenuScene");
+    });
+  }
+
+  // Update aiming line graphics
+  static updateAimLine(scene) {
+    UIManager.clearAimLine(scene);
+
+    // Only show aiming when player can shoot
+    if (!scene.players[scene.currentPlayer].canShoot) return;
+
+    const player = scene.players[scene.currentPlayer];
+    const mouse = scene.input.activePointer;
+    const angle = Phaser.Math.Angle.Between(
+      player.x,
+      player.y,
+      mouse.worldX,
+      mouse.worldY
+    );
+
+    // Create yellow direction arrow
+    scene.aimLine = scene.add.graphics();
+    scene.aimLine.lineStyle(4, 0xffd23f); // Thick yellow line
+    scene.aimLine.moveTo(player.x, player.y);
+
+    // Show direction with arrowhead (extended line for better visibility)
+    const lineLength = Math.max(
+      150,
+      300 - Math.abs(player.body.velocity.y) * 5
+    );
+    const endX = player.x + Math.cos(angle) * lineLength;
+    const endY = player.y + Math.sin(angle) * lineLength;
+
+    scene.aimLine.lineTo(endX, endY);
+    scene.aimLine.strokePath();
+
+    // Add arrowhead
+    const arrowSize = 12;
+    scene.aimLine.moveTo(endX, endY);
+    scene.aimLine.lineTo(
+      endX - Math.cos(angle - Math.PI / 6) * arrowSize,
+      endY - Math.sin(angle - Math.PI / 6) * arrowSize
+    );
+    scene.aimLine.moveTo(endX, endY);
+    scene.aimLine.lineTo(
+      endX - Math.cos(angle + Math.PI / 6) * arrowSize,
+      endY - Math.sin(angle + Math.PI / 6) * arrowSize
+    );
+    scene.aimLine.strokePath();
+  }
+
+  // Clear aiming line graphics
+  static clearAimLine(scene) {
+    if (scene.aimLine) {
+      scene.aimLine.destroy();
+      scene.aimLine = null;
+    }
+  }
 }
 
 window.UIManager = UIManager;
