@@ -3,8 +3,19 @@
 class PlayerManager {
   // Create a crocodile player
   static createPlayer(scene, id, x, y, color) {
-    // Choose sprite based on player ID
-    const spriteKey = id === 1 ? "croc1" : "croc2";
+    // Choose sprite based on team (all players on same team use same sprite)
+    let spriteKey = "croc1"; // Default sprite
+
+    if (typeof id === "string" && id.length >= 2) {
+      // Team-based ID system: A1, A2, B1, B2, etc.
+      const team = id.charAt(0);
+      // All Team A players use croc1, all Team B players use croc2
+      spriteKey = team === "A" ? "croc1" : "croc2";
+    } else {
+      // Legacy numeric ID system for backward compatibility
+      spriteKey = id === 1 ? "croc1" : "croc2";
+    }
+
     console.log(`🐊 Creating Player ${id} with sprite: ${spriteKey}`);
 
     // Create player sprite
@@ -12,8 +23,8 @@ class PlayerManager {
     playerSprite.setScale(0.12); // Scale down to appropriate game size (~36-48px instead of 300-400px)
     playerSprite.setOrigin(0.5, 0.7); // Center horizontally, slightly below center for ground contact
 
-    // Flip sprite based on player position (Player 1 faces right, Player 2 faces left)
-    const shouldFaceLeft = id === 2;
+    // Flip sprite based on team (Team A faces right, Team B faces left)
+    const shouldFaceLeft = typeof id === "string" && id.startsWith("B");
     playerSprite.setFlipX(shouldFaceLeft);
 
     console.log(
@@ -22,11 +33,17 @@ class PlayerManager {
       }`
     );
 
-    // Create physics body (keep same collision box)
+    // Create physics body with collision settings
     const body = scene.matter.add.rectangle(x, y, 30, 20, {
       friction: 0.1,
       restitution: 0.1,
       density: 0.01,
+      // Players don't collide with each other, only with terrain
+      collisionFilter: {
+        group: 0, // No group - allows custom collision control
+        mask: 1, // Only collide with category 1 (terrain)
+        category: 2, // Players are in category 2
+      },
     });
 
     const player = {

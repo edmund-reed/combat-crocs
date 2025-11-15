@@ -31,15 +31,46 @@ class UIManager {
       bar.fillStyle(0xff0000);
       bar.fillRect(20, 20 + index * 40, 200, 20);
 
-      bar.fillStyle(0x00ff00);
-      const healthWidth = 200 * (player.health / 100);
-      bar.fillRect(20, 20 + index * 40, healthWidth, 20);
+      // Use green for alive players, red overlay for dead
+      if (player.health > 0) {
+        bar.fillStyle(0x00ff00);
+        const healthWidth = 200 * (player.health / 100);
+        bar.fillRect(20, 20 + index * 40, healthWidth, 20);
+      } else {
+        // Dead player - show red bar full and add gravestone
+        bar.fillStyle(0xff0000);
+        bar.fillRect(20, 20 + index * 40, 200, 20);
 
-      // Check for game over
-      if (player.health <= 0) {
-        scene.endGame(index === 0 ? 2 : 1);
+        // Replace player sprite with gravestone
+        this.showGravestone(scene, player);
       }
     });
+  }
+
+  // Show gravestone for dead player
+  static showGravestone(scene, player) {
+    // Create gravestone at player's position
+    const gravestone = scene.add.graphics();
+    gravestone.fillStyle(0x666666); // Dark gray
+    gravestone.fillRect(player.x - 8, player.y - 30, 16, 30); // Vertical stone
+    gravestone.fillRect(player.x - 12, player.y - 35, 24, 8); // Horizontal top
+
+    // RIP text
+    const ripText = scene.add
+      .text(player.x, player.y - 40, "RIP", {
+        font: "bold 10px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 1,
+      })
+      .setOrigin(0.5);
+
+    // Hide original player sprite
+    player.graphics.setVisible(false);
+
+    // Store references for cleanup if needed
+    if (!scene.gravestones) scene.gravestones = [];
+    scene.gravestones.push({ gravestone, ripText });
   }
 
   // Create weapon display
