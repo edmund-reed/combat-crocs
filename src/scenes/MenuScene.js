@@ -142,7 +142,7 @@ class MenuScene extends Phaser.Scene {
         this.introMusic.stop();
         this.introMusic.destroy();
       }
-      this.scene.start("PlayerSelectScene");
+      this.scene.start("MapSelectScene");
     });
 
     tutorialButton.on("pointerdown", () => {

@@ -30,24 +30,56 @@ class PlayerSelectScene extends Phaser.Scene {
       .fillGradientStyle(0xff6b35, 0xf7931e, 0xffd23f, 0xffd23f, 1)
       .fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
 
+    // Get selected map info
+    const selectedMap = window.MapManager.getCurrentMap();
+    const mapInfo = window.MapManager.getMapDisplayInfo(selectedMap.id);
+
     // Title
     this.add
-      .text(Config.GAME_WIDTH / 2, 80, "CHOOSE YOUR CROCODILES", {
-        font: "bold 36px Arial",
+      .text(Config.GAME_WIDTH / 2, 60, "CHOOSE YOUR CROCODILES", {
+        font: "bold 32px Arial",
         fill: "#FFD23F",
         stroke: "#FF6B35",
         strokeThickness: 4,
       })
       .setOrigin(0.5);
 
+    // Selected Map Display
+    const mapBoxY = 110;
+    const mapBg = this.add
+      .graphics()
+      .fillStyle(mapInfo.backgroundColor, 1)
+      .fillRect(Config.GAME_WIDTH / 2 - 150, mapBoxY - 25, 300, 50);
+
+    this.add
+      .text(Config.GAME_WIDTH / 2, mapBoxY, `Map: ${mapInfo.name}`, {
+        font: "bold 18px Arial",
+        fill: "#000000",
+        stroke: "#FFFFFF",
+        strokeThickness: 1,
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(
+        Config.GAME_WIDTH / 2,
+        mapBoxY + 18,
+        `${mapInfo.platformCount} platforms • ${mapInfo.difficulty} difficulty`,
+        {
+          font: "12px Arial",
+          fill: "#666666",
+        }
+      )
+      .setOrigin(0.5);
+
     // Subtitle
     this.add
       .text(
         Config.GAME_WIDTH / 2,
-        130,
+        170,
         "Select the number of crocs for each team",
         {
-          font: "18px Arial",
+          font: "16px Arial",
           fill: "#FFFFFF",
           stroke: "#FF6B35",
           strokeThickness: 2,

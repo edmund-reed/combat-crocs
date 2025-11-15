@@ -30,30 +30,35 @@ class TerrainManager {
     return { y: groundY, body: groundBody };
   }
 
-  // Create raised platforms
-  static createPlatforms(scene) {
-    const platforms = [
-      { x: 400, y: Config.GAME_HEIGHT - 125, width: 200, height: 50 }, // Ground-touching hill
-      { x: 700, y: Config.GAME_HEIGHT - 175, width: 150, height: 50 }, // Medium hill
-      { x: 950, y: Config.GAME_HEIGHT - 225, width: 100, height: 50 }, // High hill
-    ];
+  // Create raised platforms based on map configuration
+  static createPlatforms(scene, mapConfig) {
+    const platforms = mapConfig.terrain.platforms || [];
 
-    platforms.forEach((platform) => {
+    platforms.forEach((platformData) => {
+      // Evaluate string Y positions (like "GAME_HEIGHT - 125") with Config context
+      let yPos = platformData.y;
+      if (typeof platformData.y === "string") {
+        // Safely evaluate expressions with Config namespace
+        yPos = eval(
+          `(${platformData.y.replace(/GAME_HEIGHT/g, "Config.GAME_HEIGHT")})`
+        );
+      }
+
       // Draw platform terrain
       scene.terrain.fillStyle(Config.COLORS.BRIGHT_ORANGE);
       scene.terrain.fillRect(
-        platform.x - platform.width / 2,
-        platform.y - platform.height / 2,
-        platform.width,
-        platform.height
+        platformData.x - platformData.width / 2,
+        yPos - platformData.height / 2,
+        platformData.width,
+        platformData.height
       );
 
       // Create physics body
       scene.matter.add.rectangle(
-        platform.x,
-        platform.y,
-        platform.width,
-        platform.height,
+        platformData.x,
+        yPos,
+        platformData.width,
+        platformData.height,
         {
           isStatic: true,
           friction: 1.0,
