@@ -78,7 +78,9 @@ class UIManager {
     scene.weaponText = scene.add.text(
       Config.GAME_WIDTH - 200,
       20,
-      `Weapon: ${Config.WEAPON_TYPES[WeaponManager.getCurrentWeapon()].name}`,
+      `Weapon: ${
+        Config.WEAPON_TYPES[scene.turnManager.getCurrentWeapon()].name
+      }`,
       {
         font: "16px Arial",
         fill: "#FFD23F",
@@ -112,7 +114,7 @@ class UIManager {
       .text(
         Config.GAME_WIDTH / 2,
         50,
-        "Move: Arrow Keys | Aim: Mouse | Shoot: Click | Jump: Spacebar",
+        "Move: Arrow Keys | Aim: Mouse | Shoot: Click | Jump: Spacebar | Weapons: W or 🔫",
         {
           font: "14px Arial",
           fill: "#FFFFFF",
@@ -222,6 +224,134 @@ class UIManager {
       scene.aimLine.destroy();
       scene.aimLine = null;
     }
+  }
+
+  // Create weapon selection icon
+  static createWeaponSelectIcon(scene) {
+    const iconSize = 24;
+    const { GAME_WIDTH } = Config;
+
+    const icon = scene.add
+      .graphics()
+      .fillStyle(0xffd23f)
+      .fillRect(GAME_WIDTH - 250, 22, iconSize, 4) // Barrel
+      .fillRect(GAME_WIDTH - 250, 20, 4, iconSize / 2); // Handle
+
+    icon
+      .setInteractive(
+        new Phaser.Geom.Rectangle(
+          GAME_WIDTH - 255,
+          10,
+          iconSize + 10,
+          iconSize + 10
+        ),
+        Phaser.Geom.Rectangle.Contains
+      )
+      .on("pointerdown", (_, __, ___, event) => {
+        event.stopPropagation();
+        this.showWeaponSelectMenu(scene);
+      });
+
+    scene.weaponSelectIcon = icon;
+  }
+
+  // Show weapon selection menu
+  static showWeaponSelectMenu(scene) {
+    if (scene.gameEnded || scene.weaponMenu) return;
+
+    const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
+    const [menuWidth, menuHeight] = [200, 120];
+    const [menuX, menuY] = [w / 2 - menuWidth / 2, h / 2 - menuHeight / 2];
+    const menuDepth = 1000;
+
+    const currentWeapon = scene.turnManager.getCurrentWeapon();
+    const weapons = [
+      ["Bazooka", "BAZOOKA", menuY + 45],
+      ["Grenade", "GRENADE", menuY + 75],
+    ];
+
+    const elements = {
+      overlay: scene.add
+        .graphics()
+        .fillStyle(0x000000, 0.7)
+        .fillRect(0, 0, w, h)
+        .setDepth(menuDepth),
+      menuBg: scene.add
+        .graphics()
+        .setDepth(menuDepth + 1)
+        .fillStyle(0x333333, 0.95)
+        .fillRoundedRect(menuX, menuY, menuWidth, menuHeight, 10)
+        .lineStyle(3, 0xffd23f)
+        .strokeRoundedRect(menuX, menuY, menuWidth, menuHeight, 10),
+      title: scene.add
+        .text(menuX + menuWidth / 2, menuY + 20, "Select Weapon", {
+          font: "18px Arial",
+          fill: "#FFD23F",
+        })
+        .setOrigin(0.5)
+        .setDepth(menuDepth + 2),
+      ...Object.fromEntries(
+        weapons.map(([label, type, y]) => [
+          `${label.toLowerCase()}Btn`,
+          this.createWeaponButton(
+            scene,
+            menuX + 25,
+            y,
+            label,
+            type,
+            currentWeapon === type,
+            menuDepth + 3
+          ),
+        ])
+      ),
+    };
+
+    scene.weaponMenu = elements;
+    elements.overlay
+      .setInteractive()
+      .on("pointerdown", () => this.hideWeaponSelectMenu(scene));
+  }
+
+  // Create weapon selection button
+  static createWeaponButton(
+    scene,
+    x,
+    y,
+    label,
+    weaponType,
+    isSelected,
+    depth = 0
+  ) {
+    const button = scene.add.text(x, y, `${isSelected ? "▶ " : ""}${label}`, {
+      font: "14px Arial",
+      fill: isSelected ? "#00FF00" : "#FFFFFF",
+    });
+
+    return button
+      .setInteractive()
+      .setDepth(depth)
+      .on("pointerdown", (_, __, ___, event) => {
+        event.stopPropagation();
+        scene.turnManager.setCurrentWeapon(weaponType);
+        this.updateWeaponDisplay(scene);
+        this.hideWeaponSelectMenu(scene);
+      });
+  }
+
+  // Hide weapon selection menu
+  static hideWeaponSelectMenu(scene) {
+    if (!scene.weaponMenu) return;
+    Object.values(scene.weaponMenu).forEach((el) => el?.destroy?.());
+    scene.weaponMenu = null;
+  }
+
+  // Update weapon display text
+  static updateWeaponDisplay(scene) {
+    scene.weaponText?.setText(
+      `Weapon: ${
+        Config.WEAPON_TYPES[scene.turnManager.getCurrentWeapon()].name
+      }`
+    );
   }
 
   // Delegated methods from TurnManager for better separation

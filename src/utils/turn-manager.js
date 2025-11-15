@@ -9,6 +9,7 @@ class TurnManager {
     this.teamBPlayerIndex = 0; // Which player in team B plays next
     this.turnTimer = 0;
     this.turnInProgress = false; // Prevents next player from moving
+    this.currentWeapon = "BAZOOKA"; // Current player's selected weapon
   }
 
   startTurn() {
@@ -91,6 +92,17 @@ class TurnManager {
 
   isTurnInProgress() {
     return this.turnInProgress;
+  }
+
+  getCurrentWeapon() {
+    return this.currentWeapon;
+  }
+
+  setCurrentWeapon(weaponType) {
+    if (Config.WEAPON_TYPES[weaponType]) {
+      this.currentWeapon = weaponType;
+      console.log(`Weapon switched to: ${weaponType}`);
+    }
   }
 }
 

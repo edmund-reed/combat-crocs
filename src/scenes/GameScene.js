@@ -118,6 +118,7 @@ class GameScene extends Phaser.Scene {
     UIManager.createTimerDisplay(this);
     UIManager.createTurnIndicator(this);
     UIManager.createInstructions(this);
+    UIManager.createWeaponSelectIcon(this);
   }
 
   checkGameEnd() {
