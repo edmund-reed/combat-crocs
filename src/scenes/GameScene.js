@@ -35,7 +35,7 @@ class GameScene extends Phaser.Scene {
     this.createUI();
 
     // Set up input handling
-    this.setupInput();
+    InputManager.setupInput(this);
 
     // Initialize turn system
     this.turnManager.startTurn();
@@ -120,69 +120,6 @@ class GameScene extends Phaser.Scene {
     UIManager.createInstructions(this);
   }
 
-  setupInput() {
-    // Keyboard controls
-    this.cursors = this.input.keyboard.createCursorKeys();
-    this.spaceKey = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.SPACE
-    );
-
-    // Mouse aiming
-    this.input.on("pointermove", this.handleAiming, this);
-    this.input.on("pointerdown", this.handleShooting, this);
-
-    // Clear aim line on turn change
-    this.events.on("turnChange", () => {
-      UIManager.clearAimLine(this);
-    });
-  }
-
-  handleAiming(pointer) {
-    if (
-      !this.gameStarted ||
-      !this.players[this.turnManager.getCurrentPlayerIndex()].canShoot
-    )
-      return;
-
-    const player = this.players[this.turnManager.getCurrentPlayerIndex()];
-    const angle = Phaser.Math.Angle.Between(
-      player.x,
-      player.y,
-      pointer.worldX,
-      pointer.worldY
-    );
-    player.aimAngle = angle;
-
-    // Update aim line when mouse moves
-    UIManager.updateAimLine(this);
-  }
-
-  handleShooting(pointer) {
-    const player = this.players[this.turnManager.getCurrentPlayerIndex()];
-    if (!player.canShoot || this.turnManager.isTurnInProgress()) return;
-
-    console.log(
-      `Player ${player.id} shooting at (${pointer.worldX}, ${pointer.worldY})`
-    );
-
-    // Player physics continues normally while projectile flies
-    // They just lose movement control during projectile flight
-
-    // Prevent shooting while turn is in progress
-    this.turnManager.endCurrentTurn();
-    WeaponManager.createProjectile(
-      this,
-      player,
-      pointer.worldX,
-      pointer.worldY
-    );
-    player.canShoot = false;
-    player.canMove = false; // Lock movement during projectile flight
-
-    // Clear aim line
-    UIManager.clearAimLine(this);
-  }
-
   checkGameEnd() {
     // Check if all players on one team are dead
     const teamAPlayers = this.players.filter(
@@ -235,8 +172,8 @@ class GameScene extends Phaser.Scene {
       PlayerManager.handleMovement(
         this,
         currentPlayer,
-        this.cursors,
-        this.spaceKey
+        InputManager.getCursors(this),
+        InputManager.getSpaceKey(this)
       );
     }
 
