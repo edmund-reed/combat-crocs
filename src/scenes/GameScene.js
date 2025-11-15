@@ -60,7 +60,10 @@ class GameScene extends Phaser.Scene {
 
   createTerrain() {
     TerrainManager.createGround(this);
-    TerrainManager.createPlatforms(this);
+
+    // Get selected map and create platforms based on its configuration
+    const selectedMap = window.MapManager.getCurrentMap();
+    TerrainManager.createPlatforms(this, selectedMap);
   }
 
   createPlayers() {
@@ -125,19 +128,7 @@ class GameScene extends Phaser.Scene {
       { y: Config.GAME_HEIGHT - 400, name: "Above All Terrain" }, // Way above everything
     ];
 
-    // Safe spawn areas that avoid ALL platform collision areas (ground-level blocking)
-    // Platform areas that block ground movement:
-    // - Platform 1: x=300-500, blocks ground spawning in that X range
-    // - Platform 2: x=625-775, blocks ground spawning in that X range
-    // - Platform 3: x=900-1000, blocks ground spawning in that X range
-    const safeGroundAreas = [
-      { minX: 50, maxX: 290 }, // Before Platform 1
-      { minX: 510, maxX: 615 }, // Between Platform 1 & 2
-      { minX: 785, maxX: 890 }, // Between Platform 2 & 3
-      { minX: 1010, maxX: 1150 }, // After Platform 3
-    ];
-
-    // For air spawning, we can use the entire width but need to avoid character collision
+    // Wide safe air space across entire battlefield (well above all terrain)
     const airSpawnAreas = [
       { level: 0, minX: 80, maxX: 1120 }, // Wide safe air space
     ];

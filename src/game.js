@@ -6,7 +6,7 @@ class CombatCrocsGame {
     // Initialize the Phaser game instance with scenes now that they're loaded
     const PhaserConfigWithScenes = {
       ...PhaserConfig,
-      scene: [MenuScene, PlayerSelectScene, GameScene],
+      scene: [MenuScene, MapSelectScene, PlayerSelectScene, GameScene],
     };
 
     this.game = new Phaser.Game(PhaserConfigWithScenes);
