@@ -20,6 +20,10 @@ class TerrainManager {
         isStatic: true,
         friction: 1.0,
         frictionStatic: 1.0,
+        // Terrain collides with players (category 2)
+        collisionFilter: {
+          category: 1, // Terrain is in category 1
+        },
       }
     );
 
@@ -54,6 +58,10 @@ class TerrainManager {
           isStatic: true,
           friction: 1.0,
           frictionStatic: 1.0,
+          // Terrain collides with players (category 2)
+          collisionFilter: {
+            category: 1, // Terrain is in category 1
+          },
         }
       );
     });

@@ -6,7 +6,7 @@ class CombatCrocsGame {
     // Initialize the Phaser game instance with scenes now that they're loaded
     const PhaserConfigWithScenes = {
       ...PhaserConfig,
-      scene: [MenuScene, GameScene],
+      scene: [MenuScene, PlayerSelectScene, GameScene],
     };
 
     this.game = new Phaser.Game(PhaserConfigWithScenes);
@@ -23,6 +23,10 @@ class CombatCrocsGame {
   initializeGameState() {
     // Set up any global game state or managers here
     this.globalState = {
+      game: {
+        teamACount: 1,
+        teamBCount: 1,
+      },
       musicOn: true,
       soundOn: true,
       difficulty: "normal",

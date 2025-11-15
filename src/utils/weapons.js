@@ -174,6 +174,11 @@ class WeaponManager {
           );
           player.health = Math.max(0, player.health - damage);
           scene.updateHealthDisplay();
+
+          // Check if the game should end after damage
+          if (scene.checkGameEnd) {
+            scene.checkGameEnd();
+          }
         } else {
           console.log(
             `🛡️ Player ${index + 1} protected by terrain from explosion`

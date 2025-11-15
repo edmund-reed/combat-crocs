@@ -7,6 +7,9 @@ class GameScene extends Phaser.Scene {
     // Initialize game state
     this.currentPlayer = 0;
     this.players = [];
+    this.currentTeam = "A"; // Current team whose turn it is
+    this.teamAPlayerIndex = 0; // Which player in team A plays next
+    this.teamBPlayerIndex = 0; // Which player in team B plays next
     this.turnTimer = 0;
     this.gameStarted = false;
     this.terrain = null;
@@ -61,32 +64,154 @@ class GameScene extends Phaser.Scene {
   }
 
   createPlayers() {
-    this.players = [];
-    const spawnPositions = TerrainManager.getSafeSpawnPositions();
+    // Get team counts from global game state
+    const teamACount = window.CombatCrocs.gameState.game.teamACount || 1;
+    const teamBCount = window.CombatCrocs.gameState.game.teamBCount || 1;
 
-    // Create players at safe spawn positions - directly on ground
+    this.players = [];
+    this.playerSprites = {};
+    this.playerBodies = {};
+
+    // Calculate spawn positions for multiple players per team
     const groundY = Config.GAME_HEIGHT - 100;
-    // Player body is 20 units tall, so place bottom at ground level
     const spawnY = groundY - 10; // Small offset so they sit properly on ground
 
-    this.players.push(
-      PlayerManager.createPlayer(
+    // Create ALL players first with temporary positions
+    for (let i = 0; i < teamACount; i++) {
+      const playerId = `A${i + 1}`;
+      const player = PlayerManager.createPlayer(
         this,
-        1,
-        spawnPositions.player1.x,
+        playerId,
+        100 + i * 50, // Temporary positions
         spawnY,
         Config.COLORS.CROCODILE_GREEN
-      )
-    );
-    this.players.push(
-      PlayerManager.createPlayer(
+      );
+      this.players.push(player);
+    }
+
+    for (let i = 0; i < teamBCount; i++) {
+      const playerId = `B${i + 1}`;
+      const player = PlayerManager.createPlayer(
         this,
-        2,
-        spawnPositions.player2.x,
+        playerId,
+        200 + i * 50 + teamACount * 50, // Temporary positions
         spawnY,
         Config.COLORS.ORANGE
-      )
+      );
+      this.players.push(player);
+    }
+
+    // Now assign random positions to ALL players
+    this.assignRandomSpawnPositions();
+
+    // Update sprite and body references
+    this.players.forEach((player) => {
+      this.playerSprites[player.id] = player.graphics;
+      this.playerBodies[player.id] = player.body;
+    });
+
+    console.log(
+      `Created ${this.players.length} players: Team A (${teamACount}), Team B (${teamBCount})`
     );
+  }
+
+  assignRandomSpawnPositions() {
+    const playerCount = this.players.length;
+    const minDistance = 140; // Minimum distance between players
+
+    // Define high-altitude spawn positions (well above all terrain)
+    // This ensures characters spawn in unobstructed airspace and fall onto terrain
+    const spawnLevels = [
+      { y: Config.GAME_HEIGHT - 400, name: "Above All Terrain" }, // Way above everything
+    ];
+
+    // Safe spawn areas that avoid ALL platform collision areas (ground-level blocking)
+    // Platform areas that block ground movement:
+    // - Platform 1: x=300-500, blocks ground spawning in that X range
+    // - Platform 2: x=625-775, blocks ground spawning in that X range
+    // - Platform 3: x=900-1000, blocks ground spawning in that X range
+    const safeGroundAreas = [
+      { minX: 50, maxX: 290 }, // Before Platform 1
+      { minX: 510, maxX: 615 }, // Between Platform 1 & 2
+      { minX: 785, maxX: 890 }, // Between Platform 2 & 3
+      { minX: 1010, maxX: 1150 }, // After Platform 3
+    ];
+
+    // For air spawning, we can use the entire width but need to avoid character collision
+    const airSpawnAreas = [
+      { level: 0, minX: 80, maxX: 1120 }, // Wide safe air space
+    ];
+
+    console.log(
+      `Spawning ${playerCount} players in free airspace above all terrain`
+    );
+
+    // Generate dense spawn points in open airspace (guaranteed no collision)
+    const allSpawnPoints = [];
+    airSpawnAreas.forEach((area) => {
+      for (let x = area.minX; x <= area.maxX; x += 15) {
+        // Less dense for air
+        allSpawnPoints.push({
+          x: x,
+          y: spawnLevels[area.level].y,
+          levelName: spawnLevels[area.level].name,
+        });
+      }
+    });
+
+    console.log(
+      `Generated ${allSpawnPoints.length} guaranteed collision-free spawn points`
+    );
+
+    // Shuffle spawn points for randomness
+    for (let i = allSpawnPoints.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allSpawnPoints[i], allSpawnPoints[j]] = [
+        allSpawnPoints[j],
+        allSpawnPoints[i],
+      ];
+    }
+
+    // Assign players to positions
+    for (let i = 0; i < playerCount; i++) {
+      const player = this.players[i];
+
+      // Find first available spawn point that's far enough from placed players
+      let assignedPosition = null;
+      for (const spawnPoint of allSpawnPoints) {
+        const tooClose = this.players
+          .slice(0, i)
+          .some(
+            (placedPlayer) =>
+              Math.abs(spawnPoint.x - placedPlayer.x) < minDistance
+          );
+
+        if (!tooClose) {
+          assignedPosition = spawnPoint;
+          break;
+        }
+      }
+
+      // Emergency fallback if no position found
+      if (!assignedPosition) {
+        console.warn(`Emergency placement for ${player.id}`);
+        // Place at a random available spot ignoring minimum distance
+        const fallbackIndex = Math.floor(Math.random() * allSpawnPoints.length);
+        assignedPosition = allSpawnPoints[fallbackIndex];
+      }
+
+      // Update player position and physics
+      player.x = assignedPosition.x;
+      player.y = assignedPosition.y;
+      player.graphics.setPosition(player.x, player.y);
+      this.matter.body.setPosition(player.body, { x: player.x, y: player.y });
+
+      console.log(
+        `Assigned ${player.id} to ${assignedPosition.levelName} at (${assignedPosition.x}, ${assignedPosition.y})`
+      );
+    }
+
+    console.log("All player positions assigned successfully!");
   }
 
   getActualTerrainHeightAtX(x) {
@@ -193,23 +318,40 @@ class GameScene extends Phaser.Scene {
       );
     });
 
-    this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+    // Team-based turn system: advance to next player
+    this.currentPlayer = this.getNextPlayerIndex();
+    console.log(
+      `Current team state: currentTeam=${this.currentTeam}, teamAPlayerIndex=${this.teamAPlayerIndex}, teamBPlayerIndex=${this.teamBPlayerIndex}`
+    );
     this.turnTimer = Config.TURN_TIME_LIMIT / 1000;
 
     const currentPlayerObj = this.players[this.currentPlayer];
     currentPlayerObj.canMove = true;
     currentPlayerObj.canShoot = true;
 
-    this.playerIndicator.setText(`Player ${currentPlayerObj.id}'s Turn`);
-    this.playerIndicator.setFill(
-      currentPlayerObj.id === 1 ? "#00FF00" : "#FFD23F"
-    );
+    // Display player name based on team-based ID system
+    const playerName =
+      typeof currentPlayerObj.id === "string" && currentPlayerObj.id.length >= 2
+        ? `Player ${currentPlayerObj.id}` // Already includes team prefix like "A1", "B2"
+        : `Player ${currentPlayerObj.id}`;
+
+    this.playerIndicator.setText(`${playerName}'s Turn`);
+
+    // Color based on team (A = green, B = yellow/orange)
+    const isTeamA =
+      typeof currentPlayerObj.id === "string" &&
+      currentPlayerObj.id.startsWith("A");
+    this.playerIndicator.setFill(isTeamA ? "#00FF00" : "#FFD23F");
 
     // Highlight current player
     currentPlayerObj.graphics.setAlpha(1.0);
-    this.players[
-      (this.currentPlayer + 1) % this.players.length
-    ].graphics.setAlpha(0.5);
+
+    // Dim all other players
+    this.players.forEach((player, index) => {
+      if (index !== this.currentPlayer) {
+        player.graphics.setAlpha(0.5);
+      }
+    });
 
     // Clear aim line at start of turn
     this.clearAimLine();
@@ -218,6 +360,70 @@ class GameScene extends Phaser.Scene {
     console.log(
       `Starting turn for Player ${currentPlayerObj.id} at position: (${currentPlayerObj.x}, ${currentPlayerObj.y})`
     );
+  }
+
+  // Get the next player index using proper team alternation
+  getNextPlayerIndex() {
+    const teamACount = window.CombatCrocs.gameState.game.teamACount || 1;
+    const teamBCount = window.CombatCrocs.gameState.game.teamBCount || 1;
+
+    // Try up to teamACount + teamBCount attempts to find a living player
+    let attempts = 0;
+    const maxAttempts = this.players.length;
+
+    while (attempts < maxAttempts) {
+      let targetPlayerId;
+      let targetTeam;
+
+      // Determine which team should play next
+      if (this.currentTeam === "A") {
+        targetPlayerId = `A${this.teamAPlayerIndex + 1}`;
+        targetTeam = "A";
+      } else {
+        targetTeam = "B";
+        targetPlayerId = `B${this.teamBPlayerIndex + 1}`;
+      }
+
+      // Find the player
+      const playerIndex = this.players.findIndex(
+        (player) => player.id === targetPlayerId
+      );
+
+      if (playerIndex >= 0) {
+        const player = this.players[playerIndex];
+
+        // Check if this player is alive
+        if (player.health > 0) {
+          // Player is alive - switch to other team for next turn
+          this.currentTeam = this.currentTeam === "A" ? "B" : "A";
+
+          // Advance the player index for the team that is about to play
+          if (targetTeam === "A") {
+            this.teamAPlayerIndex = (this.teamAPlayerIndex + 1) % teamACount;
+          } else {
+            this.teamBPlayerIndex = (this.teamBPlayerIndex + 1) % teamBCount;
+          }
+
+          return playerIndex;
+        } else {
+          // Player is dead - advance to next player on same team
+          console.log(
+            `Player ${targetPlayerId} is dead, skipping to next player`
+          );
+          if (targetTeam === "A") {
+            this.teamAPlayerIndex = (this.teamAPlayerIndex + 1) % teamACount;
+          } else {
+            this.teamBPlayerIndex = (this.teamBPlayerIndex + 1) % teamBCount;
+          }
+        }
+      }
+
+      attempts++;
+    }
+
+    // Emergency fallback - should not happen if game end detection works properly
+    console.warn("No living players found - this should not happen!");
+    return 0;
   }
 
   handleAiming(pointer) {
@@ -266,7 +472,32 @@ class GameScene extends Phaser.Scene {
     UIManager.updateHealthBars(this);
   }
 
-  endGame(winner) {
+  checkGameEnd() {
+    // Check if all players on one team are dead
+    const teamAPlayers = this.players.filter(
+      (p) => typeof p.id === "string" && p.id.startsWith("A")
+    );
+    const teamBPlayers = this.players.filter(
+      (p) => typeof p.id === "string" && p.id.startsWith("B")
+    );
+
+    const teamAAlive = teamAPlayers.some((p) => p.health > 0);
+    const teamBAlive = teamBPlayers.some((p) => p.health > 0);
+
+    if (!teamAAlive && teamBAlive) {
+      // Team B wins
+      this.showGameEnd("Team B");
+      return true;
+    } else if (teamAAlive && !teamBAlive) {
+      // Team A wins
+      this.showGameEnd("Team A");
+      return true;
+    }
+
+    return false; // Game continues
+  }
+
+  showGameEnd(winnerTeam) {
     // Don't pause the scene - keep input working
     const overlay = this.add.graphics();
     overlay.fillStyle(0x000000, 0.8);
@@ -276,7 +507,7 @@ class GameScene extends Phaser.Scene {
       .text(
         Config.GAME_WIDTH / 2,
         Config.GAME_HEIGHT / 2,
-        `Player ${winner} Wins!\n\nClick to return to menu`,
+        `${winnerTeam} Wins!\n\nClick to return to menu`,
         {
           font: "bold 32px Arial",
           fill: "#FFD23F",
