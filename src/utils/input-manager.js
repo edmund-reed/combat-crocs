@@ -54,6 +54,9 @@ class InputManager {
 
   // Handle shooting mechanics
   static handleShooting(scene, pointer) {
+    // Prevent shooting while any modal overlay is active
+    if (UIManager.isModalOpen(scene)) return;
+
     const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
     const player = scene.players[currentPlayerIndex];
     const currentWeapon = scene.turnManager.getCurrentWeapon();

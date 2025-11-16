@@ -261,6 +261,43 @@ class UIManager {
     scene.weaponSelectIcon = icon;
   }
 
+  // Create a reusable modal overlay background
+  static createModalOverlay(scene, closeCallback = null) {
+    const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
+    const overlay = scene.add
+      .graphics()
+      .fillStyle(0x000000, 0.7)
+      .fillRect(0, 0, w, h)
+      .setDepth(1000);
+
+    if (closeCallback) {
+      overlay.setInteractive().on("pointerdown", () => closeCallback());
+    }
+
+    // Track modal state globally for input blocking
+    scene.modalOverlayActive = true;
+
+    // Store overlay reference for cleanup
+    if (!scene.modalOverlays) scene.modalOverlays = [];
+    scene.modalOverlays.push(overlay);
+
+    return overlay;
+  }
+
+  // Clear all modal overlays
+  static clearModalOverlays(scene) {
+    scene.modalOverlayActive = false;
+    if (scene.modalOverlays) {
+      scene.modalOverlays.forEach((overlay) => overlay.destroy());
+      scene.modalOverlays = [];
+    }
+  }
+
+  // Check if any modal is currently active
+  static isModalOpen(scene) {
+    return scene.modalOverlayActive || false;
+  }
+
   // Show weapon selection menu
   static showWeaponSelectMenu(scene) {
     if (scene.gameEnded || scene.weaponMenu) return;
@@ -268,7 +305,7 @@ class UIManager {
     const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
     const [menuWidth, menuHeight] = [200, 120];
     const [menuX, menuY] = [w / 2 - menuWidth / 2, h / 2 - menuHeight / 2];
-    const menuDepth = 1000;
+    const menuDepth = 1001; // Above overlay depth
 
     const currentWeapon = scene.turnManager.getCurrentWeapon();
     const weapons = [
@@ -277,11 +314,9 @@ class UIManager {
     ];
 
     const elements = {
-      overlay: scene.add
-        .graphics()
-        .fillStyle(0x000000, 0.7)
-        .fillRect(0, 0, w, h)
-        .setDepth(menuDepth),
+      overlay: this.createModalOverlay(scene, () =>
+        this.hideWeaponSelectMenu(scene)
+      ),
       menuBg: scene.add
         .graphics()
         .setDepth(menuDepth + 1)
@@ -313,9 +348,6 @@ class UIManager {
     };
 
     scene.weaponMenu = elements;
-    elements.overlay
-      .setInteractive()
-      .on("pointerdown", () => this.hideWeaponSelectMenu(scene));
   }
 
   // Create weapon selection button
@@ -347,6 +379,17 @@ class UIManager {
   // Hide weapon selection menu
   static hideWeaponSelectMenu(scene) {
     if (!scene.weaponMenu) return;
+
+    // Clear modal overlay
+    this.clearModalOverlays(scene);
+
+    // Restore scene-level input
+    if (scene.inputManagerBackup) {
+      scene.input.on("pointermove", scene.inputManagerBackup.aimingHandler);
+      scene.input.on("pointerdown", scene.inputManagerBackup.shootingHandler);
+      scene.inputManagerBackup = null;
+    }
+
     Object.values(scene.weaponMenu).forEach((el) => el?.destroy?.());
     scene.weaponMenu = null;
   }

@@ -27,6 +27,7 @@ class TurnManager {
     // Delegate UI updates to UIManager
     UIManager.updateTurnIndicator(this.scene, currentPlayerObj);
     UIManager.updatePlayerHighlighting(this.scene, this.currentPlayer);
+    UIManager.updateWeaponDisplay(this.scene); // Update weapon display for new team
 
     UIManager.clearAimLine(this.scene);
   }
