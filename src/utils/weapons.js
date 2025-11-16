@@ -196,7 +196,8 @@ class WeaponManager {
           player.x,
           player.y,
           projectileOwner,
-          player.id
+          player.id,
+          weaponType
         );
 
         if (!blockedByTerrain) {
@@ -239,7 +240,8 @@ class WeaponManager {
     playerX,
     playerY,
     projectileOwner,
-    playerId
+    playerId,
+    weaponType
   ) {
     // Simple terrain blocking check - check if there's a platform between explosion and player
 
@@ -284,6 +286,10 @@ class WeaponManager {
       }, checking ${blockingPlatforms.length} platforms for terrain blocking`
     );
 
+    // Get explosion radius for nearby threshold
+    const weaponConfig = Config.WEAPON_TYPES[weaponType];
+    const explosionRadius = weaponConfig.radius;
+
     // Check ALL platforms using consistent geometric blocking rules
     for (const platform of platforms) {
       const isLanding = platform === landingPlatform;
@@ -295,7 +301,8 @@ class WeaponManager {
         playerY,
         projectileOwner,
         playerId,
-        isLanding
+        isLanding,
+        explosionRadius
       );
 
       if (blocked) {
@@ -324,7 +331,8 @@ class WeaponManager {
     playerY,
     projectileOwner,
     playerId,
-    isLandingPlatform
+    isLandingPlatform,
+    explosionRadius
   ) {
     const { x: platX, y: platY, width: platW, height: platH } = platform;
 
@@ -379,7 +387,12 @@ class WeaponManager {
     }
 
     // Bottom edge: y = platBottom, x between platLeft and platRight
-    // Landing platforms never block from bottom edge (surface explosions don't block downward)
+    // Landing platforms block distant players but allow nearby damage propagation
+    const explosionToPlayerDistance = Math.sqrt(
+      (explosionX - playerX) ** 2 + (explosionY - playerY) ** 2
+    );
+    const nearbyThreshold = explosionRadius; // pixels - close enough to be affected
+
     if (
       this.lineIntersectsHorizontal(
         lineSegment,
@@ -387,7 +400,7 @@ class WeaponManager {
         platLeft,
         platRight
       ) &&
-      !isLandingPlatform // Non-landing platforms can block from bottom edge when deeply penetrated
+      !(isLandingPlatform && explosionToPlayerDistance < nearbyThreshold)
     ) {
       console.log(`🛡️ BLOCKED: Crosses bottom edge (geometric)`);
       return true;
