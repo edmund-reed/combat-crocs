@@ -9,6 +9,11 @@ class TurnManager {
     this.teamBPlayerIndex = 0; // Which player in team B plays next
     this.turnTimer = 0;
     this.turnInProgress = false; // Prevents next player from moving
+    this.weaponByTeam = {
+      // Separate weapon selections per team
+      A: "BAZOOKA",
+      B: "BAZOOKA",
+    };
   }
 
   startTurn() {
@@ -22,6 +27,7 @@ class TurnManager {
     // Delegate UI updates to UIManager
     UIManager.updateTurnIndicator(this.scene, currentPlayerObj);
     UIManager.updatePlayerHighlighting(this.scene, this.currentPlayer);
+    UIManager.updateWeaponDisplay(this.scene); // Update weapon display for new team
 
     UIManager.clearAimLine(this.scene);
   }
@@ -91,6 +97,17 @@ class TurnManager {
 
   isTurnInProgress() {
     return this.turnInProgress;
+  }
+
+  getCurrentWeapon() {
+    return this.weaponByTeam[this.currentTeam];
+  }
+
+  setCurrentWeapon(weaponType) {
+    if (Config.WEAPON_TYPES[weaponType]) {
+      this.weaponByTeam[this.currentTeam] = weaponType;
+      console.log(`Team ${this.currentTeam} weapon switched to: ${weaponType}`);
+    }
   }
 }
 

@@ -134,16 +134,11 @@ class PlayerManager {
       // Mark as having jumped this turn
       player.hasJumpedThisTurn = true;
 
-      // Reset jump ability after landing
-      scene.time.addEvent({
-        delay: 1000, // Check for landing every second
-        callback: () => {
-          if (Math.abs(player.body.velocity.y) < 3) {
-            player.hasJumpedThisTurn = false;
-            console.log("Reset jump ability after landing");
-          }
-        },
-        loop: true,
+      // Reset jump ability after landing (one-time check)
+      player.jumpResetTimer = scene.time.addEvent({
+        delay: 200, // Check more frequently
+        callback: () => this.checkJumpReset(scene, player),
+        repeat: 25, // Check up to 5 seconds, stop repeating when landed
       });
     } else if (spaceKey.isDown && !canJump) {
       console.log(
@@ -186,6 +181,19 @@ class PlayerManager {
   static activateForTurn(player) {
     player.canMove = true;
     player.canShoot = true;
+  }
+
+  // Check for jump reset after player lands
+  static checkJumpReset(scene, player) {
+    if (Math.abs(player.body.velocity.y) < 3) {
+      player.hasJumpedThisTurn = false;
+      console.log("✅ Jump ability reset after landing");
+      // Stop the timer
+      if (player.jumpResetTimer) {
+        player.jumpResetTimer.remove(false);
+        player.jumpResetTimer = null;
+      }
+    }
   }
 
   // Assign random spawn positions to all players

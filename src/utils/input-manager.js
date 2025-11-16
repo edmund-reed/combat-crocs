@@ -25,6 +25,11 @@ class InputManager {
     scene.events.on("turnChange", () => {
       UIManager.clearAimLine(scene);
     });
+
+    // Keyboard shortcuts
+    scene.input.keyboard.on("keydown-W", () => {
+      UIManager.showWeaponSelectMenu(scene);
+    });
   }
 
   // Handle mouse aiming calculations
@@ -49,25 +54,30 @@ class InputManager {
 
   // Handle shooting mechanics
   static handleShooting(scene, pointer) {
+    // Prevent shooting while any modal overlay is active
+    if (UIManager.isModalOpen(scene)) return;
+
     const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
     const player = scene.players[currentPlayerIndex];
+    const currentWeapon = scene.turnManager.getCurrentWeapon();
 
     if (!player.canShoot || scene.turnManager.isTurnInProgress()) return;
 
     console.log(
-      `Player ${player.id} shooting at (${pointer.worldX}, ${pointer.worldY})`
+      `Player ${player.id} shooting ${currentWeapon} at (${pointer.worldX}, ${pointer.worldY})`
     );
 
-    // Player physics continues normally while projectile flies
-    // They just lose movement control during projectile flight
+    // End turn after shooting (bazookas end turn, grenades keep turn until explosion)
+    if (currentWeapon !== "GRENADE") {
+      scene.turnManager.endCurrentTurn();
+    }
 
-    // Prevent shooting while turn is in progress
-    scene.turnManager.endCurrentTurn();
     WeaponManager.createProjectile(
       scene,
       player,
       pointer.worldX,
-      pointer.worldY
+      pointer.worldY,
+      currentWeapon
     );
     player.canShoot = false;
     player.canMove = false; // Lock movement during projectile flight

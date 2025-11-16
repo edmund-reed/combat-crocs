@@ -41,6 +41,12 @@ class UIManager {
         bar.fillStyle(0xff0000);
         bar.fillRect(20, 20 + index * 40, 200, 20);
 
+        // First death - remove physics body so weapons don't collide with corpse
+        if (player.body && !player.body.isRemoved) {
+          scene.matter.world.remove(player.body);
+          player.body.isRemoved = true;
+        }
+
         // Replace player sprite with gravestone
         this.showGravestone(scene, player);
       }
@@ -78,7 +84,9 @@ class UIManager {
     scene.weaponText = scene.add.text(
       Config.GAME_WIDTH - 200,
       20,
-      `Weapon: ${Config.WEAPON_TYPES[WeaponManager.getCurrentWeapon()].name}`,
+      `Weapon: ${
+        Config.WEAPON_TYPES[scene.turnManager.getCurrentWeapon()].name
+      }`,
       {
         font: "16px Arial",
         fill: "#FFD23F",
@@ -112,7 +120,7 @@ class UIManager {
       .text(
         Config.GAME_WIDTH / 2,
         50,
-        "Move: Arrow Keys | Aim: Mouse | Shoot: Click | Jump: Spacebar",
+        "Move: Arrow Keys | Aim: Mouse | Shoot: Click | Jump: Spacebar | Weapons: W or 🔫",
         {
           font: "14px Arial",
           fill: "#FFFFFF",
@@ -222,6 +230,177 @@ class UIManager {
       scene.aimLine.destroy();
       scene.aimLine = null;
     }
+  }
+
+  // Create weapon selection icon
+  static createWeaponSelectIcon(scene) {
+    const iconSize = 24;
+    const { GAME_WIDTH } = Config;
+
+    const icon = scene.add
+      .graphics()
+      .fillStyle(0xffd23f)
+      .fillRect(GAME_WIDTH - 250, 22, iconSize, 4) // Barrel
+      .fillRect(GAME_WIDTH - 250, 20, 4, iconSize / 2); // Handle
+
+    icon
+      .setInteractive(
+        new Phaser.Geom.Rectangle(
+          GAME_WIDTH - 255,
+          10,
+          iconSize + 10,
+          iconSize + 10
+        ),
+        Phaser.Geom.Rectangle.Contains
+      )
+      .on("pointerdown", (_, __, ___, event) => {
+        event.stopPropagation();
+        this.showWeaponSelectMenu(scene);
+      });
+
+    scene.weaponSelectIcon = icon;
+  }
+
+  // Create a reusable modal overlay background
+  static createModalOverlay(scene, closeCallback = null) {
+    const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
+    const overlay = scene.add
+      .graphics()
+      .fillStyle(0x000000, 0.7)
+      .fillRect(0, 0, w, h)
+      .setDepth(1000);
+
+    if (closeCallback) {
+      overlay.setInteractive().on("pointerdown", () => closeCallback());
+    }
+
+    // Track modal state globally for input blocking
+    scene.modalOverlayActive = true;
+
+    // Store overlay reference for cleanup
+    if (!scene.modalOverlays) scene.modalOverlays = [];
+    scene.modalOverlays.push(overlay);
+
+    return overlay;
+  }
+
+  // Clear all modal overlays
+  static clearModalOverlays(scene) {
+    scene.modalOverlayActive = false;
+    if (scene.modalOverlays) {
+      scene.modalOverlays.forEach((overlay) => overlay.destroy());
+      scene.modalOverlays = [];
+    }
+  }
+
+  // Check if any modal is currently active
+  static isModalOpen(scene) {
+    return scene.modalOverlayActive || false;
+  }
+
+  // Show weapon selection menu
+  static showWeaponSelectMenu(scene) {
+    if (scene.gameEnded || scene.weaponMenu) return;
+
+    const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
+    const [menuWidth, menuHeight] = [200, 120];
+    const [menuX, menuY] = [w / 2 - menuWidth / 2, h / 2 - menuHeight / 2];
+    const menuDepth = 1001; // Above overlay depth
+
+    const currentWeapon = scene.turnManager.getCurrentWeapon();
+    const weapons = [
+      ["Bazooka", "BAZOOKA", menuY + 45],
+      ["Grenade", "GRENADE", menuY + 75],
+    ];
+
+    const elements = {
+      overlay: this.createModalOverlay(scene, () =>
+        this.hideWeaponSelectMenu(scene)
+      ),
+      menuBg: scene.add
+        .graphics()
+        .setDepth(menuDepth + 1)
+        .fillStyle(0x333333, 0.95)
+        .fillRoundedRect(menuX, menuY, menuWidth, menuHeight, 10)
+        .lineStyle(3, 0xffd23f)
+        .strokeRoundedRect(menuX, menuY, menuWidth, menuHeight, 10),
+      title: scene.add
+        .text(menuX + menuWidth / 2, menuY + 20, "Select Weapon", {
+          font: "18px Arial",
+          fill: "#FFD23F",
+        })
+        .setOrigin(0.5)
+        .setDepth(menuDepth + 2),
+      ...Object.fromEntries(
+        weapons.map(([label, type, y]) => [
+          `${label.toLowerCase()}Btn`,
+          this.createWeaponButton(
+            scene,
+            menuX + 25,
+            y,
+            label,
+            type,
+            currentWeapon === type,
+            menuDepth + 3
+          ),
+        ])
+      ),
+    };
+
+    scene.weaponMenu = elements;
+  }
+
+  // Create weapon selection button
+  static createWeaponButton(
+    scene,
+    x,
+    y,
+    label,
+    weaponType,
+    isSelected,
+    depth = 0
+  ) {
+    const button = scene.add.text(x, y, `${isSelected ? "▶ " : ""}${label}`, {
+      font: "14px Arial",
+      fill: isSelected ? "#00FF00" : "#FFFFFF",
+    });
+
+    return button
+      .setInteractive()
+      .setDepth(depth)
+      .on("pointerdown", (_, __, ___, event) => {
+        event.stopPropagation();
+        scene.turnManager.setCurrentWeapon(weaponType);
+        this.updateWeaponDisplay(scene);
+        this.hideWeaponSelectMenu(scene);
+      });
+  }
+
+  // Hide weapon selection menu
+  static hideWeaponSelectMenu(scene) {
+    if (!scene.weaponMenu) return;
+
+    // Clear modal overlay
+    this.clearModalOverlays(scene);
+
+    // Restore scene-level input
+    if (scene.inputManagerBackup) {
+      scene.input.on("pointermove", scene.inputManagerBackup.aimingHandler);
+      scene.input.on("pointerdown", scene.inputManagerBackup.shootingHandler);
+      scene.inputManagerBackup = null;
+    }
+
+    Object.values(scene.weaponMenu).forEach((el) => el?.destroy?.());
+    scene.weaponMenu = null;
+  }
+
+  // Update weapon display text
+  static updateWeaponDisplay(scene) {
+    scene.weaponText?.setText(
+      `Weapon: ${
+        Config.WEAPON_TYPES[scene.turnManager.getCurrentWeapon()].name
+      }`
+    );
   }
 
   // Delegated methods from TurnManager for better separation

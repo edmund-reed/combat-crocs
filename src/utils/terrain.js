@@ -33,15 +33,31 @@ class TerrainManager {
   // Create raised platforms based on map configuration
   static createPlatforms(scene, mapConfig) {
     const platforms = mapConfig.terrain.platforms || [];
+    const processedPlatforms = []; // Return processed platform data for weapons system
 
-    platforms.forEach((platformData) => {
+    platforms.forEach((platformData, index) => {
       // Evaluate string Y positions (like "GAME_HEIGHT - 125") with Config context
       let yPos = platformData.y;
       if (typeof platformData.y === "string") {
-        // Safely evaluate expressions with Config namespace
-        yPos = eval(
-          `(${platformData.y.replace(/GAME_HEIGHT/g, "Config.GAME_HEIGHT")})`
-        );
+        // Safely calculate expressions without eval
+        if (platformData.y.includes("GAME_HEIGHT")) {
+          const expression = platformData.y.replace(
+            /GAME_HEIGHT/g,
+            Config.GAME_HEIGHT.toString()
+          );
+          // Simple cases: "GAME_HEIGHT - N"
+          const match = expression.match(/(\d+)\s*-\s*(\d+)/);
+          if (match) {
+            yPos = parseInt(match[1]) - parseInt(match[2]);
+          } else {
+            console.warn(
+              `Could not parse platform Y expression: ${expression}, using 0`
+            );
+            yPos = 0;
+          }
+        } else {
+          yPos = parseFloat(platformData.y);
+        }
       }
 
       // Draw platform terrain
@@ -69,7 +85,18 @@ class TerrainManager {
           },
         }
       );
+
+      // Store processed platform data for weapons blocking system
+      processedPlatforms.push({
+        x: platformData.x,
+        y: yPos, // Use processed Y position
+        width: platformData.width,
+        height: platformData.height,
+        name: `Platform ${index + 1}`,
+      });
     });
+
+    return processedPlatforms;
   }
 
   // Get safe spawn positions (clear of platforms)
