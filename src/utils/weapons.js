@@ -94,10 +94,35 @@ class WeaponManager {
           if (pair.bodyA === projectileBody || pair.bodyB === projectileBody) {
             console.log("Projectile collision detected!");
             hasHit = true;
+
+            // Position explosion on platform surface, not deep inside
+            const explosionX = projectileBody.position.x;
+            const explosionY = projectileBody.position.y;
+
+            // If projectile hit a platform, position explosion on surface
+            let surfaceExplosionX = explosionX;
+            let surfaceExplosionY = explosionY;
+
+            // Calculate surface position by offsetting slightly in the direction the projectile was traveling
+            const velocity = projectileBody.velocity;
+            if (velocity.x !== 0 || velocity.y !== 0) {
+              // Normalize velocity direction and offset explosion position by projectile radius + small buffer
+              const speed = Math.sqrt(
+                velocity.x * velocity.x + velocity.y * velocity.y
+              );
+              if (speed > 0) {
+                const dirX = velocity.x / speed;
+                const dirY = velocity.y / speed;
+                const offsetDistance = 50; // Move explosion outside platform by this amount (larger to clear platform thickness)
+                surfaceExplosionX = explosionX - dirX * offsetDistance;
+                surfaceExplosionY = explosionY - dirY * offsetDistance;
+              }
+            }
+
             this.createExplosion(
               scene,
-              projectileBody.position.x,
-              projectileBody.position.y,
+              surfaceExplosionX,
+              surfaceExplosionY,
               projectileBody.projectileOwner,
               weaponType
             );
@@ -275,16 +300,8 @@ class WeaponManager {
       );
     });
 
-    // Check other platforms for terrain blocking - landing platform never blocks
-    const blockingPlatforms = landingPlatform
-      ? platforms.filter((p) => p !== landingPlatform)
-      : platforms;
-
-    console.log(
-      `Landing platform: ${
-        landingPlatform ? landingPlatform.name : "None"
-      }, checking ${blockingPlatforms.length} platforms for terrain blocking`
-    );
+    // Simple rule: explosions cannot penetrate any platform matter
+    // Check geometric blocking against all platforms
 
     // Get explosion radius for nearby threshold
     const weaponConfig = Config.WEAPON_TYPES[weaponType];
@@ -292,17 +309,12 @@ class WeaponManager {
 
     // Check ALL platforms using consistent geometric blocking rules
     for (const platform of platforms) {
-      const isLanding = platform === landingPlatform;
       const blocked = this.platformBlocksPath(
         platform,
         explosionX,
         explosionY,
         playerX,
-        playerY,
-        projectileOwner,
-        playerId,
-        isLanding,
-        explosionRadius
+        playerY
       );
 
       if (blocked) {
@@ -322,17 +334,13 @@ class WeaponManager {
   }
 
   // Check if a specific platform blocks damage to a player
-  // Pure geometric line-of-sight blocking
+  // Simple geometric blocking: if line crosses platform boundary, blocked
   static platformBlocksPath(
     platform,
     explosionX,
     explosionY,
     playerX,
-    playerY,
-    projectileOwner,
-    playerId,
-    isLandingPlatform,
-    explosionRadius
+    playerY
   ) {
     const { x: platX, y: platY, width: platW, height: platH } = platform;
 
@@ -354,7 +362,7 @@ class WeaponManager {
         )}, ${platTop.toFixed(0)}-${platBottom.toFixed(0)})`
     );
 
-    // Pure geometric line-of-sight blocking - if line crosses any platform edge, blocked
+    // Simple geometric blocking: if line from explosion to player crosses any platform edge, the platform blocks damage
     const lineSegment = {
       x1: explosionX,
       y1: explosionY,
@@ -362,47 +370,29 @@ class WeaponManager {
       y2: playerY,
     };
 
-    // Left edge: x = platLeft, y between platTop and platBottom
+    // Check all four edges of the platform
     if (
-      this.lineIntersectsVertical(lineSegment, platLeft, platTop, platBottom)
-    ) {
-      console.log(`🛡️ BLOCKED: Crosses left edge (geometric)`);
-      return true;
-    }
-
-    // Right edge: x = platRight, y between platTop and platBottom
-    if (
-      this.lineIntersectsVertical(lineSegment, platRight, platTop, platBottom)
-    ) {
-      console.log(`🛡️ BLOCKED: Crosses right edge (geometric)`);
-      return true;
-    }
-
-    // Top edge: y = platTop, x between platLeft and platRight
-    if (
-      this.lineIntersectsHorizontal(lineSegment, platTop, platLeft, platRight)
-    ) {
-      console.log(`🛡️ BLOCKED: Crosses top edge (geometric)`);
-      return true;
-    }
-
-    // Bottom edge: y = platBottom, x between platLeft and platRight
-    // Landing platforms block distant players but allow nearby damage propagation
-    const explosionToPlayerDistance = Math.sqrt(
-      (explosionX - playerX) ** 2 + (explosionY - playerY) ** 2
-    );
-    const nearbyThreshold = explosionRadius; // pixels - close enough to be affected
-
-    if (
+      this.lineIntersectsVertical(lineSegment, platLeft, platTop, platBottom) ||
+      this.lineIntersectsVertical(
+        lineSegment,
+        platRight,
+        platTop,
+        platBottom
+      ) ||
+      this.lineIntersectsHorizontal(
+        lineSegment,
+        platTop,
+        platLeft,
+        platRight
+      ) ||
       this.lineIntersectsHorizontal(
         lineSegment,
         platBottom,
         platLeft,
         platRight
-      ) &&
-      !(isLandingPlatform && explosionToPlayerDistance < nearbyThreshold)
+      )
     ) {
-      console.log(`🛡️ BLOCKED: Crosses bottom edge (geometric)`);
+      console.log(`🛡️ BLOCKED: Line crosses platform boundary`);
       return true;
     }
 
