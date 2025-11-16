@@ -45,8 +45,8 @@ class WeaponManager {
 
     // Handle weapon-specific collision logic
     weaponType === "GRENADE"
-      ? this.setupGrenadeCollision(scene, body, projectile, weaponType)
-      : this.setupProjectileCollision(scene, body, projectile, weaponType);
+      ? this.setupGrenadeCollision(scene, body, weaponType)
+      : this.setupProjectileCollision(scene, body, weaponType);
 
     // Store graphic reference for cleanup
     body.projectileGraphics = projectile;
@@ -95,40 +95,42 @@ class WeaponManager {
             console.log("Projectile collision detected!");
             hasHit = true;
 
-            // Position explosion on platform surface, not deep inside
-            const explosionX = projectileBody.position.x;
-            const explosionY = projectileBody.position.y;
+            // Position explosion on surface by offsetting opposite to travel direction
+            let explosionX = projectileBody.position.x;
+            let explosionY = projectileBody.position.y;
 
-            // If projectile hit a platform, position explosion on surface
-            let surfaceExplosionX = explosionX;
-            let surfaceExplosionY = explosionY;
-
-            // Calculate surface position by offsetting slightly in the direction the projectile was traveling
             const velocity = projectileBody.velocity;
             if (velocity.x !== 0 || velocity.y !== 0) {
-              // Normalize velocity direction and offset explosion position by projectile radius + small buffer
               const speed = Math.sqrt(
                 velocity.x * velocity.x + velocity.y * velocity.y
               );
               if (speed > 0) {
                 const dirX = velocity.x / speed;
                 const dirY = velocity.y / speed;
-                const offsetDistance = 50; // Move explosion outside platform by this amount (larger to clear platform thickness)
-                surfaceExplosionX = explosionX - dirX * offsetDistance;
-                surfaceExplosionY = explosionY - dirY * offsetDistance;
+                const offset = 50; // Clear platform thickness
+                explosionX -= dirX * offset;
+                explosionY -= dirY * offset;
               }
             }
 
             this.createExplosion(
               scene,
-              surfaceExplosionX,
-              surfaceExplosionY,
+              explosionX,
+              explosionY,
               projectileBody.projectileOwner,
               weaponType
             );
             scene.matter.world.remove(projectileBody);
-            projectileGraphics.destroy();
-            if (projectileBody.debugOutline) {
+            if (
+              projectileGraphics &&
+              typeof projectileGraphics.destroy === "function"
+            ) {
+              projectileGraphics.destroy();
+            }
+            if (
+              projectileBody.debugOutline &&
+              typeof projectileBody.debugOutline.destroy === "function"
+            ) {
               projectileBody.debugOutline.destroy();
             }
             // Call endProjectileTurn to advance to next player
@@ -140,12 +142,7 @@ class WeaponManager {
   }
 
   // Setup collision for grenades (timer-based explosion)
-  static setupGrenadeCollision(
-    scene,
-    projectileBody,
-    projectileGraphics,
-    weaponType
-  ) {
+  static setupGrenadeCollision(scene, projectileBody, weaponType) {
     projectileBody.weaponType = weaponType;
     projectileBody.timerId = setTimeout(
       () => this.grenadeDetonate(scene, projectileBody),
@@ -213,16 +210,12 @@ class WeaponManager {
       );
 
       if (distance < radius) {
-        // Apply the same terrain blocking check to ALL crocs (including the shooter)
         const blockedByTerrain = WeaponManager.isExplosionBlockedByTerrain(
-          scene,
           x,
           y,
           player.x,
           player.y,
-          projectileOwner,
-          player.id,
-          weaponType
+          scene.currentMapPlatforms
         );
 
         if (!blockedByTerrain) {
@@ -259,77 +252,45 @@ class WeaponManager {
 
   // Check if terrain blocks the explosion path to a player
   static isExplosionBlockedByTerrain(
-    scene,
     explosionX,
     explosionY,
     playerX,
     playerY,
-    projectileOwner,
-    playerId,
-    weaponType
+    platforms
   ) {
-    // Simple terrain blocking check - check if there's a platform between explosion and player
-
     console.log(
       `Checking terrain blocking: explosion(${explosionX.toFixed(
         0
       )}, ${explosionY.toFixed(0)}) to player(${playerX.toFixed(
         0
-      )}, ${playerY.toFixed(0)})`
+      )}, ${playerY.toFixed(0)}), platforms: ${
+        platforms ? platforms.length : "UNDEFINED"
+      }`
     );
 
-    // Platform positions from TerrainManager (hardcoded for now)
-    const platforms = [
-      { x: 400, y: 575, width: 200, height: 50, name: "Left Platform" },
-      { x: 700, y: 525, width: 150, height: 50, name: "Middle Platform" },
-      { x: 950, y: 475, width: 100, height: 50, name: "Right Platform" },
-    ];
+    // Fallback if platforms data is not available
+    if (!platforms || !Array.isArray(platforms)) {
+      console.log("⚠️ No platform data available, allowing damage");
+      return false;
+    }
 
-    // Find the landing platform (where missile exploded)
-    const landingPlatform = platforms.find((platform) => {
-      const platLeft = platform.x - platform.width / 2;
-      const platRight = platform.x + platform.width / 2;
-      const platTop = platform.y - platform.height / 2;
-      const platBottom = platform.y + platform.height / 2;
-
-      return (
-        explosionX >= platLeft &&
-        explosionX <= platRight &&
-        explosionY >= platTop &&
-        explosionY <= platBottom
-      );
-    });
-
-    // Simple rule: explosions cannot penetrate any platform matter
-    // Check geometric blocking against all platforms
-
-    // Get explosion radius for nearby threshold
-    const weaponConfig = Config.WEAPON_TYPES[weaponType];
-    const explosionRadius = weaponConfig.radius;
-
-    // Check ALL platforms using consistent geometric blocking rules
+    // Check if line of sight is blocked by any platform
     for (const platform of platforms) {
-      const blocked = this.platformBlocksPath(
-        platform,
-        explosionX,
-        explosionY,
-        playerX,
-        playerY
-      );
-
-      if (blocked) {
-        console.log(
-          `❌ BLOCKED by ${platform.name} at (${platform.x}, ${platform.y})`
-        );
+      if (
+        this.platformBlocksPath(
+          platform,
+          explosionX,
+          explosionY,
+          playerX,
+          playerY
+        )
+      ) {
+        console.log(`❌ BLOCKED by ${platform.name}`);
         return true;
-      } else {
-        console.log(
-          `✅ ${platform.name} at (${platform.x}, ${platform.y}) does NOT block`
-        );
       }
     }
 
-    console.log("✅ No terrain blocking found");
+    console.log("✅ No terrain blocking");
     return false;
   }
 

@@ -9,6 +9,7 @@ class GameScene extends Phaser.Scene {
     this.gameStarted = false;
     this.terrain = null;
     this.aimLine = null; // Yellow direction arrow
+    this.currentMapPlatforms = []; // Store current map's platform data
 
     // Initialize turn manager
     this.turnManager = new TurnManager(this);
@@ -57,7 +58,13 @@ class GameScene extends Phaser.Scene {
 
     // Get selected map and create platforms based on its configuration
     const selectedMap = window.MapManager.getCurrentMap();
-    TerrainManager.createPlatforms(this, selectedMap);
+    this.currentMapPlatforms = TerrainManager.createPlatforms(
+      this,
+      selectedMap
+    );
+    console.log(
+      `🎮 Loaded ${this.currentMapPlatforms.length} platforms for map: ${selectedMap.name}`
+    );
   }
 
   createPlayers() {
