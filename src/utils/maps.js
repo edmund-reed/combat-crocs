@@ -19,8 +19,7 @@ class MapManager {
     return {
       id: "classic",
       name: "Classic Arena",
-      description:
-        "The original battlefield with floating platforms and smooth terrain",
+      description: "The original battlefield with floating platforms and smooth terrain",
       terrain: {
         platforms: [
           { x: 400, y: "GAME_HEIGHT - 125", width: 200, height: 50 },
@@ -39,8 +38,7 @@ class MapManager {
     return {
       id: "mountain",
       name: "Mountain Warfare",
-      description:
-        "Rugged mountain terrain with strategic high ground positions",
+      description: "Rugged mountain terrain with strategic high ground positions",
       terrain: {
         platforms: [
           { x: 300, y: "GAME_HEIGHT - 150", width: 100, height: 60 },

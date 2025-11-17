@@ -6,7 +6,7 @@ class UIComponents {
       Config.GAME_WIDTH - 200,
       20,
       `Weapon: ${Config.WEAPON_TYPES[tm.getCurrentWeapon()].name}`,
-      { font: "16px Arial", fill: "#FFD23F" }
+      { font: "16px Arial", fill: "#FFD23F" },
     );
   }
 
@@ -39,7 +39,7 @@ class UIComponents {
           fill: "#FFFFFF",
           stroke: "#000000",
           strokeThickness: 2,
-        }
+        },
       )
       .setOrigin(0.5);
   }

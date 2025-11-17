@@ -68,23 +68,18 @@ class PlayerSelectScene extends Phaser.Scene {
         {
           font: "12px Arial",
           fill: "#666666",
-        }
+        },
       )
       .setOrigin(0.5);
 
     // Subtitle
     this.add
-      .text(
-        Config.GAME_WIDTH / 2,
-        170,
-        "Select the number of crocs for each team",
-        {
-          font: "16px Arial",
-          fill: "#FFFFFF",
-          stroke: "#FF6B35",
-          strokeThickness: 2,
-        }
-      )
+      .text(Config.GAME_WIDTH / 2, 170, "Select the number of crocs for each team", {
+        font: "16px Arial",
+        fill: "#FFFFFF",
+        stroke: "#FF6B35",
+        strokeThickness: 2,
+      })
       .setOrigin(0.5);
 
     // Create team selection areas
@@ -165,7 +160,7 @@ class PlayerSelectScene extends Phaser.Scene {
       .setInteractive();
 
     // Button hover effects
-    [minusBtn, plusBtn].forEach((btn) => {
+    [minusBtn, plusBtn].forEach(btn => {
       btn.on("pointerover", () => btn.setScale(1.2).setFill("#FFFFFF"));
       btn.on("pointerout", () => btn.setScale(1.0).setFill("#FF6B35"));
     });
@@ -180,12 +175,7 @@ class PlayerSelectScene extends Phaser.Scene {
           this.teamBCount--;
         }
         countText.setText(isTeamA ? this.teamACount : this.teamBCount);
-        this.updateCrocPreview(
-          x,
-          y + 160,
-          isTeamA ? this.teamACount : this.teamBCount,
-          isTeamA
-        );
+        this.updateCrocPreview(x, y + 160, isTeamA ? this.teamACount : this.teamBCount, isTeamA);
       }
     });
 
@@ -199,22 +189,12 @@ class PlayerSelectScene extends Phaser.Scene {
           this.teamBCount++;
         }
         countText.setText(isTeamA ? this.teamACount : this.teamBCount);
-        this.updateCrocPreview(
-          x,
-          y + 160,
-          isTeamA ? this.teamACount : this.teamBCount,
-          isTeamA
-        );
+        this.updateCrocPreview(x, y + 160, isTeamA ? this.teamACount : this.teamBCount, isTeamA);
       }
     });
 
     // Initial croc preview
-    this.updateCrocPreview(
-      x,
-      y + 160,
-      isTeamA ? this.teamACount : this.teamBCount,
-      isTeamA
-    );
+    this.updateCrocPreview(x, y + 160, isTeamA ? this.teamACount : this.teamBCount, isTeamA);
   }
 
   updateCrocPreview(x, y, count, isTeamA) {
@@ -223,7 +203,7 @@ class PlayerSelectScene extends Phaser.Scene {
 
     // Remove existing crocs for this team only
     if (spriteArray && spriteArray.length > 0) {
-      spriteArray.forEach((sprite) => sprite.destroy());
+      spriteArray.forEach(sprite => sprite.destroy());
     }
 
     // Clear the array
@@ -269,7 +249,7 @@ class PlayerSelectScene extends Phaser.Scene {
       .setInteractive();
 
     // Button hover effects
-    [startBtn, backBtn].forEach((btn) => {
+    [startBtn, backBtn].forEach(btn => {
       btn.on("pointerover", () => btn.setScale(1.1).setFill("#FFFFFF"));
       btn.on("pointerout", () => btn.setScale(1.0).setFill("#FFD23F"));
     });
@@ -302,9 +282,7 @@ class PlayerSelectScene extends Phaser.Scene {
     window.CombatCrocs.gameState.game.teamACount = this.teamACount;
     window.CombatCrocs.gameState.game.teamBCount = this.teamBCount;
 
-    console.log(
-      `Starting battle: Team A: ${this.teamACount} crocs, Team B: ${this.teamBCount} crocs`
-    );
+    console.log(`Starting battle: Team A: ${this.teamACount} crocs, Team B: ${this.teamBCount} crocs`);
   }
 }
 

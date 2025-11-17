@@ -39,13 +39,9 @@ class TurnManager {
     const maxAttempts = this.scene.players.length;
     for (let attempts = 0; attempts < maxAttempts; attempts++) {
       const isTeamA = this.currentTeam === "A";
-      const targetPlayerId = isTeamA
-        ? `A${this.teamAPlayerIndex + 1}`
-        : `B${this.teamBPlayerIndex + 1}`;
+      const targetPlayerId = isTeamA ? `A${this.teamAPlayerIndex + 1}` : `B${this.teamBPlayerIndex + 1}`;
 
-      const playerIndex = this.scene.players.findIndex(
-        (player) => player.id === targetPlayerId
-      );
+      const playerIndex = this.scene.players.findIndex(player => player.id === targetPlayerId);
 
       if (playerIndex >= 0 && this.scene.players[playerIndex].health > 0) {
         // Player is alive - switch to other team and advance player index
@@ -106,9 +102,7 @@ class TurnManager {
   // Delegated from UIManager for better separation
   static updateWeaponDisplay(scene) {
     const { turnManager: tm } = scene;
-    scene.weaponText?.setText(
-      `Weapon: ${Config.WEAPON_TYPES[tm.getCurrentWeapon()].name}`
-    );
+    scene.weaponText?.setText(`Weapon: ${Config.WEAPON_TYPES[tm.getCurrentWeapon()].name}`);
   }
 
   setCurrentWeapon(weaponType) {

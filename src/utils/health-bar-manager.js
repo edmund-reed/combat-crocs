@@ -2,16 +2,14 @@
 class HealthBarManager {
   static createHealthBars(scene) {
     scene.healthBars = [];
-    scene.players.forEach((player) => {
+    scene.players.forEach(player => {
       const bar = scene.add
         .graphics()
         .fillStyle(0xff0000)
         .fillRect(0, 0, 100, 12)
         .fillStyle(0x00ff00)
         .fillRect(0, 0, 100 * (player.health / 100), 12);
-      const textLabel = scene.add
-        .text(0, 2, `P${player.id}`, { font: "10px Arial", fill: "#FFFFFF" })
-        .setOrigin(0.5);
+      const textLabel = scene.add.text(0, 2, `P${player.id}`, { font: "10px Arial", fill: "#FFFFFF" }).setOrigin(0.5);
       scene.healthBars.push({
         barGraphics: bar,
         textLabel,
@@ -21,8 +19,8 @@ class HealthBarManager {
   }
 
   static updateHealthBarPositions(scene) {
-    scene.healthBars.forEach((barData) => {
-      const player = scene.players.find((p) => p.id === barData.playerId);
+    scene.healthBars.forEach(barData => {
+      const player = scene.players.find(p => p.id === barData.playerId);
       if (!player || player.health <= 0) {
         barData.barGraphics.setVisible(false);
         barData.textLabel.setVisible(false);
@@ -44,9 +42,7 @@ class HealthBarManager {
       barGraphics.clear();
       barGraphics.fillStyle(0xff0000).fillRect(0, 0, 100, 12);
       if (player.health > 0) {
-        barGraphics
-          .fillStyle(0x00ff00)
-          .fillRect(0, 0, 100 * (player.health / 100), 12);
+        barGraphics.fillStyle(0x00ff00).fillRect(0, 0, 100 * (player.health / 100), 12);
         barData.barGraphics.setVisible(true);
         barData.textLabel.setVisible(true);
       } else {

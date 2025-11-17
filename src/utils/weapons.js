@@ -2,19 +2,8 @@
 
 class WeaponManager {
   // Create and fire a weapon
-  static createProjectile(
-    scene,
-    player,
-    targetX,
-    targetY,
-    weaponType = "BAZOOKA"
-  ) {
-    const angle = Phaser.Math.Angle.Between(
-      player.x,
-      player.y,
-      targetX,
-      targetY
-    );
+  static createProjectile(scene, player, targetX, targetY, weaponType = "BAZOOKA") {
+    const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
     const power = 25;
 
     // Create physics body with safe positioning to avoid immediate collision
@@ -23,7 +12,7 @@ class WeaponManager {
       player.x + Math.cos(angle) * spawnDistance,
       player.y + Math.sin(angle) * spawnDistance,
       5,
-      { friction: 0.1, restitution: 0.8 }
+      { friction: 0.1, restitution: 0.8 },
     );
 
     // Create projectile graphic
@@ -79,17 +68,12 @@ class WeaponManager {
   }
 
   // Setup collision detection for projectiles
-  static setupProjectileCollision(
-    scene,
-    projectileBody,
-    projectileGraphics,
-    weaponType
-  ) {
+  static setupProjectileCollision(scene, projectileBody, projectileGraphics, weaponType) {
     let hasHit = false;
 
-    scene.matter.world.on("collisionstart", (event) => {
+    scene.matter.world.on("collisionstart", event => {
       if (!projectileBody.destroyed && !hasHit) {
-        event.pairs.forEach((pair) => {
+        event.pairs.forEach(pair => {
           // Check if this collision involves our projectile
           if (pair.bodyA === projectileBody || pair.bodyB === projectileBody) {
             console.log("Projectile collision detected!");
@@ -101,9 +85,7 @@ class WeaponManager {
 
             const velocity = projectileBody.velocity;
             if (velocity.x !== 0 || velocity.y !== 0) {
-              const speed = Math.sqrt(
-                velocity.x * velocity.x + velocity.y * velocity.y
-              );
+              const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
               if (speed > 0) {
                 const dirX = velocity.x / speed;
                 const dirY = velocity.y / speed;
@@ -113,24 +95,12 @@ class WeaponManager {
               }
             }
 
-            this.createExplosion(
-              scene,
-              explosionX,
-              explosionY,
-              projectileBody.projectileOwner,
-              weaponType
-            );
+            this.createExplosion(scene, explosionX, explosionY, projectileBody.projectileOwner, weaponType);
             scene.matter.world.remove(projectileBody);
-            if (
-              projectileGraphics &&
-              typeof projectileGraphics.destroy === "function"
-            ) {
+            if (projectileGraphics && typeof projectileGraphics.destroy === "function") {
               projectileGraphics.destroy();
             }
-            if (
-              projectileBody.debugOutline &&
-              typeof projectileBody.debugOutline.destroy === "function"
-            ) {
+            if (projectileBody.debugOutline && typeof projectileBody.debugOutline.destroy === "function") {
               projectileBody.debugOutline.destroy();
             }
             // Call endProjectileTurn to advance to next player
@@ -144,10 +114,7 @@ class WeaponManager {
   // Setup collision for grenades (timer-based explosion)
   static setupGrenadeCollision(scene, projectileBody, weaponType) {
     projectileBody.weaponType = weaponType;
-    projectileBody.timerId = setTimeout(
-      () => this.grenadeDetonate(scene, projectileBody),
-      3000
-    );
+    projectileBody.timerId = setTimeout(() => this.grenadeDetonate(scene, projectileBody), 3000);
   }
 
   // Detonate grenade timer explosion
@@ -157,7 +124,7 @@ class WeaponManager {
       projectileBody.position.x,
       projectileBody.position.y,
       projectileBody.projectileOwner,
-      projectileBody.weaponType || "GRENADE"
+      projectileBody.weaponType || "GRENADE",
     );
 
     // Cleanup
@@ -172,19 +139,13 @@ class WeaponManager {
   }
 
   // Create explosion effect
-  static createExplosion(
-    scene,
-    x,
-    y,
-    projectileOwner = null,
-    weaponType = "BAZOOKA"
-  ) {
+  static createExplosion(scene, x, y, projectileOwner = null, weaponType = "BAZOOKA") {
     const weaponConfig = Config.WEAPON_TYPES[weaponType];
     const radius = weaponConfig.radius;
     console.log(
       `ACTUAL EXPLOSION at (${x.toFixed(1)}, ${y.toFixed(1)}) from ${
         projectileOwner ? `Player ${projectileOwner}` : "timeout"
-      }. Radius: ${radius}`
+      }. Radius: ${radius}`,
     );
 
     // Explosion graphics
@@ -203,11 +164,7 @@ class WeaponManager {
     // Damage nearby players (check for terrain protection)
     scene.players.forEach((player, index) => {
       const distance = Phaser.Math.Distance.Between(x, y, player.x, player.y);
-      console.log(
-        `Player ${index + 1} distance: ${distance.toFixed(1)}, health: ${
-          player.health
-        }`
-      );
+      console.log(`Player ${index + 1} distance: ${distance.toFixed(1)}, health: ${player.health}`);
 
       if (distance < radius) {
         const blockedByTerrain = WeaponManager.isExplosionBlockedByTerrain(
@@ -215,20 +172,15 @@ class WeaponManager {
           y,
           player.x,
           player.y,
-          scene.currentMapPlatforms
+          scene.currentMapPlatforms,
         );
 
         if (!blockedByTerrain) {
           // Apply damage with distance falloff
           const maxDamage = weaponConfig.damage;
-          const damage = Math.max(
-            0,
-            maxDamage - (distance / radius) * (maxDamage * 0.75)
-          );
+          const damage = Math.max(0, maxDamage - (distance / radius) * (maxDamage * 0.75));
           console.log(
-            `${projectileOwner === player.id ? "🎯 OWN" : "💥"} Player ${
-              index + 1
-            } hit for ${damage} damage`
+            `${projectileOwner === player.id ? "🎯 OWN" : "💥"} Player ${index + 1} hit for ${damage} damage`,
           );
 
           player.health = Math.max(0, player.health - damage);
@@ -237,9 +189,7 @@ class WeaponManager {
           // Check if the game should end after damage
           scene.checkGameEnd?.();
         } else {
-          console.log(
-            `🛡️ Player ${index + 1} protected by terrain from explosion`
-          );
+          console.log(`🛡️ Player ${index + 1} protected by terrain from explosion`);
         }
       }
     });
@@ -251,21 +201,13 @@ class WeaponManager {
   }
 
   // Check if terrain blocks the explosion path to a player
-  static isExplosionBlockedByTerrain(
-    explosionX,
-    explosionY,
-    playerX,
-    playerY,
-    platforms
-  ) {
+  static isExplosionBlockedByTerrain(explosionX, explosionY, playerX, playerY, platforms) {
     console.log(
-      `Checking terrain blocking: explosion(${explosionX.toFixed(
-        0
-      )}, ${explosionY.toFixed(0)}) to player(${playerX.toFixed(
-        0
-      )}, ${playerY.toFixed(0)}), platforms: ${
+      `Checking terrain blocking: explosion(${explosionX.toFixed(0)}, ${explosionY.toFixed(
+        0,
+      )}) to player(${playerX.toFixed(0)}, ${playerY.toFixed(0)}), platforms: ${
         platforms ? platforms.length : "UNDEFINED"
-      }`
+      }`,
     );
 
     // Fallback if platforms data is not available
@@ -276,15 +218,7 @@ class WeaponManager {
 
     // Check if line of sight is blocked by any platform
     for (const platform of platforms) {
-      if (
-        this.platformBlocksPath(
-          platform,
-          explosionX,
-          explosionY,
-          playerX,
-          playerY
-        )
-      ) {
+      if (this.platformBlocksPath(platform, explosionX, explosionY, playerX, playerY)) {
         console.log(`❌ BLOCKED by ${platform.name}`);
         return true;
       }
@@ -296,13 +230,7 @@ class WeaponManager {
 
   // Check if a specific platform blocks damage to a player
   // Simple geometric blocking: if line crosses platform boundary, blocked
-  static platformBlocksPath(
-    platform,
-    explosionX,
-    explosionY,
-    playerX,
-    playerY
-  ) {
+  static platformBlocksPath(platform, explosionX, explosionY, playerX, playerY) {
     const { x: platX, y: platY, width: platW, height: platH } = platform;
 
     // Platform bounds (axis-aligned rectangle)
@@ -312,15 +240,9 @@ class WeaponManager {
     const platBottom = platY + platH / 2;
 
     console.log(
-      `Platform check: explosion(${explosionX.toFixed(0)}, ${explosionY.toFixed(
-        0
-      )}) → ` +
-        `player(${playerX.toFixed(0)}, ${playerY.toFixed(0)}) vs platform ${
-          platform.name
-        } ` +
-        `(rect: ${platLeft.toFixed(0)}-${platRight.toFixed(
-          0
-        )}, ${platTop.toFixed(0)}-${platBottom.toFixed(0)})`
+      `Platform check: explosion(${explosionX.toFixed(0)}, ${explosionY.toFixed(0)}) → ` +
+        `player(${playerX.toFixed(0)}, ${playerY.toFixed(0)}) vs platform ${platform.name} ` +
+        `(rect: ${platLeft.toFixed(0)}-${platRight.toFixed(0)}, ${platTop.toFixed(0)}-${platBottom.toFixed(0)})`,
     );
 
     // Simple geometric blocking: if line from explosion to player crosses any platform edge, the platform blocks damage
@@ -334,24 +256,9 @@ class WeaponManager {
     // Check all four edges of the platform
     if (
       this.lineIntersectsVertical(lineSegment, platLeft, platTop, platBottom) ||
-      this.lineIntersectsVertical(
-        lineSegment,
-        platRight,
-        platTop,
-        platBottom
-      ) ||
-      this.lineIntersectsHorizontal(
-        lineSegment,
-        platTop,
-        platLeft,
-        platRight
-      ) ||
-      this.lineIntersectsHorizontal(
-        lineSegment,
-        platBottom,
-        platLeft,
-        platRight
-      )
+      this.lineIntersectsVertical(lineSegment, platRight, platTop, platBottom) ||
+      this.lineIntersectsHorizontal(lineSegment, platTop, platLeft, platRight) ||
+      this.lineIntersectsHorizontal(lineSegment, platBottom, platLeft, platRight)
     ) {
       console.log(`🛡️ BLOCKED: Line crosses platform boundary`);
       return true;
@@ -375,10 +282,7 @@ class WeaponManager {
     const intersectY = y1 + t * (y2 - y1);
 
     // Check if intersection point is within vertical line segment
-    return (
-      intersectY >= Math.min(vertY1, vertY2) &&
-      intersectY <= Math.max(vertY1, vertY2)
-    );
+    return intersectY >= Math.min(vertY1, vertY2) && intersectY <= Math.max(vertY1, vertY2);
   }
 
   // Check if line segment intersects a horizontal line segment
@@ -395,10 +299,7 @@ class WeaponManager {
     const intersectX = x1 + t * (x2 - x1);
 
     // Check if intersection point is within horizontal line segment
-    return (
-      intersectX >= Math.min(horizX1, horizX2) &&
-      intersectX <= Math.max(horizX1, horizX2)
-    );
+    return intersectX >= Math.min(horizX1, horizX2) && intersectX <= Math.max(horizX1, horizX2);
   }
 
   static getCurrentWeapon() {

@@ -8,10 +8,7 @@ class WeaponMenuManager {
       .fillRect(Config.GAME_WIDTH - 250, 20, 4, 12);
 
     icon
-      .setInteractive(
-        new Phaser.Geom.Rectangle(Config.GAME_WIDTH - 255, 10, 30, 30),
-        Phaser.Geom.Rectangle.Contains
-      )
+      .setInteractive(new Phaser.Geom.Rectangle(Config.GAME_WIDTH - 255, 10, 30, 30), Phaser.Geom.Rectangle.Contains)
       .on("pointerdown", (_, __, ___, event) => {
         event.stopPropagation();
         this.showWeaponSelectMenu(scene);
@@ -32,9 +29,7 @@ class WeaponMenuManager {
     ];
 
     const elements = {
-      overlay: ModalManager.createModalOverlay(scene, () =>
-        this.hideWeaponSelectMenu(scene)
-      ),
+      overlay: ModalManager.createModalOverlay(scene, () => this.hideWeaponSelectMenu(scene)),
       menuBg: scene.add
         .graphics()
         .setDepth(menuDepth + 1)
@@ -52,31 +47,15 @@ class WeaponMenuManager {
       ...Object.fromEntries(
         weapons.map(([label, type, y]) => [
           `${label.toLowerCase()}Btn`,
-          this.createWeaponButton(
-            scene,
-            w / 2 - 75,
-            y,
-            label,
-            type,
-            currentWeapon === type,
-            menuDepth + 3
-          ),
-        ])
+          this.createWeaponButton(scene, w / 2 - 75, y, label, type, currentWeapon === type, menuDepth + 3),
+        ]),
       ),
     };
 
     scene.weaponMenu = elements;
   }
 
-  static createWeaponButton(
-    scene,
-    x,
-    y,
-    label,
-    weaponType,
-    isSelected,
-    depth = 0
-  ) {
+  static createWeaponButton(scene, x, y, label, weaponType, isSelected, depth = 0) {
     const button = scene.add.text(x, y, `${isSelected ? "▶ " : ""}${label}`, {
       font: "14px Arial",
       fill: isSelected ? "#00FF00" : "#FFFFFF",
@@ -104,7 +83,7 @@ class WeaponMenuManager {
       scene.inputManagerBackup = null;
     }
 
-    Object.values(scene.weaponMenu).forEach((el) => el?.destroy?.());
+    Object.values(scene.weaponMenu).forEach(el => el?.destroy?.());
     scene.weaponMenu = null;
   }
 }
