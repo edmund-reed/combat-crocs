@@ -100,6 +100,57 @@ class PlayerManager {
   static assignRandomSpawnPositions(scene, players) {
     SpawnManager.assignRandomSpawnPositions(scene, players);
   }
+
+  // Create all players for the game (moved from GameScene.js)
+  static createGamePlayers(scene) {
+    // Get team counts from global game state
+    const teamACount = window.CombatCrocs.gameState.game.teamACount || 1;
+    const teamBCount = window.CombatCrocs.gameState.game.teamBCount || 1;
+
+    scene.players = [];
+    scene.playerSprites = {};
+    scene.playerBodies = {};
+
+    // Calculate spawn positions for multiple players per team
+    const groundY = Config.GAME_HEIGHT - 100;
+    const spawnY = groundY - 10; // Small offset so they sit properly on ground
+
+    // Create ALL players first with temporary positions
+    for (let i = 0; i < teamACount; i++) {
+      const playerId = `A${i + 1}`;
+      const player = this.createPlayer(
+        scene,
+        playerId,
+        100 + i * 50, // Temporary positions
+        spawnY,
+        Config.COLORS.CROCODILE_GREEN,
+      );
+      scene.players.push(player);
+    }
+
+    for (let i = 0; i < teamBCount; i++) {
+      const playerId = `B${i + 1}`;
+      const player = this.createPlayer(
+        scene,
+        playerId,
+        200 + i * 50 + teamACount * 50, // Temporary positions
+        spawnY,
+        Config.COLORS.ORANGE,
+      );
+      scene.players.push(player);
+    }
+
+    // Now assign random positions to ALL players
+    this.assignRandomSpawnPositions(scene, scene.players);
+
+    // Update sprite and body references
+    scene.players.forEach(player => {
+      scene.playerSprites[player.id] = player.graphics;
+      scene.playerBodies[player.id] = player.body;
+    });
+
+    console.log(`Created ${scene.players.length} players: Team A (${teamACount}), Team B (${teamBCount})`);
+  }
 }
 
 window.PlayerManager = PlayerManager;

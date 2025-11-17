@@ -96,6 +96,16 @@ class TerrainManager {
       player2: { x: 1000 }, // Right side, clear of right platform
     };
   }
+
+  // Create terrain for game scene (moved from GameScene.js)
+  static createGameTerrain(scene) {
+    this.createGround(scene);
+
+    // Get selected map and create platforms based on its configuration
+    const selectedMap = window.MapManager.getCurrentMap();
+    scene.currentMapPlatforms = this.createPlatforms(scene, selectedMap);
+    console.log(`🎮 Loaded ${scene.currentMapPlatforms.length} platforms for map: ${selectedMap.name}`);
+  }
 }
 
 window.TerrainManager = TerrainManager;

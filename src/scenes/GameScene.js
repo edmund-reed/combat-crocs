@@ -24,16 +24,16 @@ class GameScene extends Phaser.Scene {
 
   create() {
     // Create the basic terrain
-    this.createTerrain();
+    TerrainManager.createGameTerrain(this);
 
     // Create players
-    this.createPlayers();
+    PlayerManager.createGamePlayers(this);
 
     // Set up physics world bounds
     this.matter.world.setBounds(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
 
     // Create UI elements
-    this.createUI();
+    UIManager.createGameUI(this);
 
     // Set up input handling
     InputManager.setupInput(this);
@@ -53,99 +53,13 @@ class GameScene extends Phaser.Scene {
     });
   }
 
-  createTerrain() {
-    TerrainManager.createGround(this);
-
-    // Get selected map and create platforms based on its configuration
-    const selectedMap = window.MapManager.getCurrentMap();
-    this.currentMapPlatforms = TerrainManager.createPlatforms(this, selectedMap);
-    console.log(`🎮 Loaded ${this.currentMapPlatforms.length} platforms for map: ${selectedMap.name}`);
-  }
-
-  createPlayers() {
-    // Get team counts from global game state
-    const teamACount = window.CombatCrocs.gameState.game.teamACount || 1;
-    const teamBCount = window.CombatCrocs.gameState.game.teamBCount || 1;
-
-    this.players = [];
-    this.playerSprites = {};
-    this.playerBodies = {};
-
-    // Calculate spawn positions for multiple players per team
-    const groundY = Config.GAME_HEIGHT - 100;
-    const spawnY = groundY - 10; // Small offset so they sit properly on ground
-
-    // Create ALL players first with temporary positions
-    for (let i = 0; i < teamACount; i++) {
-      const playerId = `A${i + 1}`;
-      const player = PlayerManager.createPlayer(
-        this,
-        playerId,
-        100 + i * 50, // Temporary positions
-        spawnY,
-        Config.COLORS.CROCODILE_GREEN,
-      );
-      this.players.push(player);
-    }
-
-    for (let i = 0; i < teamBCount; i++) {
-      const playerId = `B${i + 1}`;
-      const player = PlayerManager.createPlayer(
-        this,
-        playerId,
-        200 + i * 50 + teamACount * 50, // Temporary positions
-        spawnY,
-        Config.COLORS.ORANGE,
-      );
-      this.players.push(player);
-    }
-
-    // Now assign random positions to ALL players
-    PlayerManager.assignRandomSpawnPositions(this, this.players);
-
-    // Update sprite and body references
-    this.players.forEach(player => {
-      this.playerSprites[player.id] = player.graphics;
-      this.playerBodies[player.id] = player.body;
-    });
-
-    console.log(`Created ${this.players.length} players: Team A (${teamACount}), Team B (${teamBCount})`);
-  }
-
-  createUI() {
-    UIManager.createHealthBars(this);
-    UIManager.createWeaponDisplay(this);
-    UIManager.createTimerDisplay(this);
-    UIManager.createTurnIndicator(this);
-    UIManager.createInstructions(this);
-    UIManager.createWeaponSelectIcon(this);
-  }
-
-  checkGameEnd() {
-    // Check if all players on one team are dead
-    const teamAPlayers = this.players.filter(p => typeof p.id === "string" && p.id.startsWith("A"));
-    const teamBPlayers = this.players.filter(p => typeof p.id === "string" && p.id.startsWith("B"));
-
-    const teamAAlive = teamAPlayers.some(p => p.health > 0);
-    const teamBAlive = teamBPlayers.some(p => p.health > 0);
-
-    if (!teamAAlive && teamBAlive) {
-      // Team B wins
-      UIManager.showGameEndScreen(this, "Team B");
-      return true;
-    } else if (teamAAlive && !teamBAlive) {
-      // Team A wins
-      UIManager.showGameEndScreen(this, "Team A");
-      return true;
-    }
-
-    return false; // Game continues
-  }
-
   update(time, delta) {
     if (!this.gameStarted) {
       this.gameStarted = true;
     }
+
+    // Check for game end conditions at the start of each update
+    UIManager.checkAndHandleGameEnd(this);
 
     // Update turn timer
     const currentTurnTime = this.turnManager.updateTurnTimer(delta / 1000);

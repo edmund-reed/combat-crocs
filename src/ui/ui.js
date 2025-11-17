@@ -76,6 +76,38 @@ class UIManager {
       player.graphics.setAlpha(index === currentPlayerIndex ? 1.0 : 0.5);
     });
   }
+
+  // Create all UI elements for game scene (moved from GameScene.js)
+  static createGameUI(scene) {
+    this.createHealthBars(scene);
+    this.createWeaponDisplay(scene);
+    this.createTimerDisplay(scene);
+    this.createTurnIndicator(scene);
+    this.createInstructions(scene);
+    this.createWeaponSelectIcon(scene);
+  }
+
+  // Check if game has ended and handle UI (moved from GameScene.js)
+  static checkAndHandleGameEnd(scene) {
+    // Check if all players on one team are dead
+    const teamAPlayers = scene.players.filter(p => typeof p.id === "string" && p.id.startsWith("A"));
+    const teamBPlayers = scene.players.filter(p => typeof p.id === "string" && p.id.startsWith("B"));
+
+    const teamAAlive = teamAPlayers.some(p => p.health > 0);
+    const teamBAlive = teamBPlayers.some(p => p.health > 0);
+
+    if (!teamAAlive && teamBAlive) {
+      // Team B wins
+      this.showGameEndScreen(scene, "Team B");
+      return true;
+    } else if (teamAAlive && !teamBAlive) {
+      // Team A wins
+      this.showGameEndScreen(scene, "Team A");
+      return true;
+    }
+
+    return false; // Game continues
+  }
 }
 
 window.UIManager = UIManager;
