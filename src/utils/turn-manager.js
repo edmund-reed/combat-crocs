@@ -4,16 +4,21 @@ class TurnManager {
   constructor(scene) {
     this.scene = scene;
     this.currentPlayer = 0;
-    this.currentTeam = "A"; // Current team whose turn it is
-    this.teamAPlayerIndex = 0; // Which player in team A plays next
-    this.teamBPlayerIndex = 0; // Which player in team B plays next
+    this.currentTeamIndex = 0; // Index in teams array
+    this.currentTeamId = 0; // ID of currently playing team
+    this.playerIndices = []; // Which player in each team plays next
     this.turnTimer = 0;
     this.turnInProgress = false; // Prevents next player from moving
-    this.weaponByTeam = {
-      // Separate weapon selections per team
-      A: "BAZOOKA",
-      B: "BAZOOKA",
-    };
+    this.weaponByTeam = {}; // Separate weapon selections per team
+  }
+
+  // Initialize based on current teams
+  initializeTeams() {
+    const teams = GameStateManager.getTeams();
+    this.playerIndices = new Array(teams.length).fill(0);
+    teams.forEach(team => {
+      this.weaponByTeam[team.id] = "BAZOOKA"; // Default weapon for new teams
+    });
   }
 
   startTurn() {
@@ -33,33 +38,30 @@ class TurnManager {
   }
 
   getNextPlayerIndex() {
-    const teamACount = window.CombatCrocs.gameState.game.teamACount || 1;
-    const teamBCount = window.CombatCrocs.gameState.game.teamBCount || 1;
-
+    const teams = GameStateManager.getTeams();
     const maxAttempts = this.scene.players.length;
+
     for (let attempts = 0; attempts < maxAttempts; attempts++) {
-      const isTeamA = this.currentTeam === "A";
-      const targetPlayerId = isTeamA ? `A${this.teamAPlayerIndex + 1}` : `B${this.teamBPlayerIndex + 1}`;
+      const currentTeam = teams[this.currentTeamIndex];
 
-      const playerIndex = this.scene.players.findIndex(player => player.id === targetPlayerId);
+      // Find next living player in current team
+      for (let playerOffset = 0; playerOffset < currentTeam.crocCount; playerOffset++) {
+        const playerNum = ((this.playerIndices[this.currentTeamIndex] + playerOffset) % currentTeam.crocCount) + 1;
+        const targetPlayerId = `${currentTeam.id}${playerNum}`;
+        const playerIndex = this.scene.players.findIndex(player => player.id === targetPlayerId);
 
-      if (playerIndex >= 0 && this.scene.players[playerIndex].health > 0) {
-        // Player is alive - switch to other team and advance player index
-        this.currentTeam = isTeamA ? "B" : "A";
-        if (isTeamA) {
-          this.teamAPlayerIndex = (this.teamAPlayerIndex + 1) % teamACount;
-        } else {
-          this.teamBPlayerIndex = (this.teamBPlayerIndex + 1) % teamBCount;
+        if (playerIndex >= 0 && this.scene.players[playerIndex].health > 0) {
+          // Found living player - set current team and update indices
+          this.currentTeamId = currentTeam.id;
+          this.playerIndices[this.currentTeamIndex] =
+            (this.playerIndices[this.currentTeamIndex] + playerOffset + 1) % currentTeam.crocCount;
+          this.currentTeamIndex = (this.currentTeamIndex + 1) % teams.length;
+          return playerIndex;
         }
-        return playerIndex;
       }
 
-      // Advance to next player on current team (dead or not found)
-      if (isTeamA) {
-        this.teamAPlayerIndex = (this.teamAPlayerIndex + 1) % teamACount;
-      } else {
-        this.teamBPlayerIndex = (this.teamBPlayerIndex + 1) % teamBCount;
-      }
+      // No living players left in this team, advance to next team
+      this.currentTeamIndex = (this.currentTeamIndex + 1) % teams.length;
     }
 
     console.warn("No living players found");
@@ -88,7 +90,7 @@ class TurnManager {
   }
 
   getCurrentTeam() {
-    return this.currentTeam;
+    return this.currentTeamId || 0;
   }
 
   isTurnInProgress() {
@@ -96,7 +98,8 @@ class TurnManager {
   }
 
   getCurrentWeapon() {
-    return this.weaponByTeam[this.currentTeam];
+    const currentTeamId = this.getCurrentTeam();
+    return this.weaponByTeam[currentTeamId] || "BAZOOKA";
   }
 
   // Delegated from UIManager for better separation
@@ -107,8 +110,9 @@ class TurnManager {
 
   setCurrentWeapon(weaponType) {
     if (Config.WEAPON_TYPES[weaponType]) {
-      this.weaponByTeam[this.currentTeam] = weaponType;
-      console.log(`Team ${this.currentTeam} weapon switched to: ${weaponType}`);
+      const currentTeamId = this.getCurrentTeam();
+      this.weaponByTeam[currentTeamId] = weaponType;
+      console.log(`Team ${currentTeamId} weapon switched to: ${weaponType}`);
     }
   }
 

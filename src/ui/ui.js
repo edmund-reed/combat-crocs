@@ -68,7 +68,12 @@ class UIManager {
   static updateTurnIndicator(scene, currentPlayer) {
     const playerName = `Player ${currentPlayer.id}`;
     scene.playerIndicator.setText(`${playerName}'s Turn`);
-    scene.playerIndicator.setFill(currentPlayer.id.startsWith("A") ? 0x00ff00 : 0xffd23f);
+
+    // Color based on team ID
+    const teamId = parseInt(currentPlayer.id.charAt(0));
+    const teamColors = [0x00ff00, 0xffd23f, 0x0000ff, 0xff00ff, 0x00ffff]; // Green, Orange, Blue, Magenta, Cyan
+    const color = teamColors[(teamId - 1) % teamColors.length] || 0xffffff;
+    scene.playerIndicator.setFill(color);
   }
 
   static updatePlayerHighlighting(scene, currentPlayerIndex) {
@@ -89,20 +94,22 @@ class UIManager {
 
   // Check if game has ended and handle UI (moved from GameScene.js)
   static checkAndHandleGameEnd(scene) {
-    // Check if all players on one team are dead
-    const teamAPlayers = scene.players.filter(p => typeof p.id === "string" && p.id.startsWith("A"));
-    const teamBPlayers = scene.players.filter(p => typeof p.id === "string" && p.id.startsWith("B"));
+    const teams = GameStateManager.getTeams();
 
-    const teamAAlive = teamAPlayers.some(p => p.health > 0);
-    const teamBAlive = teamBPlayers.some(p => p.health > 0);
+    // Check which teams have living players
+    const aliveTeams = teams.filter(team => {
+      const teamPlayers = scene.players.filter(p => typeof p.id === "string" && p.id.startsWith(team.id));
+      return teamPlayers.some(p => p.health > 0);
+    });
 
-    if (!teamAAlive && teamBAlive) {
-      // Team B wins
-      this.showGameEndScreen(scene, "Team B");
+    // If only one team remains, they win
+    if (aliveTeams.length === 1) {
+      const winningTeam = aliveTeams[0];
+      this.showGameEndScreen(scene, winningTeam.name);
       return true;
-    } else if (teamAAlive && !teamBAlive) {
-      // Team A wins
-      this.showGameEndScreen(scene, "Team A");
+    } else if (aliveTeams.length === 0) {
+      // Edge case: no teams alive (all players dead simultaneously)
+      this.showGameEndScreen(scene, "No One");
       return true;
     }
 

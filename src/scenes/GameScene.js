@@ -39,6 +39,7 @@ class GameScene extends Phaser.Scene {
     InputManager.setupInput(this);
 
     // Initialize turn system
+    this.turnManager.initializeTeams();
     this.turnManager.startTurn();
 
     // Add slight camera shake effect occasionally
