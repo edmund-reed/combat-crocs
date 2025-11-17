@@ -124,7 +124,7 @@ class MenuScene extends Phaser.Scene {
       .setInteractive();
 
     // Add hover effects
-    [startButton, tutorialButton].forEach((button) => {
+    [startButton, tutorialButton].forEach(button => {
       button.on("pointerover", () => {
         button.setScale(1.1);
         button.setFill("#FFFFFF");
@@ -168,11 +168,11 @@ class MenuScene extends Phaser.Scene {
           font: "20px Arial",
           fill: "#FFFFFF",
           align: "center",
-        }
+        },
       )
       .setOrigin(0.5);
 
-    const closeGame = (event) => {
+    const closeGame = event => {
       this.input.keyboard.off("keydown", closeGame);
       this.input.on("pointerdown", () => {}, this);
       tutorialText.destroy();

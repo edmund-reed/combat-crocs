@@ -58,13 +58,8 @@ class GameScene extends Phaser.Scene {
 
     // Get selected map and create platforms based on its configuration
     const selectedMap = window.MapManager.getCurrentMap();
-    this.currentMapPlatforms = TerrainManager.createPlatforms(
-      this,
-      selectedMap
-    );
-    console.log(
-      `🎮 Loaded ${this.currentMapPlatforms.length} platforms for map: ${selectedMap.name}`
-    );
+    this.currentMapPlatforms = TerrainManager.createPlatforms(this, selectedMap);
+    console.log(`🎮 Loaded ${this.currentMapPlatforms.length} platforms for map: ${selectedMap.name}`);
   }
 
   createPlayers() {
@@ -88,7 +83,7 @@ class GameScene extends Phaser.Scene {
         playerId,
         100 + i * 50, // Temporary positions
         spawnY,
-        Config.COLORS.CROCODILE_GREEN
+        Config.COLORS.CROCODILE_GREEN,
       );
       this.players.push(player);
     }
@@ -100,7 +95,7 @@ class GameScene extends Phaser.Scene {
         playerId,
         200 + i * 50 + teamACount * 50, // Temporary positions
         spawnY,
-        Config.COLORS.ORANGE
+        Config.COLORS.ORANGE,
       );
       this.players.push(player);
     }
@@ -109,14 +104,12 @@ class GameScene extends Phaser.Scene {
     PlayerManager.assignRandomSpawnPositions(this, this.players);
 
     // Update sprite and body references
-    this.players.forEach((player) => {
+    this.players.forEach(player => {
       this.playerSprites[player.id] = player.graphics;
       this.playerBodies[player.id] = player.body;
     });
 
-    console.log(
-      `Created ${this.players.length} players: Team A (${teamACount}), Team B (${teamBCount})`
-    );
+    console.log(`Created ${this.players.length} players: Team A (${teamACount}), Team B (${teamBCount})`);
   }
 
   createUI() {
@@ -130,15 +123,11 @@ class GameScene extends Phaser.Scene {
 
   checkGameEnd() {
     // Check if all players on one team are dead
-    const teamAPlayers = this.players.filter(
-      (p) => typeof p.id === "string" && p.id.startsWith("A")
-    );
-    const teamBPlayers = this.players.filter(
-      (p) => typeof p.id === "string" && p.id.startsWith("B")
-    );
+    const teamAPlayers = this.players.filter(p => typeof p.id === "string" && p.id.startsWith("A"));
+    const teamBPlayers = this.players.filter(p => typeof p.id === "string" && p.id.startsWith("B"));
 
-    const teamAAlive = teamAPlayers.some((p) => p.health > 0);
-    const teamBAlive = teamBPlayers.some((p) => p.health > 0);
+    const teamAAlive = teamAPlayers.some(p => p.health > 0);
+    const teamBAlive = teamBPlayers.some(p => p.health > 0);
 
     if (!teamAAlive && teamBAlive) {
       // Team B wins
@@ -169,7 +158,7 @@ class GameScene extends Phaser.Scene {
     }
 
     // PHYSICS: Update ALL players (gravity, position sync) - runs even during projectile flight
-    this.players.forEach((player) => {
+    this.players.forEach(player => {
       PlayerManager.updatePlayerPhysics(this, player);
     });
 
@@ -177,12 +166,7 @@ class GameScene extends Phaser.Scene {
     const currentPlayerIndex = this.turnManager.getCurrentPlayerIndex();
     if (this.players[currentPlayerIndex].canMove) {
       const currentPlayer = this.players[currentPlayerIndex];
-      PlayerManager.handleMovement(
-        this,
-        currentPlayer,
-        InputManager.getCursors(this),
-        InputManager.getSpaceKey(this)
-      );
+      PlayerManager.handleMovement(this, currentPlayer, InputManager.getCursors(this), InputManager.getSpaceKey(this));
     }
 
     // Clean physics flow: Players continue their jump/fall during projectile flight
@@ -196,7 +180,7 @@ class GameScene extends Phaser.Scene {
     }
 
     // Update projectile positions and debug outlines
-    this.matter.world.getAllBodies().forEach((body) => {
+    this.matter.world.getAllBodies().forEach(body => {
       if (body.projectileGraphics && !body.destroyed) {
         // Sync projectile graphics with physics body
         body.projectileGraphics.setPosition(body.position.x, body.position.y);
@@ -207,13 +191,14 @@ class GameScene extends Phaser.Scene {
         }
       }
     });
+
+    // Update health bar positions above players
+    UIManager.updateHealthBarPositions(this);
   }
 
   endProjectileTurn() {
     // Reset turn state and start next player's turn with explosion effect delay
-    console.log(
-      "Projectile turn ended, starting next turn after explosion delay"
-    );
+    console.log("Projectile turn ended, starting next turn after explosion delay");
 
     // Small delay before starting next turn (for explosion effect)
     this.time.addEvent({

@@ -24,7 +24,7 @@ class TerrainManager {
         collisionFilter: {
           category: 1, // Terrain is in category 1
         },
-      }
+      },
     );
 
     return { y: groundY, body: groundBody };
@@ -41,18 +41,13 @@ class TerrainManager {
       if (typeof platformData.y === "string") {
         // Safely calculate expressions without eval
         if (platformData.y.includes("GAME_HEIGHT")) {
-          const expression = platformData.y.replace(
-            /GAME_HEIGHT/g,
-            Config.GAME_HEIGHT.toString()
-          );
+          const expression = platformData.y.replace(/GAME_HEIGHT/g, Config.GAME_HEIGHT.toString());
           // Simple cases: "GAME_HEIGHT - N"
           const match = expression.match(/(\d+)\s*-\s*(\d+)/);
           if (match) {
             yPos = parseInt(match[1]) - parseInt(match[2]);
           } else {
-            console.warn(
-              `Could not parse platform Y expression: ${expression}, using 0`
-            );
+            console.warn(`Could not parse platform Y expression: ${expression}, using 0`);
             yPos = 0;
           }
         } else {
@@ -66,25 +61,19 @@ class TerrainManager {
         platformData.x - platformData.width / 2,
         yPos - platformData.height / 2,
         platformData.width,
-        platformData.height
+        platformData.height,
       );
 
       // Create physics body
-      scene.matter.add.rectangle(
-        platformData.x,
-        yPos,
-        platformData.width,
-        platformData.height,
-        {
-          isStatic: true,
-          friction: 1.0,
-          frictionStatic: 1.0,
-          // Terrain collides with players (category 2)
-          collisionFilter: {
-            category: 1, // Terrain is in category 1
-          },
-        }
-      );
+      scene.matter.add.rectangle(platformData.x, yPos, platformData.width, platformData.height, {
+        isStatic: true,
+        friction: 1.0,
+        frictionStatic: 1.0,
+        // Terrain collides with players (category 2)
+        collisionFilter: {
+          category: 1, // Terrain is in category 1
+        },
+      });
 
       // Store processed platform data for weapons blocking system
       processedPlatforms.push({

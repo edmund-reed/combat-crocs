@@ -28,9 +28,7 @@ class PlayerManager {
     playerSprite.setFlipX(shouldFaceLeft);
 
     console.log(
-      `🖼️ Created sprite ${spriteKey} at (${x}, ${y}) with scale 0.12, facing ${
-        shouldFaceLeft ? "left" : "right"
-      }`
+      `🖼️ Created sprite ${spriteKey} at (${x}, ${y}) with scale 0.12, facing ${shouldFaceLeft ? "left" : "right"}`,
     );
 
     // Create physics body with collision settings
@@ -98,8 +96,7 @@ class PlayerManager {
 
     // Apply horizontal movement - always set velocity even when 0 to stop immediately
     // During projectile flight, disable horizontal movement for cleaner visual jumping
-    const realVelocityX =
-      scene.turnInProgress && player.hasJumpedThisTurn ? 0 : velocityX;
+    const realVelocityX = scene.turnInProgress && player.hasJumpedThisTurn ? 0 : velocityX;
 
     scene.matter.body.setVelocity(player.body, {
       x: realVelocityX, // Only allow horizontal movement if not jumping during projectile flight
@@ -127,9 +124,7 @@ class PlayerManager {
         x: player.body.velocity.x,
         y: -Config.PLAYER_JUMP_FORCE,
       });
-      console.log(
-        `🦘 PLAYER JUMPED! (Velocity Y: ${player.body.velocity.y.toFixed(2)})`
-      );
+      console.log(`🦘 PLAYER JUMPED! (Velocity Y: ${player.body.velocity.y.toFixed(2)})`);
 
       // Mark as having jumped this turn
       player.hasJumpedThisTurn = true;
@@ -141,9 +136,7 @@ class PlayerManager {
         repeat: 25, // Check up to 5 seconds, stop repeating when landed
       });
     } else if (spaceKey.isDown && !canJump) {
-      console.log(
-        `❌ Jump blocked - On ground: ${isActuallyOnGround}, Already jumped: ${player.hasJumpedThisTurn}`
-      );
+      console.log(`❌ Jump blocked - On ground: ${isActuallyOnGround}, Already jumped: ${player.hasJumpedThisTurn}`);
     }
 
     // Add slight rotation based on movement
@@ -159,11 +152,9 @@ class PlayerManager {
     // Only log when jumping or landing (not every frame while standing)
     if (!lowVelocity || player.lastGroundCheckResult !== lowVelocity) {
       console.log(
-        `Ground check: Y=${player.y.toFixed(
-          1
-        )}, Velocity Y=${player.body.velocity.y.toFixed(
-          3
-        )}, On ground=${lowVelocity}`
+        `Ground check: Y=${player.y.toFixed(1)}, Velocity Y=${player.body.velocity.y.toFixed(
+          3,
+        )}, On ground=${lowVelocity}`,
       );
       player.lastGroundCheckResult = lowVelocity;
     }
@@ -212,13 +203,11 @@ class PlayerManager {
       { level: 0, minX: 80, maxX: 1120 }, // Wide safe air space
     ];
 
-    console.log(
-      `Spawning ${playerCount} players in free airspace above all terrain`
-    );
+    console.log(`Spawning ${playerCount} players in free airspace above all terrain`);
 
     // Generate dense spawn points in open airspace (guaranteed no collision)
     const allSpawnPoints = [];
-    airSpawnAreas.forEach((area) => {
+    airSpawnAreas.forEach(area => {
       for (let x = area.minX; x <= area.maxX; x += 15) {
         // Less dense for air
         allSpawnPoints.push({
@@ -229,17 +218,12 @@ class PlayerManager {
       }
     });
 
-    console.log(
-      `Generated ${allSpawnPoints.length} guaranteed collision-free spawn points`
-    );
+    console.log(`Generated ${allSpawnPoints.length} guaranteed collision-free spawn points`);
 
     // Shuffle spawn points for randomness
     for (let i = allSpawnPoints.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [allSpawnPoints[i], allSpawnPoints[j]] = [
-        allSpawnPoints[j],
-        allSpawnPoints[i],
-      ];
+      [allSpawnPoints[i], allSpawnPoints[j]] = [allSpawnPoints[j], allSpawnPoints[i]];
     }
 
     // Assign players to positions
@@ -251,10 +235,7 @@ class PlayerManager {
       for (const spawnPoint of allSpawnPoints) {
         const tooClose = players
           .slice(0, i)
-          .some(
-            (placedPlayer) =>
-              Math.abs(spawnPoint.x - placedPlayer.x) < minDistance
-          );
+          .some(placedPlayer => Math.abs(spawnPoint.x - placedPlayer.x) < minDistance);
 
         if (!tooClose) {
           assignedPosition = spawnPoint;
@@ -277,7 +258,7 @@ class PlayerManager {
       scene.matter.body.setPosition(player.body, { x: player.x, y: player.y });
 
       console.log(
-        `Assigned ${player.id} to ${assignedPosition.levelName} at (${assignedPosition.x}, ${assignedPosition.y})`
+        `Assigned ${player.id} to ${assignedPosition.levelName} at (${assignedPosition.x}, ${assignedPosition.y})`,
       );
     }
 
