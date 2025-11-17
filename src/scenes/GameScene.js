@@ -166,7 +166,12 @@ class GameScene extends Phaser.Scene {
     const currentPlayerIndex = this.turnManager.getCurrentPlayerIndex();
     if (this.players[currentPlayerIndex].canMove) {
       const currentPlayer = this.players[currentPlayerIndex];
-      PlayerManager.handleMovement(this, currentPlayer, InputManager.getCursors(this), InputManager.getSpaceKey(this));
+      MovementManager.handleMovement(
+        this,
+        currentPlayer,
+        InputManager.getCursors(this),
+        InputManager.getSpaceKey(this),
+      );
     }
 
     // Clean physics flow: Players continue their jump/fall during projectile flight
