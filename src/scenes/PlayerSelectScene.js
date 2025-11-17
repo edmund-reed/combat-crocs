@@ -100,7 +100,7 @@ class PlayerSelectScene extends Phaser.Scene {
     const teamY = 200;
 
     // Team A (Left side)
-    this.createTeamSelector(centerX - 250, teamY, "Team A", "A", true);
+    SceneUtils.createTeamSelector(this, centerX - 250, teamY, "Team A", "A", true);
 
     // VS text
     this.add
@@ -113,114 +113,7 @@ class PlayerSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Team B (Right side)
-    this.createTeamSelector(centerX + 250, teamY, "Team B", "B", false);
-  }
-
-  createTeamSelector(x, y, teamName, teamPrefix, isTeamA) {
-    // Team label
-    this.add
-      .text(x, y, teamName, {
-        font: "bold 24px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5);
-
-    // Count display and controls
-    const countY = y + 60;
-    const controlY = y + 110;
-
-    // Minus button
-    const minusBtn = this.add
-      .text(x - 50, controlY, "-", {
-        font: "bold 36px Arial",
-        fill: "#FF6B35",
-      })
-      .setOrigin(0.5)
-      .setInteractive();
-
-    // Count display
-    const countText = this.add
-      .text(x, countY, isTeamA ? this.teamACount : this.teamBCount, {
-        font: "bold 48px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5);
-
-    // Plus button
-    const plusBtn = this.add
-      .text(x + 50, controlY, "+", {
-        font: "bold 36px Arial",
-        fill: "#FF6B35",
-      })
-      .setOrigin(0.5)
-      .setInteractive();
-
-    // Button hover effects
-    [minusBtn, plusBtn].forEach(btn => {
-      btn.on("pointerover", () => btn.setScale(1.2).setFill("#FFFFFF"));
-      btn.on("pointerout", () => btn.setScale(1.0).setFill("#FF6B35"));
-    });
-
-    // Minus button logic
-    minusBtn.on("pointerdown", () => {
-      const currentCount = isTeamA ? this.teamACount : this.teamBCount;
-      if (currentCount > 1) {
-        if (isTeamA) {
-          this.teamACount--;
-        } else {
-          this.teamBCount--;
-        }
-        countText.setText(isTeamA ? this.teamACount : this.teamBCount);
-        this.updateCrocPreview(x, y + 160, isTeamA ? this.teamACount : this.teamBCount, isTeamA);
-      }
-    });
-
-    // Plus button logic
-    plusBtn.on("pointerdown", () => {
-      const currentCount = isTeamA ? this.teamACount : this.teamBCount;
-      if (currentCount < 3) {
-        if (isTeamA) {
-          this.teamACount++;
-        } else {
-          this.teamBCount++;
-        }
-        countText.setText(isTeamA ? this.teamACount : this.teamBCount);
-        this.updateCrocPreview(x, y + 160, isTeamA ? this.teamACount : this.teamBCount, isTeamA);
-      }
-    });
-
-    // Initial croc preview
-    this.updateCrocPreview(x, y + 160, isTeamA ? this.teamACount : this.teamBCount, isTeamA);
-  }
-
-  updateCrocPreview(x, y, count, isTeamA) {
-    // Use separate sprite arrays for each team
-    const spriteArray = isTeamA ? this.teamASprites : this.teamBSprites;
-
-    // Remove existing crocs for this team only
-    if (spriteArray && spriteArray.length > 0) {
-      spriteArray.forEach(sprite => sprite.destroy());
-    }
-
-    // Clear the array
-    spriteArray.length = 0;
-
-    // Create croc sprites based on count - use team-consistent sprites
-    const spacing = 60;
-    const startX = x - ((count - 1) * spacing) / 2;
-
-    // Use team-consistent sprites: Team A = croc1, Team B = croc2
-    const teamSprite = isTeamA ? "croc1" : "croc2";
-
-    for (let i = 0; i < count; i++) {
-      const croc = this.add.sprite(startX + i * spacing, y, teamSprite);
-      croc.setScale(0.08); // Smaller for preview
-      spriteArray.push(croc);
-    }
+    SceneUtils.createTeamSelector(this, centerX + 250, teamY, "Team B", "B", false);
   }
 
   createActionButtons() {
@@ -257,7 +150,7 @@ class PlayerSelectScene extends Phaser.Scene {
     // Start battle
     startBtn.on("pointerdown", () => {
       // Store selection in global game state
-      this.storeGameSettings();
+      GameStateManager.storeTeamSettings(this.teamACount, this.teamBCount);
 
       // Stop music
       if (this.introMusic && this.introMusic.isPlaying) {
@@ -275,14 +168,6 @@ class PlayerSelectScene extends Phaser.Scene {
       }
       this.scene.start("MenuScene");
     });
-  }
-
-  storeGameSettings() {
-    // Store player selection in global game state
-    window.CombatCrocs.gameState.game.teamACount = this.teamACount;
-    window.CombatCrocs.gameState.game.teamBCount = this.teamBCount;
-
-    console.log(`Starting battle: Team A: ${this.teamACount} crocs, Team B: ${this.teamBCount} crocs`);
   }
 }
 
