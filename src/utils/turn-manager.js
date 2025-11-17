@@ -103,6 +103,14 @@ class TurnManager {
     return this.weaponByTeam[this.currentTeam];
   }
 
+  // Delegated from UIManager for better separation
+  static updateWeaponDisplay(scene) {
+    const { turnManager: tm } = scene;
+    scene.weaponText?.setText(
+      `Weapon: ${Config.WEAPON_TYPES[tm.getCurrentWeapon()].name}`
+    );
+  }
+
   setCurrentWeapon(weaponType) {
     if (Config.WEAPON_TYPES[weaponType]) {
       this.weaponByTeam[this.currentTeam] = weaponType;
