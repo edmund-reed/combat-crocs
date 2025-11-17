@@ -95,6 +95,29 @@ class InputManager {
   static getSpaceKey(scene) {
     return scene.spaceKey;
   }
+  // Add visual trail to projectile (called by WeaponManager)
+  static addProjectileTrail(scene, projectileBody) {
+    scene.time.addEvent({
+      delay: 100,
+      repeat: 10,
+      callback: () => {
+        if (!projectileBody.destroyed) {
+          const trail = scene.add.graphics({
+            x: projectileBody.position.x,
+            y: projectileBody.position.y,
+          });
+          trail.fillStyle(0xff4500);
+          trail.fillCircle(0, 0, 2);
+          scene.tweens.add({
+            targets: trail,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => trail && trail.destroy(),
+          });
+        }
+      },
+    });
+  }
 }
 
 window.InputManager = InputManager;

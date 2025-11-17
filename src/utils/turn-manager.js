@@ -109,6 +109,36 @@ class TurnManager {
       console.log(`Team ${this.currentTeam} weapon switched to: ${weaponType}`);
     }
   }
+
+  // Setup collision for grenades (timer-based explosion)
+  setupGrenadeCollision(scene, projectileBody, weaponType) {
+    projectileBody.weaponType = weaponType;
+    projectileBody.timerId = setTimeout(
+      () => this.grenadeDetonate(scene, projectileBody),
+      3000
+    );
+  }
+
+  // Detonate grenade timer explosion
+  grenadeDetonate(scene, projectileBody) {
+    ExplosionSystem.createExplosion(
+      scene,
+      projectileBody.position.x,
+      projectileBody.position.y,
+      projectileBody.projectileOwner,
+      projectileBody.weaponType || "GRENADE"
+    );
+
+    // Cleanup
+    scene.matter.world.remove(projectileBody);
+    projectileBody.projectileGraphics?.destroy();
+
+    if (projectileBody.timerId) {
+      clearTimeout(projectileBody.timerId);
+    }
+
+    scene.endProjectileTurn();
+  }
 }
 
 window.TurnManager = TurnManager;
