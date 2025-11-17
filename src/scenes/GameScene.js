@@ -16,10 +16,12 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    // Load crocodile character sprites
+    // Load all character sprites
     this.load.image("croc1", "src/assets/croc1.png");
     this.load.image("croc2", "src/assets/croc2.png");
-    console.log("🔄 Loading crocodile sprites...");
+    this.load.image("chameleon1", "src/assets/chameleon1.png");
+    this.load.image("gecko1", "src/assets/gecko1.png");
+    console.log("🔄 Loading character sprites...");
   }
 
   create() {
@@ -112,8 +114,9 @@ class GameScene extends Phaser.Scene {
       }
     });
 
-    // Update health bar positions above players
+    // Update health bar positions and graphics(colors/fill) above players
     UIManager.updateHealthBarPositions(this);
+    UIManager.updateHealthBars(this);
   }
 
   endProjectileTurn() {

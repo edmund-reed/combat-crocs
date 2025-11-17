@@ -1,14 +1,12 @@
 // Health Bar Manager for Combat Crocs
 class HealthBarManager {
   static createHealthBars(scene) {
+    console.log(`Creating health bars for ${scene.players.length} players`);
     scene.healthBars = [];
     scene.players.forEach(player => {
-      const bar = scene.add
-        .graphics()
-        .fillStyle(0xff0000)
-        .fillRect(0, 0, 100, 12)
-        .fillStyle(0x00ff00)
-        .fillRect(0, 0, 100 * (player.health / 100), 12);
+      console.log(`Creating health bar for player ${player.id}`);
+      // Create empty graphics object - colors will be set dynamically in updateHealthBars
+      const bar = scene.add.graphics();
       const textLabel = scene.add.text(0, 2, `P${player.id}`, { font: "10px Arial", fill: "#FFFFFF" }).setOrigin(0.5);
       scene.healthBars.push({
         barGraphics: bar,
@@ -16,6 +14,7 @@ class HealthBarManager {
         playerId: player.id,
       });
     });
+    console.log(`Created ${scene.healthBars.length} health bars`);
   }
 
   static updateHealthBarPositions(scene) {
@@ -36,13 +35,27 @@ class HealthBarManager {
   }
 
   static updateHealthBars(scene) {
-    scene.healthBars.forEach((barData, index) => {
+    scene.healthBars.forEach(barData => {
       const { barGraphics } = barData;
-      const player = scene.players[index];
+      const player = scene.players.find(p => p.id === barData.playerId);
+
+      if (!player) return; // Player not found
+
       barGraphics.clear();
-      barGraphics.fillStyle(0xff0000).fillRect(0, 0, 100, 12);
+
+      // Use team color for background and darker version for health fill
+      const teamColor = player.color;
+      const darkerTeamColor = teamColor & 0x7f7f7f; // Darken by bitwise AND
+
+      // Add black outline for visibility
+      barGraphics.lineStyle(1, 0x000000, 1); // 1px black outline
+      barGraphics.strokeRect(0, 0, 100, 12); // Outline background
+      barGraphics.fillStyle(darkerTeamColor).fillRect(0, 0, 100, 12); // Background = darker team color
+
       if (player.health > 0) {
-        barGraphics.fillStyle(0x00ff00).fillRect(0, 0, 100 * (player.health / 100), 12);
+        barGraphics.lineStyle(1, 0x000000, 1); // 1px black outline for health bar
+        barGraphics.strokeRect(0, 0, 100 * (player.health / 100), 12); // Outline health fill
+        barGraphics.fillStyle(teamColor).fillRect(0, 0, 100 * (player.health / 100), 12); // Fill = team color (lighter)
         barData.barGraphics.setVisible(true);
         barData.textLabel.setVisible(true);
       } else {

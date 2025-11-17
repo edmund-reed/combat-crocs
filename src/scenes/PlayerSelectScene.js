@@ -10,6 +10,8 @@ class PlayerSelectScene extends Phaser.Scene {
     // Load crocodile sprites for selection preview
     this.load.image("croc1", "src/assets/croc1.png");
     this.load.image("croc2", "src/assets/croc2.png");
+    this.load.image("chameleon1", "src/assets/chameleon1.png");
+    this.load.image("gecko1", "src/assets/gecko1.png");
 
     // Load audio if available
     this.load.audio("introMusic", "src/assets/intro.mp3");
@@ -422,8 +424,8 @@ class PlayerSelectScene extends Phaser.Scene {
     // Get the team for sprite selection
     const team = this.teams[teamIndex];
 
-    // Use team-consistent sprites: rotate through available sprites
-    const availableSprites = ["croc1", "croc2"];
+    // Use team-consistent sprites: rotate through all available sprites
+    const availableSprites = ["croc1", "croc2", "chameleon1", "gecko1"];
     const spriteKey = availableSprites[(team.id - 1) % availableSprites.length];
 
     // Create croc sprites based on count - smaller for preview

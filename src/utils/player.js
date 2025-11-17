@@ -9,8 +9,8 @@ class PlayerManager {
     if (typeof id === "string" && id.length >= 2) {
       // Team-based ID system: 11, 12, 21, 22, etc. where first digit is team
       const teamId = parseInt(id.charAt(0));
-      // Rotate through available croc sprites based on team ID
-      const availableSprites = ["croc1", "croc2"];
+      // Rotate through all available character sprites based on team ID
+      const availableSprites = ["croc1", "croc2", "chameleon1", "gecko1"];
       spriteKey = availableSprites[(teamId - 1) % availableSprites.length];
     } else {
       // Legacy numeric ID system for backward compatibility
@@ -117,11 +117,11 @@ class PlayerManager {
     const spawnY = groundY - 10; // Small offset so they sit properly on ground
 
     const teamColors = [
-      Config.COLORS.ORANGE,
-      Config.COLORS.CROCODILE_GREEN,
-      Config.COLORS.BLUE,
-      Config.COLORS.YELLOW,
-      Config.COLORS.BRIGHT_ORANGE,
+      0xff0000, // Red
+      0xffff00, // Yellow
+      0x00ff00, // Green
+      0x0000ff, // Blue
+      0x8a2be2, // Purple
     ];
 
     // Create ALL players first with temporary positions
