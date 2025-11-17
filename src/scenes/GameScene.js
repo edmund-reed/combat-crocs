@@ -207,6 +207,9 @@ class GameScene extends Phaser.Scene {
         }
       }
     });
+
+    // Update health bar positions above players
+    UIManager.updateHealthBarPositions(this);
   }
 
   endProjectileTurn() {

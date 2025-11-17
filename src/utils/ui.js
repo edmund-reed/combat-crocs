@@ -1,53 +1,89 @@
 // UI utilities for Combat Crocs
 
 class UIManager {
-  // Create health bars
+  // Create health bars above each crocodile
   static createHealthBars(scene) {
     scene.healthBars = [];
 
     scene.players.forEach((player, index) => {
       const bar = scene.add.graphics();
       bar.fillStyle(0xff0000);
-      bar.fillRect(20, 20 + index * 40, 200, 20);
+      bar.fillRect(0, 0, 100, 12); // Smaller bars above players
       bar.fillStyle(0x00ff00);
-      bar.fillRect(20, 20 + index * 40, 200 * (player.health / 100), 20);
+      bar.fillRect(0, 0, 100 * (player.health / 100), 12);
 
-      // Player label
-      scene.add.text(30, 22 + index * 40, `Player ${player.id}`, {
-        font: "12px Arial",
-        fill: "#FFFFFF",
+      // Player label (centered below bar)
+      const textLabel = scene.add
+        .text(0, 2, `P${player.id}`, {
+          font: "10px Arial",
+          fill: "#FFFFFF",
+        })
+        .setOrigin(0.5);
+
+      scene.healthBars.push({
+        barGraphics: bar,
+        textLabel: textLabel,
+        playerId: player.id,
       });
-
-      scene.healthBars.push(bar);
     });
   }
 
-  // Update health display
+  // Update health bar positions (called every frame)
+  static updateHealthBarPositions(scene) {
+    scene.healthBars.forEach((barData) => {
+      // Find the corresponding player
+      const player = scene.players.find((p) => p.id === barData.playerId);
+      if (!player || player.health <= 0) {
+        // Dead players - hide bars
+        barData.barGraphics.setVisible(false);
+        barData.textLabel.setVisible(false);
+        return;
+      }
+
+      // Position bar above player's head (50px above player center)
+      const barX = player.x - 50; // Centered above player
+      const barY = player.y - 60; // Above player head
+
+      barData.barGraphics.setPosition(barX, barY);
+      barData.textLabel.setPosition(player.x, barY + 14); // Below bar
+
+      // Ensure bars are visible
+      barData.barGraphics.setVisible(true);
+      barData.textLabel.setVisible(true);
+    });
+  }
+
+  // Update health bar values (positions updated separately)
   static updateHealthBars(scene) {
-    scene.healthBars.forEach((bar, index) => {
-      bar.clear();
+    scene.healthBars.forEach((barData, index) => {
+      const { barGraphics } = barData;
       const player = scene.players[index];
 
-      bar.fillStyle(0xff0000);
-      bar.fillRect(20, 20 + index * 40, 200, 20);
+      barGraphics.clear();
 
-      // Use green for alive players, red overlay for dead
+      // Draw background (red)
+      barGraphics.fillStyle(0xff0000);
+      barGraphics.fillRect(0, 0, 100, 12);
+
+      // Draw health (green for alive, solid red for dead)
       if (player.health > 0) {
-        bar.fillStyle(0x00ff00);
-        const healthWidth = 200 * (player.health / 100);
-        bar.fillRect(20, 20 + index * 40, healthWidth, 20);
-      } else {
-        // Dead player - show red bar full and add gravestone
-        bar.fillStyle(0xff0000);
-        bar.fillRect(20, 20 + index * 40, 200, 20);
+        barGraphics.fillStyle(0x00ff00);
+        const healthWidth = 100 * (player.health / 100);
+        barGraphics.fillRect(0, 0, healthWidth, 12);
 
-        // First death - remove physics body so weapons don't collide with corpse
+        // Show bar for alive players
+        barData.barGraphics.setVisible(true);
+        barData.textLabel.setVisible(true);
+      } else {
+        // Dead player - solid red and hide gravestone
+        barData.barGraphics.setVisible(false);
+        barData.textLabel.setVisible(false);
+
+        // First death - remove physics body and show gravestone
         if (player.body && !player.body.isRemoved) {
           scene.matter.world.remove(player.body);
           player.body.isRemoved = true;
         }
-
-        // Replace player sprite with gravestone
         this.showGravestone(scene, player);
       }
     });
