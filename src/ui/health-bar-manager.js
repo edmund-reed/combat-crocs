@@ -1,10 +1,8 @@
 // Health Bar Manager for Combat Crocs
 class HealthBarManager {
   static createHealthBars(scene) {
-    console.log(`Creating health bars for ${scene.players.length} players`);
     scene.healthBars = [];
     scene.players.forEach(player => {
-      console.log(`Creating health bar for player ${player.id}`);
       // Create empty graphics object - colors will be set dynamically in updateHealthBars
       const bar = scene.add.graphics();
       const textLabel = scene.add.text(0, 2, `P${player.id}`, { font: "10px Arial", fill: "#FFFFFF" }).setOrigin(0.5);
@@ -14,7 +12,6 @@ class HealthBarManager {
         playerId: player.id,
       });
     });
-    console.log(`Created ${scene.healthBars.length} health bars`);
   }
 
   static updateHealthBarPositions(scene) {

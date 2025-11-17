@@ -84,7 +84,6 @@ class UIManager {
 
   // Create all UI elements for game scene (moved from GameScene.js)
   static createGameUI(scene) {
-    console.log("UIManager.createGameUI() called");
     this.createHealthBars(scene);
     this.createWeaponDisplay(scene);
     this.createTimerDisplay(scene);

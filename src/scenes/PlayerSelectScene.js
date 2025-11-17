@@ -21,9 +21,19 @@ class PlayerSelectScene extends Phaser.Scene {
     // Initialize selection state
     this.teamCount = 2; // Default to 2 teams
     this.selectedTeamIndex = 0; // For individual team croc selection
+
+    // Available team colors with names
+    this.availableColors = [
+      { name: "Red", hex: 0xff0000 },
+      { name: "Yellow", hex: 0xffff00 },
+      { name: "Green", hex: 0x00ff00 },
+      { name: "Blue", hex: 0x0000ff },
+      { name: "Purple", hex: 0x8a2be2 },
+    ];
+
     this.teams = [
-      { id: 1, name: "Team 1", crocCount: 1 },
-      { id: 2, name: "Team 2", crocCount: 1 },
+      { id: 1, name: "Team 1", crocCount: 1, color: this.availableColors[0] }, // Red
+      { id: 2, name: "Team 2", crocCount: 1, color: this.availableColors[1] }, // Yellow
     ];
 
     // Initialize sprite arrays for SceneUtils compatibility
@@ -56,10 +66,6 @@ class PlayerSelectScene extends Phaser.Scene {
 
     // Selected Map Display
     const mapBoxY = 110;
-    const mapBg = this.add
-      .graphics()
-      .fillStyle(mapInfo.backgroundColor, 1)
-      .fillRect(Config.GAME_WIDTH / 2 - 150, mapBoxY - 25, 300, 50);
 
     this.add
       .text(Config.GAME_WIDTH / 2, mapBoxY, `Map: ${mapInfo.name}`, {
@@ -85,9 +91,9 @@ class PlayerSelectScene extends Phaser.Scene {
     // Team Count Selection
     this.createTeamCountSelector();
 
-    // Subtitle
+    // Subtitle - moved down
     this.add
-      .text(Config.GAME_WIDTH / 2, 270, "Customise your teams", {
+      .text(Config.GAME_WIDTH / 2, 300, "Customise your teams", {
         font: "18px Arial",
         fill: "#FFFFFF",
         stroke: "#FF6B35",
@@ -95,7 +101,7 @@ class PlayerSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Create team selection areas
+    // Create team selection areas - started lower
     this.createTeamSelection();
     this.createActionButtons();
 
@@ -140,7 +146,7 @@ class PlayerSelectScene extends Phaser.Scene {
     // Clear any existing team selector UI elements first
     this.clearExistingTeamUI();
 
-    const startY = 310;
+    const startY = 340; // Moved down 30px
     const teamHeight = 160; // Single row height
 
     // All teams in one row, adjust width based on team count for better spacing
@@ -177,7 +183,7 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 
   createActionButtons() {
-    const buttonY = Config.GAME_HEIGHT - 150;
+    const buttonY = Config.GAME_HEIGHT - 100; // Moved down 50px to use bottom space
 
     // Start Battle button
     const startBtn = this.add
@@ -302,10 +308,12 @@ class PlayerSelectScene extends Phaser.Scene {
     // Adjust teams array based on new count
     while (this.teams.length < this.teamCount) {
       const newTeamId = this.teams.length + 1;
+      const defaultColor = this.availableColors[(newTeamId - 1) % this.availableColors.length];
       this.teams.push({
         id: newTeamId,
         name: `Team ${newTeamId}`,
         crocCount: 1,
+        color: defaultColor,
       });
     }
 
@@ -334,11 +342,10 @@ class PlayerSelectScene extends Phaser.Scene {
 
     // Count display and controls
     const countY = y + 60;
-    const controlY = y + 110;
 
-    // Minus button
+    // Minus button (to left of count)
     const minusBtn = this.add
-      .text(x - 50, controlY, "-", {
+      .text(x - 60, countY, "-", {
         font: "bold 36px Arial",
         fill: "#FF6B35",
       })
@@ -357,9 +364,9 @@ class PlayerSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
     this.teamUIElements.push(countText);
 
-    // Plus button
+    // Plus button (to right of count)
     const plusBtn = this.add
-      .text(x + 50, controlY, "+", {
+      .text(x + 60, countY, "+", {
         font: "bold 36px Arial",
         fill: "#FF6B35",
       })
@@ -378,7 +385,7 @@ class PlayerSelectScene extends Phaser.Scene {
       if (team.crocCount > 1) {
         team.crocCount--;
         countText.setText(team.crocCount);
-        this.updateCrocPreview(x, y + 160, team.crocCount, teamIndex);
+        this.updateCrocPreview(x, y + 180, team.crocCount, teamIndex);
       }
     });
 
@@ -388,12 +395,16 @@ class PlayerSelectScene extends Phaser.Scene {
         // Max per team still 3
         team.crocCount++;
         countText.setText(team.crocCount);
-        this.updateCrocPreview(x, y + 160, team.crocCount, teamIndex);
+        this.updateCrocPreview(x, y + 180, team.crocCount, teamIndex);
       }
     });
 
+    // Color selection
+    const colorY = y + 110;
+    this.createColorSelector(x, colorY, team, teamIndex);
+
     // Initial croc preview
-    this.updateCrocPreview(x, y + 160, team.crocCount, teamIndex);
+    this.updateCrocPreview(x, y + 180, team.crocCount, teamIndex);
   }
 
   updateCrocPreview(x, y, count, teamIndex) {
@@ -436,6 +447,54 @@ class PlayerSelectScene extends Phaser.Scene {
       const croc = this.add.sprite(startX + i * spacing, y, spriteKey);
       croc.setScale(0.08); // Smaller for preview
       spriteArray.push(croc);
+    }
+  }
+
+  createColorSelector(x, y, team, teamIndex) {
+    // Label for color selection
+    const colorLabel = this.add
+      .text(x, y - 20, "Color", {
+        font: "bold 16px Arial",
+        fill: "#FFD23F",
+        stroke: "#FF6B35",
+        strokeThickness: 1,
+      })
+      .setOrigin(0.5);
+    this.teamUIElements.push(colorLabel);
+
+    // Create color swatch buttons
+    const buttonSpacing = 35;
+    const startX = x - ((this.availableColors.length - 1) * buttonSpacing) / 2;
+
+    // Create a color button for each available color
+    this.availableColors.forEach((colorOption, colorIndex) => {
+      // Current selection
+      const isSelected = team.color && team.color.hex === colorOption.hex;
+
+      const colorBtn = this.add
+        .graphics()
+        .fillStyle(colorOption.hex)
+        .fillRect(0, 0, 25, 25)
+        .lineStyle(isSelected ? 3 : 1, isSelected ? 0x000000 : 0xffffff)
+        .strokeRect(0, 0, 25, 25);
+
+      colorBtn.setPosition(startX + colorIndex * buttonSpacing, y);
+      colorBtn.setInteractive(new Phaser.Geom.Rectangle(0, 0, 25, 25), Phaser.Geom.Rectangle.Contains);
+
+      colorBtn.on("pointerdown", () => {
+        // Set new color for this team
+        team.color = colorOption;
+
+        // Refresh the team selection to update selection indicators
+        this.refreshTeamSelection();
+      });
+
+      this.teamUIElements.push(colorBtn);
+    });
+
+    // Set default color if none selected
+    if (!team.color) {
+      team.color = this.availableColors[(team.id - 1) % this.availableColors.length];
     }
   }
 

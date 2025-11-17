@@ -21,7 +21,6 @@ class GameScene extends Phaser.Scene {
     this.load.image("croc2", "src/assets/croc2.png");
     this.load.image("chameleon1", "src/assets/chameleon1.png");
     this.load.image("gecko1", "src/assets/gecko1.png");
-    console.log("🔄 Loading character sprites...");
   }
 
   create() {
