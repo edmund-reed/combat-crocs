@@ -10,6 +10,8 @@ class PlayerSelectScene extends Phaser.Scene {
     // Load crocodile sprites for selection preview
     this.load.image("croc1", "src/assets/croc1.png");
     this.load.image("croc2", "src/assets/croc2.png");
+    this.load.image("chameleon1", "src/assets/chameleon1.png");
+    this.load.image("gecko1", "src/assets/gecko1.png");
 
     // Load audio if available
     this.load.audio("introMusic", "src/assets/intro.mp3");
@@ -17,12 +19,22 @@ class PlayerSelectScene extends Phaser.Scene {
 
   create() {
     // Initialize selection state
-    this.teamACount = 1;
-    this.teamBCount = 1;
+    this.teamCount = 2; // Default to 2 teams
+    this.selectedTeamIndex = 0; // For individual team croc selection
 
-    // Separate sprite arrays for each team
-    this.teamASprites = [];
-    this.teamBSprites = [];
+    // Available team colors with names
+    this.availableColors = [
+      { name: "Red", hex: 0xff0000 },
+      { name: "Yellow", hex: 0xffff00 },
+      { name: "Green", hex: 0x00ff00 },
+      { name: "Blue", hex: 0x0000ff },
+      { name: "Purple", hex: 0x8a2be2 },
+    ];
+
+    this.teams = [
+      { id: 1, name: "Team 1", crocCount: 1, color: this.availableColors[0] }, // Red
+      { id: 2, name: "Team 2", crocCount: 1, color: this.availableColors[1] }, // Yellow
+    ];
 
     // Background
     this.add
@@ -46,10 +58,6 @@ class PlayerSelectScene extends Phaser.Scene {
 
     // Selected Map Display
     const mapBoxY = 110;
-    const mapBg = this.add
-      .graphics()
-      .fillStyle(mapInfo.backgroundColor, 1)
-      .fillRect(Config.GAME_WIDTH / 2 - 150, mapBoxY - 25, 300, 50);
 
     this.add
       .text(Config.GAME_WIDTH / 2, mapBoxY, `Map: ${mapInfo.name}`, {
@@ -72,18 +80,21 @@ class PlayerSelectScene extends Phaser.Scene {
       )
       .setOrigin(0.5);
 
-    // Subtitle
+    // Team Count Selection
+    UIManager.createTeamCountSelector(this);
+
+    // Subtitle - moved down
     this.add
-      .text(Config.GAME_WIDTH / 2, 170, "Select the number of crocs for each team", {
-        font: "16px Arial",
+      .text(Config.GAME_WIDTH / 2, 300, "Customise your teams", {
+        font: "18px Arial",
         fill: "#FFFFFF",
         stroke: "#FF6B35",
         strokeThickness: 2,
       })
       .setOrigin(0.5);
 
-    // Create team selection areas
-    this.createTeamSelection();
+    // Create team selection areas - started lower
+    UIManager.createTeamSelection(this);
     this.createActionButtons();
 
     // Start music if available
@@ -95,29 +106,12 @@ class PlayerSelectScene extends Phaser.Scene {
     }
   }
 
-  createTeamSelection() {
-    const centerX = Config.GAME_WIDTH / 2;
-    const teamY = 200;
-
-    // Team A (Left side)
-    SceneUtils.createTeamSelector(this, centerX - 250, teamY, "Team A", "A", true);
-
-    // VS text
-    this.add
-      .text(centerX, teamY + 50, "VS", {
-        font: "bold 32px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5);
-
-    // Team B (Right side)
-    SceneUtils.createTeamSelector(this, centerX + 250, teamY, "Team B", "B", false);
+  clearExistingTeamUI() {
+    UIManager.clearExistingTeamUI(this);
   }
 
   createActionButtons() {
-    const buttonY = Config.GAME_HEIGHT - 150;
+    const buttonY = Config.GAME_HEIGHT - 100; // Moved down 50px to use bottom space
 
     // Start Battle button
     const startBtn = this.add
@@ -149,8 +143,7 @@ class PlayerSelectScene extends Phaser.Scene {
 
     // Start battle
     startBtn.on("pointerdown", () => {
-      // Store selection in global game state
-      GameStateManager.storeTeamSettings(this.teamACount, this.teamBCount);
+      GameStateManager.storeTeams(this.teams);
 
       // Stop music
       if (this.introMusic && this.introMusic.isPlaying) {

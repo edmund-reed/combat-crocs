@@ -15,22 +15,12 @@ class MapSelectScene extends Phaser.Scene {
 
     // Title
     this.add
-      .text(Config.GAME_WIDTH / 2, 80, "CHOOSE YOUR BATTLEFIELD", {
-        font: "bold 36px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 4,
-      })
+      .text(Config.GAME_WIDTH / 2, 80, "CHOOSE YOUR BATTLEFIELD", UITextHelpers._getPrimaryTextStyle(36, 4))
       .setOrigin(0.5);
 
     // Subtitle
     this.add
-      .text(Config.GAME_WIDTH / 2, 130, "Select a map to fight on", {
-        font: "18px Arial",
-        fill: "#FFFFFF",
-        stroke: "#FF6B35",
-        strokeThickness: 2,
-      })
+      .text(Config.GAME_WIDTH / 2, 130, "Select a map to fight on", UITextHelpers._getPrimaryTextStyle(18, 2))
       .setOrigin(0.5);
 
     // Create map selection options
@@ -124,19 +114,12 @@ class MapSelectScene extends Phaser.Scene {
     const buttonY = Config.GAME_HEIGHT - 120;
 
     // Back to Menu button
-    const backBtn = this.add
-      .text(Config.GAME_WIDTH / 2, buttonY, "BACK TO MENU", {
-        font: "bold 20px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5)
-      .setInteractive();
-
-    // Button hover effects
-    backBtn.on("pointerover", () => backBtn.setScale(1.1).setFill("#FFFFFF"));
-    backBtn.on("pointerout", () => backBtn.setScale(1.0).setFill("#FFD23F"));
+    const backBtn = UIButtonHelpers.addHoverEffect(
+      this.add
+        .text(Config.GAME_WIDTH / 2, buttonY, "BACK TO MENU", UITextHelpers._getPrimaryTextStyle(20, 2))
+        .setOrigin(0.5)
+        .setInteractive(),
+    );
 
     // Back to menu
     backBtn.on("pointerdown", () => {

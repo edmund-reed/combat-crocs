@@ -6,8 +6,8 @@ class WeaponManager {
     const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
     const power = 25;
 
-    // Create physics body with safe positioning to avoid immediate collision
-    const spawnDistance = 45;
+    // Create physics body with minimal distance from player to prevent obstacle penetration
+    const spawnDistance = 8; // Small distance prevents spawning behind obstacles
     const body = scene.matter.add.circle(
       player.x + Math.cos(angle) * spawnDistance,
       player.y + Math.sin(angle) * spawnDistance,

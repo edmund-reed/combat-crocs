@@ -16,29 +16,31 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    // Load crocodile character sprites
+    // Load all character sprites
     this.load.image("croc1", "src/assets/croc1.png");
     this.load.image("croc2", "src/assets/croc2.png");
-    console.log("🔄 Loading crocodile sprites...");
+    this.load.image("chameleon1", "src/assets/chameleon1.png");
+    this.load.image("gecko1", "src/assets/gecko1.png");
   }
 
   create() {
     // Create the basic terrain
-    this.createTerrain();
+    TerrainManager.createGameTerrain(this);
 
     // Create players
-    this.createPlayers();
+    PlayerManager.createGamePlayers(this);
 
     // Set up physics world bounds
     this.matter.world.setBounds(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
 
     // Create UI elements
-    this.createUI();
+    UIManager.createGameUI(this);
 
     // Set up input handling
     InputManager.setupInput(this);
 
     // Initialize turn system
+    this.turnManager.initializeTeams();
     this.turnManager.startTurn();
 
     // Add slight camera shake effect occasionally
@@ -51,110 +53,27 @@ class GameScene extends Phaser.Scene {
       },
       loop: true,
     });
+
+    // Initialize memory management - automatic cleanup for all resources
+    MemoryManager.initialize(this);
+
+    console.log("🎮 GameScene initialization complete");
   }
 
-  createTerrain() {
-    TerrainManager.createGround(this);
-
-    // Get selected map and create platforms based on its configuration
-    const selectedMap = window.MapManager.getCurrentMap();
-    this.currentMapPlatforms = TerrainManager.createPlatforms(this, selectedMap);
-    console.log(`🎮 Loaded ${this.currentMapPlatforms.length} platforms for map: ${selectedMap.name}`);
-  }
-
-  createPlayers() {
-    // Get team counts from global game state
-    const teamACount = window.CombatCrocs.gameState.game.teamACount || 1;
-    const teamBCount = window.CombatCrocs.gameState.game.teamBCount || 1;
-
-    this.players = [];
-    this.playerSprites = {};
-    this.playerBodies = {};
-
-    // Calculate spawn positions for multiple players per team
-    const groundY = Config.GAME_HEIGHT - 100;
-    const spawnY = groundY - 10; // Small offset so they sit properly on ground
-
-    // Create ALL players first with temporary positions
-    for (let i = 0; i < teamACount; i++) {
-      const playerId = `A${i + 1}`;
-      const player = PlayerManager.createPlayer(
-        this,
-        playerId,
-        100 + i * 50, // Temporary positions
-        spawnY,
-        Config.COLORS.CROCODILE_GREEN,
-      );
-      this.players.push(player);
-    }
-
-    for (let i = 0; i < teamBCount; i++) {
-      const playerId = `B${i + 1}`;
-      const player = PlayerManager.createPlayer(
-        this,
-        playerId,
-        200 + i * 50 + teamACount * 50, // Temporary positions
-        spawnY,
-        Config.COLORS.ORANGE,
-      );
-      this.players.push(player);
-    }
-
-    // Now assign random positions to ALL players
-    PlayerManager.assignRandomSpawnPositions(this, this.players);
-
-    // Update sprite and body references
-    this.players.forEach(player => {
-      this.playerSprites[player.id] = player.graphics;
-      this.playerBodies[player.id] = player.body;
-    });
-
-    console.log(`Created ${this.players.length} players: Team A (${teamACount}), Team B (${teamBCount})`);
-  }
-
-  createUI() {
-    UIManager.createHealthBars(this);
-    UIManager.createWeaponDisplay(this);
-    UIManager.createTimerDisplay(this);
-    UIManager.createTurnIndicator(this);
-    UIManager.createInstructions(this);
-    UIManager.createWeaponSelectIcon(this);
-  }
-
-  checkGameEnd() {
-    // Check if all players on one team are dead
-    const teamAPlayers = this.players.filter(p => typeof p.id === "string" && p.id.startsWith("A"));
-    const teamBPlayers = this.players.filter(p => typeof p.id === "string" && p.id.startsWith("B"));
-
-    const teamAAlive = teamAPlayers.some(p => p.health > 0);
-    const teamBAlive = teamBPlayers.some(p => p.health > 0);
-
-    if (!teamAAlive && teamBAlive) {
-      // Team B wins
-      UIManager.showGameEndScreen(this, "Team B");
-      return true;
-    } else if (teamAAlive && !teamBAlive) {
-      // Team A wins
-      UIManager.showGameEndScreen(this, "Team A");
-      return true;
-    }
-
-    return false; // Game continues
-  }
-
-  update(time, delta) {
+  update(delta) {
     if (!this.gameStarted) {
       this.gameStarted = true;
     }
 
-    // Update turn timer
-    const currentTurnTime = this.turnManager.updateTurnTimer(delta / 1000);
-    this.timerText.setText(`Time: ${currentTurnTime}`);
+    // Check for game end conditions at the start of each update
+    UIManager.checkAndHandleGameEnd(this);
 
-    // End turn if timer runs out and player hasn't started shooting yet
-    if (this.turnManager.shouldEndTurn()) {
-      console.log("Turn timer expired, starting next turn");
-      this.turnManager.startTurn();
+    // Update turn timer display from Phaser delayedCall (for UI feedback)
+    if (this.turnManager.currentTurnTimer) {
+      const remainingTime = Math.ceil(
+        (this.turnManager.currentTurnTimer.delay - this.turnManager.currentTurnTimer.elapsed) / 1000,
+      );
+      this.timerText.setText(`Time: ${remainingTime}`);
     }
 
     // PHYSICS: Update ALL players (gravity, position sync) - runs even during projectile flight
@@ -197,8 +116,9 @@ class GameScene extends Phaser.Scene {
       }
     });
 
-    // Update health bar positions above players
+    // Update health bar positions and graphics(colors/fill) above players
     UIManager.updateHealthBarPositions(this);
+    UIManager.updateHealthBars(this);
   }
 
   endProjectileTurn() {

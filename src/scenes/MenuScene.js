@@ -4,72 +4,27 @@ class MenuScene extends Phaser.Scene {
   }
 
   preload() {
+    // Load background image
+    this.load.image("map-bg", "src/assets/map-bg.png");
+
     // Load audio files
     this.load.audio("introMusic", "src/assets/intro.mp3");
-
-    // Create basic graphics for the menu
-    this.createMenuGraphics();
-  }
-
-  createMenuGraphics() {
-    // Create a simple gradient background
-    const bg = this.add.graphics();
-    bg.fillGradientStyle(0xff6b35, 0xf7931e, 0xffd23f, 0xffd23f, 1);
-    bg.fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
-
-    // Create crocodile logo (simple geometric shape)
-    const croc = this.add.graphics({
-      x: Config.GAME_WIDTH / 2,
-      y: Config.GAME_HEIGHT / 2 - 100,
-    });
-    croc.fillStyle(0x2d5a3d);
-    croc.fillRect(-80, -30, 160, 60); // Body
-    croc.fillRect(-100, -20, 20, 40); // Tail
-    croc.fillRect(80, -20, 20, 40); // Head
-    croc.fillStyle(0xffd23f);
-    croc.fillRect(85, -15, 10, 10); // Eye
-    croc.fillStyle(0xffff00);
-    croc.fillRect(90, -10, 15, 5); // Teeth
-    croc.fillRect(75, -10, 15, 5);
-
-    // Add some Orlando-themed elements
-    // Rollercoaster track
-    const track = this.add.graphics({ x: 100, y: Config.GAME_HEIGHT - 150 });
-    track.lineStyle(8, 0xffffff);
-    track.beginPath();
-    track.moveTo(0, 0);
-    track.lineTo(200, -50);
-    track.lineTo(400, 20);
-    track.lineTo(600, -60);
-    track.strokePath();
-
-    // Support pillars
-    for (let i = 0; i < 5; i++) {
-      track.fillStyle(0x8b4513);
-      track.fillRect(100 + i * 100, 0, 20, 50);
-    }
-
-    // Water bodies (like Everglades/Lake)
-    const water = this.add.graphics({
-      x: Config.GAME_WIDTH - 300,
-      y: Config.GAME_HEIGHT - 100,
-    });
-    water.fillStyle(0x7cb9e8);
-    water.fillRect(0, 0, 250, 80);
-    // Add some wave effects
-    water.lineStyle(3, 0x87ceeb);
-    water.beginPath();
-    water.moveTo(0, 20);
-    water.lineTo(40, 15);
-    water.lineTo(80, 25);
-    water.lineTo(120, 20);
-    water.lineTo(160, 30);
-    water.lineTo(200, 25);
-    water.lineTo(240, 35);
-    water.strokePath();
   }
 
   create() {
+    // Create image background with bottom aligned (crops from top only, fills width)
+    const bgImage = this.add.image(Config.GAME_WIDTH / 2, Config.GAME_HEIGHT, "map-bg");
+
+    // Scale to cover entire screen area (background-size: cover)
+    const scaleX = Config.GAME_WIDTH / bgImage.width;
+    const scaleY = Config.GAME_HEIGHT / bgImage.height;
+    const scale = Math.max(scaleX, scaleY); // Cover behavior - fills all available space
+
+    bgImage.setScale(scale);
+
+    // Anchor to bottom center so bottom stays visible and only top crops
+    bgImage.setOrigin(0.5, 1);
+
     // Start the intro music if loaded
     try {
       if (this.cache.audio && this.cache.audio.get("introMusic")) {

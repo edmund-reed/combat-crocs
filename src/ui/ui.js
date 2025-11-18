@@ -11,6 +11,16 @@ class UIManager {
   static createTimerDisplay = scene => UIComponents.createTimerDisplay(scene);
   static createTurnIndicator = scene => UIComponents.createTurnIndicator(scene);
   static createInstructions = scene => UIComponents.createInstructions(scene);
+  static createColorSelector = (...params) => UIComponents.createColorSelector(...params);
+  static updateCrocPreview = (...params) => UIComponents.updateCrocPreview(...params);
+
+  // Team Selection Manager - delegated to TeamSelectorManager
+  static createTeamSelection = scene => TeamSelectorManager.createTeamSelection(scene);
+  static refreshTeamSelection = scene => TeamSelectorManager.refreshTeamSelection(scene);
+  static clearExistingTeamUI = scene => TeamSelectorManager.clearExistingTeamUI(scene);
+
+  // Team count selector - delegated to UIComponents
+  static createTeamCountSelector = scene => UIComponents.createTeamCountSelector(scene);
 
   // Update timer display
   static updateTimer(scene, timeLeft) {
@@ -68,13 +78,52 @@ class UIManager {
   static updateTurnIndicator(scene, currentPlayer) {
     const playerName = `Player ${currentPlayer.id}`;
     scene.playerIndicator.setText(`${playerName}'s Turn`);
-    scene.playerIndicator.setFill(currentPlayer.id.startsWith("A") ? 0x00ff00 : 0xffd23f);
+
+    // Color based on team ID
+    const teamId = parseInt(currentPlayer.id.charAt(0));
+    const teamColors = [0x00ff00, 0xffd23f, 0x0000ff, 0xff00ff, 0x00ffff]; // Green, Orange, Blue, Magenta, Cyan
+    const color = teamColors[(teamId - 1) % teamColors.length] || 0xffffff;
+    scene.playerIndicator.setFill(color);
   }
 
   static updatePlayerHighlighting(scene, currentPlayerIndex) {
     scene.players.forEach((player, index) => {
       player.graphics.setAlpha(index === currentPlayerIndex ? 1.0 : 0.5);
     });
+  }
+
+  // Create all UI elements for game scene (moved from GameScene.js)
+  static createGameUI(scene) {
+    this.createHealthBars(scene);
+    this.createWeaponDisplay(scene);
+    this.createTimerDisplay(scene);
+    this.createTurnIndicator(scene);
+    this.createInstructions(scene);
+    this.createWeaponSelectIcon(scene);
+  }
+
+  // Check if game has ended and handle UI (moved from GameScene.js)
+  static checkAndHandleGameEnd(scene) {
+    const teams = GameStateManager.getTeams();
+
+    // Check which teams have living players
+    const aliveTeams = teams.filter(team => {
+      const teamPlayers = scene.players.filter(p => typeof p.id === "string" && p.id.startsWith(team.id));
+      return teamPlayers.some(p => p.health > 0);
+    });
+
+    // If only one team remains, they win
+    if (aliveTeams.length === 1) {
+      const winningTeam = aliveTeams[0];
+      this.showGameEndScreen(scene, winningTeam.name);
+      return true;
+    } else if (aliveTeams.length === 0) {
+      // Edge case: no teams alive (all players dead simultaneously)
+      this.showGameEndScreen(scene, "No One");
+      return true;
+    }
+
+    return false; // Game continues
   }
 }
 

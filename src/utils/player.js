@@ -3,14 +3,15 @@
 class PlayerManager {
   // Create a crocodile player
   static createPlayer(scene, id, x, y, color) {
-    // Choose sprite based on team (all players on same team use same sprite)
+    // Choose sprite based on team (rotate through available sprites)
     let spriteKey = "croc1"; // Default sprite
 
     if (typeof id === "string" && id.length >= 2) {
-      // Team-based ID system: A1, A2, B1, B2, etc.
-      const team = id.charAt(0);
-      // All Team A players use croc1, all Team B players use croc2
-      spriteKey = team === "A" ? "croc1" : "croc2";
+      // Team-based ID system: 11, 12, 21, 22, etc. where first digit is team
+      const teamId = parseInt(id.charAt(0));
+      // Rotate through all available character sprites based on team ID
+      const availableSprites = ["croc1", "croc2", "chameleon1", "gecko1"];
+      spriteKey = availableSprites[(teamId - 1) % availableSprites.length];
     } else {
       // Legacy numeric ID system for backward compatibility
       spriteKey = id === 1 ? "croc1" : "croc2";
@@ -23,8 +24,9 @@ class PlayerManager {
     playerSprite.setScale(0.12); // Scale down to appropriate game size (~36-48px instead of 300-400px)
     playerSprite.setOrigin(0.5, 0.7); // Center horizontally, slightly below center for ground contact
 
-    // Flip sprite based on team (Team A faces right, Team B faces left)
-    const shouldFaceLeft = typeof id === "string" && id.startsWith("B");
+    // Flip sprite based on team (alternate left/right for visual distinction)
+    const teamId = parseInt(id.charAt(0));
+    const shouldFaceLeft = teamId % 2 === 0; // Team 2,4,6 face left; Team 1,3,5 face right
     playerSprite.setFlipX(shouldFaceLeft);
 
     console.log(
@@ -99,6 +101,51 @@ class PlayerManager {
   // Assign random spawn positions to all players (delegated to SpawnManager)
   static assignRandomSpawnPositions(scene, players) {
     SpawnManager.assignRandomSpawnPositions(scene, players);
+  }
+
+  // Create all players for the game (moved from GameScene.js)
+  static createGamePlayers(scene) {
+    // Get teams from global game state
+    const teams = GameStateManager.getTeams();
+
+    scene.players = [];
+    scene.playerSprites = {};
+    scene.playerBodies = {};
+
+    // Calculate spawn positions for multiple players per team
+    const groundY = Config.GAME_HEIGHT - 100;
+    const spawnY = groundY - 10; // Small offset so they sit properly on ground
+
+    // Create ALL players first with temporary positions
+    teams.forEach((team, teamIndex) => {
+      // Use selected team color or fallback to default
+      const teamColor = team.color && team.color.hex ? team.color.hex : (teamIndex % 5) + 1; // Fallback to numerical if needed
+      console.log(`Team ${team.id} using color: 0x${teamColor.toString(16)}`);
+
+      for (let i = 0; i < team.crocCount; i++) {
+        const playerId = `${team.id}${i + 1}`;
+        const player = this.createPlayer(
+          scene,
+          playerId,
+          100 + teamIndex * 100 + i * 50, // Temporary positions spaced by team
+          spawnY,
+          teamColor,
+        );
+        scene.players.push(player);
+      }
+    });
+
+    // Now assign random positions to ALL players
+    this.assignRandomSpawnPositions(scene, scene.players);
+
+    // Update sprite and body references
+    scene.players.forEach(player => {
+      scene.playerSprites[player.id] = player.graphics;
+      scene.playerBodies[player.id] = player.body;
+    });
+
+    const teamSummary = teams.map(t => `Team ${t.id} (${t.crocCount})`).join(", ");
+    console.log(`Created ${scene.players.length} players: ${teamSummary}`);
   }
 }
 
