@@ -1,17 +1,15 @@
 // Team Selector Manager for Combat Crocs
 // Handles team selection UI creation and management
 class TeamSelectorManager {
-  // Update teams array when team count changes
   static updateTeamsForCount(scene) {
     // Adjust teams array based on new count
     while (scene.teams.length < scene.teamCount) {
       const newTeamId = scene.teams.length + 1;
-      const defaultColor = scene.availableColors[(newTeamId - 1) % scene.availableColors.length];
       scene.teams.push({
         id: newTeamId,
         name: `Team ${newTeamId}`,
         crocCount: 1,
-        color: defaultColor,
+        color: scene.availableColors[(newTeamId - 1) % scene.availableColors.length],
       });
     }
 
@@ -21,25 +19,10 @@ class TeamSelectorManager {
     }
   }
 
-  // Create all team selection areas
   static createTeamSelection(scene) {
-    // Clear any existing team selector UI elements first
     this.clearExistingTeamUI(scene);
 
-    const startY = 340; // Moved down 30px
-
-    // All teams in one row, adjust width based on team count for better spacing
-    let availableWidth;
-    if (scene.teamCount === 2) {
-      availableWidth = 400; // Closer for 2 teams
-    } else if (scene.teamCount === 3) {
-      availableWidth = 600; // Moderate for 3 teams
-    } else if (scene.teamCount === 4) {
-      availableWidth = 800; // Wider for 4 teams
-    } else {
-      availableWidth = 1000; // Full width for 5 teams
-    }
-    const spacing = scene.teamCount <= 1 ? 0 : availableWidth / (scene.teamCount - 1);
+    const availableWidth = Math.min(scene.teamCount * 200, 1000);
 
     for (let i = 0; i < scene.teamCount; i++) {
       const team = scene.teams[i];
@@ -51,19 +34,15 @@ class TeamSelectorManager {
       } else {
         // Evenly distribute teams across the available width
         const startX = Config.GAME_WIDTH / 2 - availableWidth / 2;
-        xPos = startX + i * spacing;
+        xPos = startX + i * (scene.teamCount <= 1 ? 0 : availableWidth / (scene.teamCount - 1));
       }
 
-      const yPos = startY;
-
-      // Create dynamic team selector that directly updates teams array
-      this.createDynamicTeamSelector(scene, xPos, yPos, team, i);
+      this.createDynamicTeamSelector(scene, xPos, 340, team, i);
     }
   }
 
   // Create individual team selector UI
   static createDynamicTeamSelector(scene, x, y, team, teamIndex) {
-    // Initialize UI elements array if not exists
     if (!scene.teamUIElements) {
       scene.teamUIElements = [];
     }
@@ -105,7 +84,6 @@ class TeamSelectorManager {
     UIButtonHelpers.addHoverEffect(minusBtn, "#FF6B35");
     UIButtonHelpers.addHoverEffect(plusBtn, "#FF6B35");
 
-    // Minus button logic
     minusBtn.on("pointerdown", () => {
       if (team.crocCount > 1) {
         team.crocCount--;
@@ -114,7 +92,6 @@ class TeamSelectorManager {
       }
     });
 
-    // Plus button logic
     plusBtn.on("pointerdown", () => {
       if (team.crocCount < 3) {
         // Max per team still 3
@@ -124,15 +101,10 @@ class TeamSelectorManager {
       }
     });
 
-    // Color selection
-    const colorY = y + 110;
-    UIManager.createColorSelector(scene, x, colorY, team, scene.availableColors);
-
-    // Initial croc preview
+    UIManager.createColorSelector(scene, x, y + 110, team, scene.availableColors);
     UIManager.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
   }
 
-  // Refresh the team selection UI
   static refreshTeamSelection(scene) {
     // Sync team counts for SceneUtils compatibility before regenerating UI
     scene.teamACount = scene.teams[0]?.crocCount || 1;
@@ -142,7 +114,6 @@ class TeamSelectorManager {
     this.createTeamSelection(scene);
   }
 
-  // Clear existing team UI elements
   static clearExistingTeamUI(scene) {
     // Destroy all team-related UI elements from previous renders
     if (scene.teamUIElements) {

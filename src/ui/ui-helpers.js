@@ -2,12 +2,6 @@
 // Reusable patterns across all UI components
 
 class UITextHelpers {
-  // Create standardized primary text styling (FFD23F + FF6B35 stroke)
-  static createPrimaryText(scene, x, y, text, fontSize, strokeThickness = 2, addStroke = true) {
-    return scene.add.text(x, y, text, this._getPrimaryTextStyle(fontSize, strokeThickness, addStroke));
-  }
-
-  // Internal helper for primary text style object
   static _getPrimaryTextStyle(fontSize, strokeThickness = 2, addStroke = true) {
     return {
       font: `${addStroke ? "bold " : ""}${fontSize}px Arial`,
@@ -16,7 +10,6 @@ class UITextHelpers {
     };
   }
 
-  // Create interactive text with standardized setup
   static createInteractiveText(scene, x, y, text, styles, origin = 0.5) {
     const txt = scene.add.text(x, y, text, styles).setOrigin(origin).setInteractive();
     return txt;
@@ -24,7 +17,6 @@ class UITextHelpers {
 }
 
 class UIButtonHelpers {
-  // Add standardized button hover effect
   static addHoverEffect(btn, originalColor = "#FFD23F") {
     btn.on("pointerover", () => btn.setScale(1.2).setFill("#FFFFFF"));
     btn.on("pointerout", () => btn.setScale(1.0).setFill(originalColor));

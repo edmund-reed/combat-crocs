@@ -57,7 +57,6 @@ class UIComponents {
 
     // Create a color button for each available color
     availableColors.forEach((colorOption, colorIndex) => {
-      // Current selection
       const isSelected = team.color && team.color.hex === colorOption.hex;
 
       const colorBtn = parentScene.add
@@ -71,10 +70,7 @@ class UIComponents {
       colorBtn.setInteractive(new Phaser.Geom.Rectangle(0, 0, 25, 25), Phaser.Geom.Rectangle.Contains);
 
       colorBtn.on("pointerdown", () => {
-        // Set new color for this team
         team.color = colorOption;
-
-        // Refresh the team selection to update selection indicators
         parentScene.refreshTeamSelection();
       });
 
@@ -88,7 +84,6 @@ class UIComponents {
   }
 
   static updateCrocPreview(parentScene, x, y, count, teamIndex) {
-    // Safety check - make sure team exists
     if (!parentScene.teams || !parentScene.teams[teamIndex]) {
       console.warn(`Team at index ${teamIndex} not found, skipping croc preview`);
       return;
@@ -109,15 +104,11 @@ class UIComponents {
       spriteArray.forEach(sprite => sprite.destroy());
     }
 
-    // Clear the array
     spriteArray.length = 0;
-
-    // Get the team for sprite selection
-    const team = parentScene.teams[teamIndex];
 
     // Use team-consistent sprites: rotate through all available sprites
     const availableSprites = ["croc1", "croc2", "chameleon1", "gecko1"];
-    const spriteKey = availableSprites[(team.id - 1) % availableSprites.length];
+    const spriteKey = availableSprites[(parentScene.teams[teamIndex].id - 1) % availableSprites.length];
 
     // Create croc sprites based on count - smaller for preview
     const spacing = 60;
@@ -158,24 +149,18 @@ class UIComponents {
       }),
     );
 
-    // Button logic - inline for compactness
-    minusBtn.on("pointerdown", () => {
-      if (scene.teamCount > 2) {
-        scene.teamCount--;
+    // Button logic - abstracted to eliminate duplication
+    const updateTeamCount = (modifier, condition) => {
+      if (condition()) {
+        scene.teamCount += modifier;
         scene.teamCountText.setText(scene.teamCount);
         TeamSelectorManager.updateTeamsForCount(scene);
         TeamSelectorManager.refreshTeamSelection(scene);
       }
-    });
+    };
 
-    plusBtn.on("pointerdown", () => {
-      if (scene.teamCount < 5) {
-        scene.teamCount++;
-        scene.teamCountText.setText(scene.teamCount);
-        TeamSelectorManager.updateTeamsForCount(scene);
-        TeamSelectorManager.refreshTeamSelection(scene);
-      }
-    });
+    minusBtn.on("pointerdown", () => updateTeamCount(-1, () => scene.teamCount > 2));
+    plusBtn.on("pointerdown", () => updateTeamCount(1, () => scene.teamCount < 5));
   }
 }
 
