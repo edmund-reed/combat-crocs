@@ -11,6 +11,16 @@ class UIManager {
   static createTimerDisplay = scene => UIComponents.createTimerDisplay(scene);
   static createTurnIndicator = scene => UIComponents.createTurnIndicator(scene);
   static createInstructions = scene => UIComponents.createInstructions(scene);
+  static createColorSelector = (...params) => UIComponents.createColorSelector(...params);
+  static updateCrocPreview = (...params) => UIComponents.updateCrocPreview(...params);
+
+  // Team Selection Manager - delegated to TeamSelectorManager
+  static createTeamSelection = scene => TeamSelectorManager.createTeamSelection(scene);
+  static refreshTeamSelection = scene => TeamSelectorManager.refreshTeamSelection(scene);
+  static clearExistingTeamUI = scene => TeamSelectorManager.clearExistingTeamUI(scene);
+
+  // Team count selector - delegated to UIComponents
+  static createTeamCountSelector = scene => UIComponents.createTeamCountSelector(scene);
 
   // Update timer display
   static updateTimer(scene, timeLeft) {
