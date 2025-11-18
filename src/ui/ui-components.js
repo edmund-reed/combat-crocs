@@ -70,8 +70,11 @@ class UIComponents {
       colorBtn.setInteractive(new Phaser.Geom.Rectangle(0, 0, 25, 25), Phaser.Geom.Rectangle.Contains);
 
       colorBtn.on("pointerdown", () => {
+        // Set new color for this team
         team.color = colorOption;
-        parentScene.refreshTeamSelection();
+
+        // Refresh the team selection to update selection indicators
+        TeamSelectorManager.refreshTeamSelection(parentScene);
       });
 
       parentScene.teamUIElements.push(colorBtn);

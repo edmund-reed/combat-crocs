@@ -116,16 +116,12 @@ class PlayerManager {
     const groundY = Config.GAME_HEIGHT - 100;
     const spawnY = groundY - 10; // Small offset so they sit properly on ground
 
-    const teamColors = [
-      0xff0000, // Red
-      0xffff00, // Yellow
-      0x00ff00, // Green
-      0x0000ff, // Blue
-      0x8a2be2, // Purple
-    ];
-
     // Create ALL players first with temporary positions
     teams.forEach((team, teamIndex) => {
+      // Use selected team color or fallback to default
+      const teamColor = team.color && team.color.hex ? team.color.hex : (teamIndex % 5) + 1; // Fallback to numerical if needed
+      console.log(`Team ${team.id} using color: 0x${teamColor.toString(16)}`);
+
       for (let i = 0; i < team.crocCount; i++) {
         const playerId = `${team.id}${i + 1}`;
         const player = this.createPlayer(
@@ -133,7 +129,7 @@ class PlayerManager {
           playerId,
           100 + teamIndex * 100 + i * 50, // Temporary positions spaced by team
           spawnY,
-          teamColors[teamIndex % teamColors.length],
+          teamColor,
         );
         scene.players.push(player);
       }

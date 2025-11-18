@@ -41,7 +41,6 @@ class TeamSelectorManager {
     }
   }
 
-  // Create individual team selector UI
   static createDynamicTeamSelector(scene, x, y, team, teamIndex) {
     if (!scene.teamUIElements) {
       scene.teamUIElements = [];
