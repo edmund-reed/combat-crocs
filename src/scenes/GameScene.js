@@ -53,9 +53,14 @@ class GameScene extends Phaser.Scene {
       },
       loop: true,
     });
+
+    // Initialize memory management - automatic cleanup for all resources
+    MemoryManager.initialize(this);
+
+    console.log("🎮 GameScene initialization complete");
   }
 
-  update(time, delta) {
+  update(delta) {
     if (!this.gameStarted) {
       this.gameStarted = true;
     }
@@ -63,14 +68,12 @@ class GameScene extends Phaser.Scene {
     // Check for game end conditions at the start of each update
     UIManager.checkAndHandleGameEnd(this);
 
-    // Update turn timer
-    const currentTurnTime = this.turnManager.updateTurnTimer(delta / 1000);
-    this.timerText.setText(`Time: ${currentTurnTime}`);
-
-    // End turn if timer runs out and player hasn't started shooting yet
-    if (this.turnManager.shouldEndTurn()) {
-      console.log("Turn timer expired, starting next turn");
-      this.turnManager.startTurn();
+    // Update turn timer display from Phaser delayedCall (for UI feedback)
+    if (this.turnManager.currentTurnTimer) {
+      const remainingTime = Math.ceil(
+        (this.turnManager.currentTurnTimer.delay - this.turnManager.currentTurnTimer.elapsed) / 1000,
+      );
+      this.timerText.setText(`Time: ${remainingTime}`);
     }
 
     // PHYSICS: Update ALL players (gravity, position sync) - runs even during projectile flight

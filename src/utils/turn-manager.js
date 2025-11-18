@@ -7,7 +7,7 @@ class TurnManager {
     this.currentTeamIndex = 0; // Index in teams array
     this.currentTeamId = 0; // ID of currently playing team
     this.playerIndices = []; // Which player in each team plays next
-    this.turnTimer = 0;
+    this.currentTurnTimer = null; // Phaser delayedCall timer
     this.turnInProgress = false; // Prevents next player from moving
     this.weaponByTeam = {}; // Separate weapon selections per team
   }
@@ -22,12 +22,26 @@ class TurnManager {
   }
 
   startTurn() {
+    // Cancel any existing turn timer
+    if (this.currentTurnTimer) {
+      this.currentTurnTimer.destroy();
+      this.currentTurnTimer = null;
+    }
+
     this.currentPlayer = this.getNextPlayerIndex();
-    this.turnTimer = Config.TURN_TIME_LIMIT / 1000;
+    console.log(`🎯 STARTING TURN: Player ${this.currentPlayer}, ${Config.TURN_TIME_LIMIT / 1000}s timer active`);
 
     const currentPlayerObj = this.scene.players[this.currentPlayer];
     currentPlayerObj.canMove = true;
     currentPlayerObj.canShoot = true;
+
+    // Start Phaser delayedCall timer (frame-rate independent)
+    this.currentTurnTimer = this.scene.time.delayedCall(
+      Config.TURN_TIME_LIMIT,
+      () => this.handleTurnTimeout(),
+      [],
+      this,
+    );
 
     // Delegate UI updates to UIManager
     UIManager.updateTurnIndicator(this.scene, currentPlayerObj);
@@ -35,6 +49,15 @@ class TurnManager {
     UIManager.updateWeaponDisplay(this.scene); // Update weapon display for new team
 
     UIManager.clearAimLine(this.scene);
+  }
+
+  // Handle automatic turn timeout (called by Phaser delayedCall)
+  handleTurnTimeout() {
+    if (!this.turnInProgress) {
+      console.log(`⏰ TURN TIMEOUT: ${Config.TURN_TIME_LIMIT / 1000}s expired, starting next turn`);
+      this.currentTurnTimer = null; // Clear reference
+      this.startTurn(); // Start next player's turn
+    }
   }
 
   getNextPlayerIndex() {
@@ -66,15 +89,6 @@ class TurnManager {
 
     console.warn("No living players found");
     return 0;
-  }
-
-  updateTurnTimer(delta) {
-    this.turnTimer = Math.max(0, this.turnTimer - delta);
-    return Math.ceil(this.turnTimer);
-  }
-
-  shouldEndTurn() {
-    return this.turnTimer <= 0 && !this.turnInProgress;
   }
 
   endCurrentTurn() {
@@ -120,6 +134,8 @@ class TurnManager {
   setupGrenadeCollision(scene, projectileBody, weaponType) {
     projectileBody.weaponType = weaponType;
     projectileBody.timerId = setTimeout(() => this.grenadeDetonate(scene, projectileBody), 3000);
+    // Register for automatic cleanup (no manual tracking needed!)
+    MemoryManager.registerCleanup(scene, projectileBody.timerId, "timeouts");
   }
 
   // Detonate grenade timer explosion

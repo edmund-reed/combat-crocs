@@ -143,7 +143,6 @@ class PlayerSelectScene extends Phaser.Scene {
 
     // Start battle
     startBtn.on("pointerdown", () => {
-      // Store teams in global game state
       GameStateManager.storeTeams(this.teams);
 
       // Stop music

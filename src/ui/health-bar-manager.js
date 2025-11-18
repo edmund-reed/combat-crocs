@@ -83,8 +83,9 @@ class HealthBarManager {
       })
       .setOrigin(0.5);
     player.graphics.setVisible(false);
-    scene.gravestones ??= [];
-    scene.gravestones.push({ gravestone, ripText });
+
+    // Register for automatic cleanup (no manual tracking!)
+    MemoryManager.registerCleanup(scene, { gravestone, ripText }, "effects");
   }
 }
 
