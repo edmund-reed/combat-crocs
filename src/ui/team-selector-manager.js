@@ -105,10 +105,6 @@ class TeamSelectorManager {
   }
 
   static refreshTeamSelection(scene) {
-    // Sync team counts for SceneUtils compatibility before regenerating UI
-    scene.teamACount = scene.teams[0]?.crocCount || 1;
-    scene.teamBCount = scene.teams[1]?.crocCount || 1;
-
     // Regenerate team selection UI based on current teams
     this.createTeamSelection(scene);
   }
@@ -118,16 +114,6 @@ class TeamSelectorManager {
     if (scene.teamUIElements) {
       scene.teamUIElements.forEach(element => element.destroy());
       scene.teamUIElements = [];
-    }
-
-    // Destroy all sprites in team arrays (legacy SceneUtils arrays)
-    if (scene.teamASprites) {
-      scene.teamASprites.forEach(sprite => sprite.destroy());
-      scene.teamASprites = [];
-    }
-    if (scene.teamBSprites) {
-      scene.teamBSprites.forEach(sprite => sprite.destroy());
-      scene.teamBSprites = [];
     }
 
     // Destroy all sprites in new dynamic sprite arrays

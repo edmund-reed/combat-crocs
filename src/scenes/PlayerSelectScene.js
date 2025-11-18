@@ -36,14 +36,6 @@ class PlayerSelectScene extends Phaser.Scene {
       { id: 2, name: "Team 2", crocCount: 1, color: this.availableColors[1] }, // Yellow
     ];
 
-    // Initialize sprite arrays for SceneUtils compatibility
-    this.teamASprites = [];
-    this.teamBSprites = [];
-
-    // Initialize team counts for SceneUtils compatibility
-    this.teamACount = 1;
-    this.teamBCount = 1;
-
     // Background
     this.add
       .graphics()

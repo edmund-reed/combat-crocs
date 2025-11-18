@@ -58,7 +58,7 @@ class HealthBarManager {
       } else {
         barData.barGraphics.setVisible(false);
         barData.textLabel.setVisible(false);
-        if (player.body && !player.body.isRemoved) {
+        if (player.body && !player.body.isRemoved && scene.matter?.world) {
           scene.matter.world.remove(player.body);
           player.body.isRemoved = true;
         }
