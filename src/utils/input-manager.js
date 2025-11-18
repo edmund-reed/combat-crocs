@@ -49,14 +49,7 @@ class InputManager {
     const currentWeapon = scene.turnManager.getCurrentWeapon();
     const turnInProgress = scene.turnManager.isTurnInProgress();
 
-    console.log(
-      `🎯 ATTEMPT SHOOT: Player ${player?.id || "null"}, canShoot=${
-        player?.canShoot
-      }, turnInProgress=${turnInProgress}, weapon=${currentWeapon}`,
-    );
-
     if (!player.canShoot || turnInProgress) {
-      console.log(`❌ SHOOT BLOCKED: canShoot=${player?.canShoot}, turnInProgress=${turnInProgress}`);
       return;
     }
 

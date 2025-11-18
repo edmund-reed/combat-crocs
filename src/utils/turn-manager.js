@@ -36,24 +36,12 @@ class TurnManager {
     }
 
     this.currentPlayer = this.getNextPlayerIndex();
-    console.log(
-      `🎯 STARTING TURN: Player ${this.currentPlayer}, ID: ${
-        this.scene.players[this.currentPlayer]?.id || "INVALID"
-      }, total players: ${this.scene.players.length}`,
-    );
+    console.log(`🎯 STARTING TURN: Player ${this.currentPlayer}, ${Config.TURN_TIME_LIMIT / 1000}s timer active`);
 
     // Reset states for the new current player
     const currentPlayerObj = this.scene.players[this.currentPlayer];
-    if (!currentPlayerObj) {
-      console.error(`❌ INVALID PLAYER INDEX: ${this.currentPlayer}, max index: ${this.scene.players.length - 1}`);
-      return;
-    }
-
     currentPlayerObj.canMove = true;
     currentPlayerObj.canShoot = true; // ✅ Explicit reset
-    console.log(
-      `✅ PLAYER ${currentPlayerObj.id} STATE SET: canShoot=${currentPlayerObj.canShoot}, canMove=${currentPlayerObj.canMove}`,
-    );
 
     // Ensure ALL players except current are locked
     this.scene.players.forEach((player, index) => {

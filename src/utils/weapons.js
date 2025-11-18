@@ -94,39 +94,19 @@ class WeaponManager {
 
   // Create shotgun hitscan shot (no projectile physics, instant damage)
   static createShotgunHitscan(scene, player, targetX, targetY) {
-    console.log(
-      `🔍 SHOTGUN: Starting hitscan from (${player.x.toFixed(1)}, ${player.y.toFixed(1)}) to (${targetX.toFixed(
-        1,
-      )}, ${targetY.toFixed(1)})`,
-    );
-
-    console.log("🔍 SHOTGUN: Checking terrain intersection...");
     // First check for terrain intersection (blocks shot if obstructed)
     const terrainIntersection = this.checkTerrainHitscan(scene, player.x, player.y, targetX, targetY);
-    console.log("🔍 SHOTGUN: Terrain check complete");
     if (terrainIntersection) {
-      console.log(
-        `🏔️ HAZEL Terrain BLOCK: Shot blocked at ${terrainIntersection.x.toFixed(1)}, ${terrainIntersection.y.toFixed(
-          1,
-        )}`,
-      );
-      console.log("🔍 SHOTGUN: Handling terrain block case");
       // Visualize blocked shot
       this.showShotgunTrail(scene, player.x, player.y, terrainIntersection.x, terrainIntersection.y);
       // No damage, update turn - terrain blocked shot should allow retry
       if (scene.turnManager.weaponAmmo.SHOTGUN >= 1) {
-        console.log("🔍 SHOTGUN: Terrain blocked first shot - retry immediately");
-        // Terrain blocked first shot - don't set canShoot=false in InputManager
-        // Undo the canShoot=false set by InputManager for blocked shots
         player.canShoot = true; // Force allow for retry
         scene.turnManager.turnInProgress = false; // ✅ Immediate reset
       } else {
-        console.log("🔍 SHOTGUN: Terrain blocked last shot - no more ammo, next turn");
-        // Terrain blocked last shot - start next turn
         scene.turnManager.turnInProgress = false; // ✅ Explicit reset
         scene.turnManager.startTurn(); // End shotgun turn immediately
       }
-      console.log("🔍 SHOTGUN: Terrain block complete - shot cancelled");
       return; // End early - terrain blocks shot
     }
 
@@ -149,21 +129,16 @@ class WeaponManager {
     this.showShotgunTrail(scene, player.x, player.y, targetX, targetY);
 
     // Allow next shot immediately if ammo remains
-    console.log(`🔍 SHOTGUN: Final ammo check, ammo: ${scene.turnManager.weaponAmmo.SHOTGUN}`);
     if (scene.turnManager.weaponAmmo.SHOTGUN >= 1) {
-      console.log("🔍 SHOTGUN: Allowing second shot");
       // Set up next shot immediately (no physics delay for hitscan)
       player.canShoot = true;
       scene.turnManager.turnInProgress = false; // ✅ Critical reset
     } else {
-      console.log("🔍 SHOTGUN: Ending turn (ammo depleted)");
       // No ammo left - ensure turn is clean before starting next turn
       scene.turnManager.turnInProgress = false; // ✅ Explicit reset
-      console.log("🔫 Shotgun turn ended, starting next player");
+      console.log(" Shotgun turn ended, starting next player");
       scene.turnManager.startTurn();
     }
-
-    console.log("🔍 SHOTGUN: Hitscan function complete");
   }
 
   // Check for player hit along shotgun line (finds FIRST player hit)
