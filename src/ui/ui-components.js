@@ -1,31 +1,12 @@
 // UI Components for Combat Crocs
 class UIComponents {
-  // Helper functions for common patterns
-  static _createPrimaryText(text, fontSize, strokeThickness = 2, addStroke = true) {
-    return {
-      font: `${addStroke ? "bold " : ""}${fontSize}px Arial`,
-      fill: "#FFD23F",
-      ...(addStroke && { stroke: "#FF6B35", strokeThickness }),
-    };
-  }
-
-  static _addButtonHoverEffect(btn, fillColor = "#FFD23F") {
-    btn.on("pointerover", () => btn.setScale(1.2).setFill("#FFFFFF"));
-    btn.on("pointerout", () => btn.setScale(1.0).setFill(fillColor));
-    return btn;
-  }
-
-  static _createInteractiveText(scene, x, y, text, styles, origin = 0.5) {
-    const txt = scene.add.text(x, y, text, styles).setOrigin(origin).setInteractive();
-    return txt;
-  }
   static createWeaponDisplay(scene) {
     const { turnManager: tm } = scene;
     scene.weaponText = scene.add.text(
       Config.GAME_WIDTH - 200,
       20,
       `Weapon: ${Config.WEAPON_TYPES[tm.getCurrentWeapon()].name}`,
-      { ...this._createPrimaryText(), font: "16px Arial", strokeThickness: 0 },
+      { ...UITextHelpers._getPrimaryTextStyle(16, 0), font: "16px Arial" },
     );
   }
 
@@ -37,12 +18,12 @@ class UIComponents {
   }
 
   static createTurnIndicator(scene) {
-    scene.playerIndicator = this._createInteractiveText(
+    scene.playerIndicator = UITextHelpers.createInteractiveText(
       scene,
       Config.GAME_WIDTH / 2,
       20,
       "Player 1's Turn",
-      this._createPrimaryText("", 20),
+      UITextHelpers._getPrimaryTextStyle(20),
       0.5,
     );
   }
@@ -65,7 +46,9 @@ class UIComponents {
 
   static createColorSelector(parentScene, x, y, team, availableColors) {
     // Label for color selection using helper
-    const colorLabel = parentScene.add.text(x, y - 20, "Color", this._createPrimaryText("", 16, 1)).setOrigin(0.5);
+    const colorLabel = parentScene.add
+      .text(x, y - 20, "Color", UITextHelpers._getPrimaryTextStyle(16, 1))
+      .setOrigin(0.5);
     parentScene.teamUIElements.push(colorLabel);
 
     // Create color swatch buttons
@@ -151,11 +134,13 @@ class UIComponents {
     const selectorY = 170;
 
     // Label with primary styling
-    scene.add.text(Config.GAME_WIDTH / 2, selectorY, "Number of Teams", this._createPrimaryText("", 18)).setOrigin(0.5);
+    scene.add
+      .text(Config.GAME_WIDTH / 2, selectorY, "Number of Teams", UITextHelpers._getPrimaryTextStyle(18))
+      .setOrigin(0.5);
 
     // Create buttons with helper functions
-    const minusBtn = this._addButtonHoverEffect(
-      this._createInteractiveText(scene, Config.GAME_WIDTH / 2 - 80, selectorY + 50, "-", {
+    const minusBtn = UIButtonHelpers.addHoverEffect(
+      UITextHelpers.createInteractiveText(scene, Config.GAME_WIDTH / 2 - 80, selectorY + 50, "-", {
         font: "bold 36px Arial",
         fill: "#FF6B35",
       }),
@@ -163,11 +148,11 @@ class UIComponents {
 
     // Count display
     scene.teamCountText = scene.add
-      .text(Config.GAME_WIDTH / 2, selectorY + 50, scene.teamCount, this._createPrimaryText("", 48, 3))
+      .text(Config.GAME_WIDTH / 2, selectorY + 50, scene.teamCount, UITextHelpers._getPrimaryTextStyle(48, 3))
       .setOrigin(0.5);
 
-    const plusBtn = this._addButtonHoverEffect(
-      this._createInteractiveText(scene, Config.GAME_WIDTH / 2 + 80, selectorY + 50, "+", {
+    const plusBtn = UIButtonHelpers.addHoverEffect(
+      UITextHelpers.createInteractiveText(scene, Config.GAME_WIDTH / 2 + 80, selectorY + 50, "+", {
         font: "bold 36px Arial",
         fill: "#FF6B35",
       }),

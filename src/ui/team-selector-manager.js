@@ -69,14 +69,7 @@ class TeamSelectorManager {
     }
 
     // Team label
-    const teamLabel = scene.add
-      .text(x, y, team.name, {
-        font: "bold 24px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5);
+    const teamLabel = scene.add.text(x, y, team.name, UITextHelpers._getPrimaryTextStyle(24, 2)).setOrigin(0.5);
     scene.teamUIElements.push(teamLabel);
 
     // Count display and controls
@@ -94,12 +87,7 @@ class TeamSelectorManager {
 
     // Count display
     const countText = scene.add
-      .text(x, countY, team.crocCount, {
-        font: "bold 48px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 3,
-      })
+      .text(x, countY, team.crocCount, UITextHelpers._getPrimaryTextStyle(48, 3))
       .setOrigin(0.5);
     scene.teamUIElements.push(countText);
 
@@ -113,11 +101,9 @@ class TeamSelectorManager {
       .setInteractive();
     scene.teamUIElements.push(plusBtn);
 
-    // Button hover effects
-    [minusBtn, plusBtn].forEach(btn => {
-      btn.on("pointerover", () => btn.setScale(1.2).setFill("#FFFFFF"));
-      btn.on("pointerout", () => btn.setScale(1.0).setFill("#FF6B35"));
-    });
+    // Button hover effects - apply global helper
+    UIButtonHelpers.addHoverEffect(minusBtn, "#FF6B35");
+    UIButtonHelpers.addHoverEffect(plusBtn, "#FF6B35");
 
     // Minus button logic
     minusBtn.on("pointerdown", () => {
