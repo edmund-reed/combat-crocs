@@ -18,7 +18,9 @@ class InputManager {
 
     // Keyboard shortcuts
     scene.input.keyboard.on("keydown-W", () => {
-      UIManager.showWeaponSelectMenu(scene);
+      if (!scene.turnManager.weaponLocked) {
+        UIManager.showWeaponSelectMenu(scene);
+      }
     });
   }
 
@@ -45,19 +47,52 @@ class InputManager {
     const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
     const player = scene.players[currentPlayerIndex];
     const currentWeapon = scene.turnManager.getCurrentWeapon();
+    const turnInProgress = scene.turnManager.isTurnInProgress();
 
-    if (!player.canShoot || scene.turnManager.isTurnInProgress()) return;
+    console.log(
+      `🎯 ATTEMPT SHOOT: Player ${player?.id || "null"}, canShoot=${
+        player?.canShoot
+      }, turnInProgress=${turnInProgress}, weapon=${currentWeapon}`,
+    );
+
+    if (!player.canShoot || turnInProgress) {
+      console.log(`❌ SHOOT BLOCKED: canShoot=${player?.canShoot}, turnInProgress=${turnInProgress}`);
+      return;
+    }
 
     console.log(`Player ${player.id} shooting ${currentWeapon} at (${pointer.worldX}, ${pointer.worldY})`);
 
-    // End turn after shooting (bazookas end turn, grenades keep turn until explosion)
-    if (currentWeapon !== "GRENADE") {
-      scene.turnManager.endCurrentTurn();
+    // Decrement weapon ammo
+    scene.turnManager.weaponAmmo[currentWeapon]--;
+    console.log(`Ammo for ${currentWeapon}: ${scene.turnManager.weaponAmmo[currentWeapon]} remaining`);
+
+    // Lock weapon selection after firing (can't change weapons mid-turn)
+    scene.turnManager.weaponLocked = true;
+
+    // Grenade special case: wait for explosion before ending turn
+    if (currentWeapon === "GRENADE") {
+      // Turn ends when projectile explodes, not immediately
+    } else {
+      // For all other weapons: if no ammo left, end turn immediately
+      if (scene.turnManager.weaponAmmo[currentWeapon] <= 0) {
+        scene.turnManager.endCurrentTurn();
+      }
     }
 
-    WeaponManager.createProjectile(scene, player, pointer.worldX, pointer.worldY, currentWeapon);
-    player.canShoot = false;
-    player.canMove = false; // Lock movement during projectile flight
+    // Create projectile (or hitscan for shotgun)
+    if (currentWeapon === "SHOTGUN") {
+      // Set turn in progress to prevent multiple shots per turn
+      scene.turnManager.turnInProgress = true;
+      WeaponManager.createShotgunHitscan(scene, player, pointer.worldX, pointer.worldY);
+
+      // For shotgun: don't lock if second shot is allowed (ammo check happens inside createShotgunHitscan)
+      // The shotgun function will set canShoot appropriately
+    } else {
+      WeaponManager.createProjectile(scene, player, pointer.worldX, pointer.worldY, currentWeapon);
+
+      player.canShoot = false;
+      player.canMove = false; // Lock movement during projectile flight
+    }
 
     // Clear aim line
     InputManager.clearAimLine(scene);

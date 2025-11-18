@@ -18,14 +18,15 @@ class WeaponMenuManager {
   }
 
   static showWeaponSelectMenu(scene) {
-    if (scene.gameEnded || scene.weaponMenu) return;
+    if (scene.gameEnded || scene.weaponMenu || scene.turnManager.weaponLocked) return;
 
     const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
     const menuDepth = 1001;
     const currentWeapon = scene.turnManager.getCurrentWeapon();
     const weapons = [
-      ["Bazooka", "BAZOOKA", h / 2 - 20],
-      ["Grenade", "GRENADE", h / 2 + 10],
+      ["Bazooka", "BAZOOKA", h / 2 - 30],
+      ["Grenade", "GRENADE", h / 2],
+      ["Shotgun", "SHOTGUN", h / 2 + 30],
     ];
 
     const elements = {
@@ -34,11 +35,11 @@ class WeaponMenuManager {
         .graphics()
         .setDepth(menuDepth + 1)
         .fillStyle(0x333333, 0.95)
-        .fillRoundedRect(w / 2 - 100, h / 2 - 60, 200, 120, 10)
+        .fillRoundedRect(w / 2 - 100, h / 2 - 75, 200, 150, 10)
         .lineStyle(3, 0xffd23f)
-        .strokeRoundedRect(w / 2 - 100, h / 2 - 60, 200, 120, 10),
+        .strokeRoundedRect(w / 2 - 100, h / 2 - 75, 200, 150, 10),
       title: scene.add
-        .text(w / 2, h / 2 - 40, "Select Weapon", {
+        .text(w / 2, h / 2 - 55, "Select Weapon", {
           font: "18px Arial",
           fill: "#FFD23F",
         })

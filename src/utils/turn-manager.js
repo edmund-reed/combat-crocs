@@ -10,6 +10,13 @@ class TurnManager {
     this.currentTurnTimer = null; // Phaser delayedCall timer
     this.turnInProgress = false; // Prevents next player from moving
     this.weaponByTeam = {}; // Separate weapon selections per team
+
+    // Weapon ammo system (shots remaining per weapon type)
+    this.weaponAmmo = {
+      BAZOOKA: 1,
+      GRENADE: 1,
+      SHOTGUN: 2, // New: 2 shots per turn
+    };
   }
 
   // Initialize based on current teams
@@ -29,11 +36,42 @@ class TurnManager {
     }
 
     this.currentPlayer = this.getNextPlayerIndex();
-    console.log(`🎯 STARTING TURN: Player ${this.currentPlayer}, ${Config.TURN_TIME_LIMIT / 1000}s timer active`);
+    console.log(
+      `🎯 STARTING TURN: Player ${this.currentPlayer}, ID: ${
+        this.scene.players[this.currentPlayer]?.id || "INVALID"
+      }, total players: ${this.scene.players.length}`,
+    );
 
+    // Reset states for the new current player
     const currentPlayerObj = this.scene.players[this.currentPlayer];
+    if (!currentPlayerObj) {
+      console.error(`❌ INVALID PLAYER INDEX: ${this.currentPlayer}, max index: ${this.scene.players.length - 1}`);
+      return;
+    }
+
     currentPlayerObj.canMove = true;
-    currentPlayerObj.canShoot = true;
+    currentPlayerObj.canShoot = true; // ✅ Explicit reset
+    console.log(
+      `✅ PLAYER ${currentPlayerObj.id} STATE SET: canShoot=${currentPlayerObj.canShoot}, canMove=${currentPlayerObj.canMove}`,
+    );
+
+    // Ensure ALL players except current are locked
+    this.scene.players.forEach((player, index) => {
+      if (index !== this.currentPlayer) {
+        player.canMove = false;
+        player.canShoot = false;
+      }
+    });
+
+    // Reset weapon ammo for the new turn
+    Object.keys(this.weaponAmmo).forEach(weapon => {
+      // Reload ammo based on weapon type
+      this.weaponAmmo[weapon] = weapon === "SHOTGUN" ? 2 : 1;
+    });
+
+    // Unlock weapon selection for new turn
+    this.weaponLocked = false;
+    console.log(`🔄 Ammo reloaded and weapons unlocked for new turn`);
 
     // Start Phaser delayedCall timer (frame-rate independent)
     this.currentTurnTimer = this.scene.time.delayedCall(
