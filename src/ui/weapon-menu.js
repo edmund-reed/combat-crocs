@@ -18,16 +18,18 @@ class WeaponMenuManager {
   }
 
   static showWeaponSelectMenu(scene) {
-    if (scene.gameEnded || scene.weaponMenu || scene.turnManager.weaponLocked) return;
+    if (scene.gameEnded || scene.weaponMenu) return;
 
     const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
     const menuDepth = 1001;
     const currentWeapon = scene.turnManager.getCurrentWeapon();
-    const weapons = [
-      ["Bazooka", "BAZOOKA", h / 2 - 30],
-      ["Grenade", "GRENADE", h / 2],
-      ["Shotgun", "SHOTGUN", h / 2 + 30],
-    ];
+
+    // Automatically generate weapon list from configs
+    const weapons = Object.keys(Config.WEAPON_CONFIGS).map((weaponKey, index) => {
+      const weaponConfig = Config.WEAPON_TYPES[weaponKey] || {};
+      const yPos = h / 2 - 30 + index * 30; // Space out buttons
+      return [weaponConfig.name || weaponKey, weaponKey, yPos];
+    });
 
     const elements = {
       overlay: ModalManager.createModalOverlay(scene, () => this.hideWeaponSelectMenu(scene)),

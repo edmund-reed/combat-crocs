@@ -14,7 +14,36 @@ const Config = {
   PLAYER_SPEED: 10,
   PLAYER_JUMP_FORCE: 15, // Even higher for very noticeable jumping
 
-  // Weapon settings (significantly increased for development testing)
+  // Behavior-driven weapon configurations - eliminates weapon name references
+  WEAPON_CONFIGS: {
+    BAZOOKA: {
+      damage: 100,
+      radius: 200,
+      shotsPerTurn: 1,
+      behaviorFlags: ["projectile", "explodesOnImpact"], // Generic behaviors instead of weapon names
+    },
+    GRENADE: {
+      damage: 15,
+      radius: 80,
+      shotsPerTurn: 1,
+      behaviorFlags: ["projectile", "timerExplosion", "bounces"], // Multiple flags define behavior
+    },
+    SHOTGUN: {
+      damage: 12,
+      radius: 35,
+      shotsPerTurn: 2,
+      behaviorFlags: ["hitscan", "multiShot"], // Allows second shot without turn ending
+    },
+    // Future weapons just get appropriate flags:
+    FLAMETHROWER: {
+      damage: 8,
+      radius: 40,
+      shotsPerTurn: 10,
+      behaviorFlags: ["hitscan", "multiShot", "rapidFire"],
+    },
+  },
+
+  // Legacy WEAPON_TYPES for backward compatibility during transition
   WEAPON_TYPES: {
     BAZOOKA: { name: "Bazooka", damage: 100, radius: 200 },
     GRENADE: { name: "Grenade", damage: 15, radius: 80 },

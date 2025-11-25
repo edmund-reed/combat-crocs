@@ -62,30 +62,21 @@ class InputManager {
     // Lock weapon selection after firing (can't change weapons mid-turn)
     scene.turnManager.weaponLocked = true;
 
-    // Grenade special case: wait for explosion before ending turn
-    if (currentWeapon === "GRENADE") {
-      // Turn ends when projectile explodes, not immediately
+    // Create weapon shot using data-driven dispatch system (MUST COME FIRST)
+    WeaponManager.fireWeapon(scene, player, pointer.worldX, pointer.worldY, currentWeapon);
+
+    // Behavior-driven turn ending (AFTER weapon fires)
+    const weaponConfig = Config.WEAPON_CONFIGS[currentWeapon];
+    if (weaponConfig.behaviorFlags.includes("timerExplosion")) {
+      // Weapons with timer explosions wait for detonation (like grenades)
     } else {
-      // For all other weapons: if no ammo left, end turn immediately
+      // All other weapons: end turn immediately if no ammo left
       if (scene.turnManager.weaponAmmo[currentWeapon] <= 0) {
         scene.turnManager.endCurrentTurn();
       }
     }
 
-    // Create projectile (or hitscan for shotgun)
-    if (currentWeapon === "SHOTGUN") {
-      // Set turn in progress to prevent multiple shots per turn
-      scene.turnManager.turnInProgress = true;
-      WeaponManager.createShotgunHitscan(scene, player, pointer.worldX, pointer.worldY);
-
-      // For shotgun: don't lock if second shot is allowed (ammo check happens inside createShotgunHitscan)
-      // The shotgun function will set canShoot appropriately
-    } else {
-      WeaponManager.createProjectile(scene, player, pointer.worldX, pointer.worldY, currentWeapon);
-
-      player.canShoot = false;
-      player.canMove = false; // Lock movement during projectile flight
-    }
+    // Each weapon manages its own canShoot/canMove state based on config
 
     // Clear aim line
     InputManager.clearAimLine(scene);

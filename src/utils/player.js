@@ -29,6 +29,14 @@ class PlayerManager {
     const shouldFaceLeft = teamId % 2 === 0; // Team 2,4,6 face left; Team 1,3,5 face right
     playerSprite.setFlipX(shouldFaceLeft);
 
+    // Add accurate hit area visualization (25px radius circle) - matches actual hit detection
+    const hitAreaMarker = scene.add
+      .graphics()
+      .lineStyle(2, 0x00ff00, 0.7) // Green outline
+      .strokeCircle(0, 0, 25); // 25px radius circle centered on player
+
+    hitAreaMarker.setDepth(-1); // Behind sprite
+
     console.log(
       `🖼️ Created sprite ${spriteKey} at (${x}, ${y}) with scale 0.12, facing ${shouldFaceLeft ? "left" : "right"}`,
     );
@@ -50,6 +58,7 @@ class PlayerManager {
       id: id,
       graphics: playerSprite, // Use sprite instead of procedural graphics
       body: body,
+      hitAreaMarker: hitAreaMarker, // Store reference to hit area marker
       x: x,
       y: y,
       health: 100,
@@ -68,6 +77,16 @@ class PlayerManager {
     player.x = player.body.position.x;
     player.y = player.body.position.y;
     player.graphics.setPosition(player.x, player.y);
+  }
+
+  // Update hit area marker position (called separately to keep visuals synced)
+  static updateHitAreaMarker(player) {
+    if (player.hitAreaMarker) {
+      player.hitAreaMarker.setPosition(player.x, player.y); // Move to player position
+      player.hitAreaMarker.clear();
+      player.hitAreaMarker.lineStyle(2, 0x00ff00, 0.7);
+      player.hitAreaMarker.strokeCircle(0, 0, 25); // Always centered at origin since marker will be moved
+    }
   }
 
   // Update player physics (gravity, velocity) for ALL players - called every frame
@@ -142,6 +161,11 @@ class PlayerManager {
     scene.players.forEach(player => {
       scene.playerSprites[player.id] = player.graphics;
       scene.playerBodies[player.id] = player.body;
+      // Update hit area marker position and redrawing after random repositioning
+      if (player.hitAreaMarker) {
+        player.hitAreaMarker.setPosition(player.x, player.y); // Move marker to player position
+        // Marker already drawn correctly in updateHitAreaMarker, just position it
+      }
     });
 
     const teamSummary = teams.map(t => `Team ${t.id} (${t.crocCount})`).join(", ");

@@ -79,6 +79,8 @@ class GameScene extends Phaser.Scene {
     // PHYSICS: Update ALL players (gravity, position sync) - runs even during projectile flight
     this.players.forEach(player => {
       PlayerManager.updatePlayerPhysics(this, player);
+      // Update hit area visualization to follow player movement
+      PlayerManager.updateHitAreaMarker(player);
     });
 
     // CONTROLS: Only current player gets movement controls when they can move

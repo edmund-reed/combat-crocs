@@ -76,9 +76,10 @@ class TerrainManager {
       });
 
       // Store processed platform data for weapons blocking system
+      // Use TOP-LEFT coordinates for intersection algorithms
       processedPlatforms.push({
-        x: platformData.x,
-        y: yPos, // Use processed Y position
+        x: platformData.x - platformData.width / 2, // Top-left X coordinate
+        y: yPos - platformData.height / 2, // Top-left Y coordinate
         width: platformData.width,
         height: platformData.height,
         name: `Platform ${index + 1}`,

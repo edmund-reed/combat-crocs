@@ -1,7 +1,28 @@
 // Weapon utilities for Combat Crocs
 
 class WeaponManager {
-  // Create and fire a weapon
+  // Simple weapon dispatch system - removes hard-coded weapon references
+  static fireWeapon(scene, player, targetX, targetY, weaponType) {
+    // Simple dispatch table replaces scattered hard-coded checks
+    const weaponMethods = {
+      BAZOOKA: (scene, player, targetX, targetY) => this.createProjectile(scene, player, targetX, targetY, weaponType),
+      GRENADE: (scene, player, targetX, targetY) => this.createProjectile(scene, player, targetX, targetY, weaponType),
+      SHOTGUN: (scene, player, targetX, targetY) => this.createShotgunHitscan(scene, player, targetX, targetY),
+      // Future weapons need methods added here as they're implemented
+      UZI: () => console.log("❌ UZI not implemented yet"),
+      FLAMETHROWER: () => console.log("❌ FLAMETHROWER not implemented yet"),
+    };
+
+    const method = weaponMethods[weaponType];
+    if (method) {
+      return method(scene, player, targetX, targetY);
+    } else {
+      console.error(`❌ No method for weapon: ${weaponType}`);
+      return null;
+    }
+  }
+
+  // Legacy method for backward compatibility - will be removed
   static createProjectile(scene, player, targetX, targetY, weaponType = "BAZOOKA") {
     const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
     const power = 25;
@@ -33,9 +54,16 @@ class WeaponManager {
     InputManager.addProjectileTrail(scene, body);
 
     // Handle weapon-specific collision logic
-    weaponType === "GRENADE"
-      ? this.setupGrenadeCollision(scene, body, weaponType)
-      : this.setupProjectileCollision(scene, body, weaponType);
+    const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
+    if (weaponConfig.behaviorFlags.includes("timerExplosion")) {
+      this.setupTimerExplosionCollision(scene, body, weaponConfig, weaponType);
+    } else if (weaponConfig.behaviorFlags.includes("explodesOnImpact")) {
+      this.setupProjectileCollision(scene, body, projectile, weaponType);
+    }
+    // Add bounce physics for weapons with bounce flag
+    if (weaponConfig.behaviorFlags.includes("bounces")) {
+      body.restitution = 0.8; // Add bounce
+    }
 
     // Store graphic reference for cleanup
     body.projectileGraphics = projectile;
@@ -87,56 +115,104 @@ class WeaponManager {
     });
   }
 
-  // Setup collision for grenades (timer-based explosion)
-  static setupGrenadeCollision(scene, projectileBody, weaponType) {
-    scene.turnManager.setupGrenadeCollision(scene, projectileBody, weaponType);
+  // Projectile detonation for timer-based weapons (grenades)
+  static detonateProjectile(scene, projectileBody) {
+    if (projectileBody.destroyed) return; // Already detonated
+
+    console.log(`💥 Timer detonation: Grenade exploding`);
+
+    // Use stored weapon type
+    const weaponType = projectileBody.weaponType || "GRENADE";
+
+    // Create explosion at projectile position
+    ExplosionSystem.createExplosion(
+      scene,
+      projectileBody.position.x,
+      projectileBody.position.y,
+      projectileBody.projectileOwner,
+      weaponType,
+    );
+
+    // Clean up projectile body
+    scene.matter.world.remove(projectileBody);
+
+    // Remove visual projectile graphics
+    if (projectileBody.projectileGraphics && typeof projectileBody.projectileGraphics.destroy === "function") {
+      projectileBody.projectileGraphics.destroy();
+    }
+
+    // End turn after explosion
+    scene.endProjectileTurn();
+  }
+
+  // Generic timer explosion collision (replaces grenade-specific logic)
+  static setupTimerExplosionCollision(scene, projectileBody, weaponConfig, weaponType) {
+    projectileBody.weaponConfig = weaponConfig;
+    projectileBody.weaponType = weaponType; // Also store the weapon type for detonation
+    // Default 3 seconds if not specified
+    const delayMs = weaponConfig.delay || 3000;
+    projectileBody.timerId = setTimeout(() => this.detonateProjectile(scene, projectileBody), delayMs);
+    // Register for automatic cleanup
+    MemoryManager.registerCleanup(scene, projectileBody.timerId, "timeouts");
   }
 
   // Create shotgun hitscan shot (no projectile physics, instant damage)
   static createShotgunHitscan(scene, player, targetX, targetY) {
-    // First check for terrain intersection (blocks shot if obstructed)
-    const terrainIntersection = this.checkTerrainHitscan(scene, player.x, player.y, targetX, targetY);
-    if (terrainIntersection) {
-      // Visualize blocked shot
-      this.showShotgunTrail(scene, player.x, player.y, terrainIntersection.x, terrainIntersection.y);
-      // No damage, update turn - terrain blocked shot should allow retry
-      if (scene.turnManager.weaponAmmo.SHOTGUN >= 1) {
-        player.canShoot = true; // Force allow for retry
-        scene.turnManager.turnInProgress = false; // ✅ Immediate reset
-      } else {
-        scene.turnManager.turnInProgress = false; // ✅ Explicit reset
-        scene.turnManager.startTurn(); // End shotgun turn immediately
-      }
-      return; // End early - terrain blocks shot
-    }
+    console.log(
+      `🔍 SHOTGUN: createShotgunHitscan called for player ${player.id} at (${player.x}, ${player.y}) aiming at (${targetX}, ${targetY})`,
+    );
 
-    // Check for hit along the shot line (exclude shooter from possible targets)
-    const validTargets = scene.players.filter(targetPlayer => targetPlayer.id !== player.id);
+    // Show all players and their health/status
+    console.log(`🔍 Players: ${scene.players.map(p => `${p.id}:${p.health}`).join(", ")}`);
+
+    // Check for hits along the shot line
+    const validTargets = scene.players.filter(targetPlayer => targetPlayer.id !== player.id && targetPlayer.health > 0);
+    console.log(
+      `🎯 Valid targets: ${validTargets.map(p => `${p.id}@(${p.x.toFixed(1)},${p.y.toFixed(1)})`).join(", ")}`,
+    );
     const hitPlayer = this.checkShotgunHit(validTargets, player.x, player.y, targetX, targetY);
 
     if (hitPlayer) {
-      console.log(`🔫 Shotgun HIT: Player ${hitPlayer.id} for ${Config.WEAPON_TYPES.SHOTGUN.damage} damage`);
-      hitPlayer.health = Math.max(0, hitPlayer.health - Config.WEAPON_TYPES.SHOTGUN.damage);
-      UIManager.updateHealthBars(scene);
+      // Check if terrain blocks the direct path to target
+      const terrainBlocks = this.terrainBlocksPath(scene, player.x, player.y, hitPlayer.x, hitPlayer.y);
+      if (terrainBlocks) {
+        console.log(`🏔️ TERRAIN BLOCK: Path to Player ${hitPlayer.id} blocked - shot cannot reach through platform`);
+        // Show blocked shot trail
+        this.showShotgunTrail(scene, player.x, player.y, terrainBlocks.x, terrainBlocks.y);
+        console.log(`❌ Hit blocked by terrain - no damage`);
+      } else {
+        // SUCCESS: Player hit! Deal damage
+        const damageAmount = Config.WEAPON_CONFIGS.SHOTGUN.damage;
+        const healthBefore = hitPlayer.health;
+        hitPlayer.health = Math.max(0, hitPlayer.health - damageAmount);
+        const healthAfter = hitPlayer.health;
 
-      // Update game end conditions
-      scene.checkGameEnd?.();
+        console.log(
+          `🔫 HITSCAN DAMAGE: Player ${hitPlayer.id} took ${damageAmount} damage (${healthBefore} → ${healthAfter})`,
+        );
+        UIManager.updateHealthBars(scene);
+
+        // Update game end conditions
+        scene.checkGameEnd?.();
+
+        // Visualize the successful shot
+        this.showShotgunTrail(scene, player.x, player.y, hitPlayer.x, hitPlayer.y);
+      }
     } else {
-      console.log(`❌ Shotgun MISS: No player hit`);
+      console.log(`❌ Hitscan MISS: No player hit along shot path`);
+      // Visualize the miss
+      this.showShotgunTrail(scene, player.x, player.y, targetX, targetY);
     }
 
-    // Visualize the shot (optional)
-    this.showShotgunTrail(scene, player.x, player.y, targetX, targetY);
-
-    // Allow next shot immediately if ammo remains
-    if (scene.turnManager.weaponAmmo.SHOTGUN >= 1) {
+    // Allow next shot immediately if ammo remains - behavior-driven
+    const shotgunConfig = Config.WEAPON_CONFIGS.SHOTGUN;
+    if (shotgunConfig.behaviorFlags.includes("multiShot") && scene.turnManager.weaponAmmo.SHOTGUN >= 1) {
       // Set up next shot immediately (no physics delay for hitscan)
       player.canShoot = true;
       scene.turnManager.turnInProgress = false; // ✅ Critical reset
     } else {
-      // No ammo left - ensure turn is clean before starting next turn
+      // No ammo left or single-shot weapon - ensure turn is clean before starting next turn
       scene.turnManager.turnInProgress = false; // ✅ Explicit reset
-      console.log(" Shotgun turn ended, starting next player");
       scene.turnManager.startTurn();
     }
   }
@@ -300,6 +376,31 @@ class WeaponManager {
     if (hitBottom) return hitBottom;
 
     return null; // No intersection
+  }
+
+  // Check if terrain blocks the direct path between two points (bulletproof terrain)
+  static terrainBlocksPath(scene, startX, startY, endX, endY) {
+    const platforms = scene.currentMapPlatforms || [];
+
+    // Check if the line segment intersects ANY platform rectangle
+    for (const platform of platforms) {
+      const intersection = this.lineRectIntersection(
+        startX,
+        startY,
+        endX,
+        endY,
+        platform.x,
+        platform.y,
+        platform.width,
+        platform.height,
+      );
+
+      if (intersection) {
+        return intersection; // Terrain intersection found - blocks the shot
+      }
+    }
+
+    return null; // Clear path - no terrain intersections
   }
 
   static getCurrentWeapon() {

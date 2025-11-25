@@ -4,9 +4,9 @@
   "description": "Worms-style turn-based strategy game featuring crocodiles in an Orlando setting",
   "main": "src/game.js",
   "scripts": {
-    "start": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true && python3 -m http.server 3000",
-    "start:fallback": "python -m SimpleHTTPServer 3000",
-    "dev": "python3 -m http.server 3000"
+    "start": "lsof -ti:3001 | xargs kill -9 2>/dev/null || true && python3 -m http.server 3001",
+    "start:fallback": "python -m SimpleHTTPServer 3001",
+    "dev": "python3 -m http.server 3001"
   },
   "keywords": [
     "game",
