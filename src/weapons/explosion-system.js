@@ -3,7 +3,7 @@
 class ExplosionSystem {
   // Create explosion effect and apply damage
   static createExplosion(scene, x, y, projectileOwner = null, weaponType = "BAZOOKA") {
-    const weaponConfig = Config.WEAPON_TYPES[weaponType];
+    const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
     const radius = weaponConfig.radius;
     console.log(
       `ACTUAL EXPLOSION at (${x.toFixed(1)}, ${y.toFixed(1)}) from ${

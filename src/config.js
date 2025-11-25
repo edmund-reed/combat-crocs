@@ -43,17 +43,6 @@ const Config = {
     },
   },
 
-  // Legacy WEAPON_TYPES for backward compatibility during transition
-  WEAPON_TYPES: {
-    BAZOOKA: { name: "Bazooka", damage: 100, radius: 200 },
-    GRENADE: { name: "Grenade", damage: 15, radius: 80 },
-    HOMING_MISSILE: { name: "Homing Missile", damage: 35, radius: 40 },
-    SHOTGUN: { name: "Shotgun", damage: 12, radius: 35 },
-    UZI: { name: "UZI", damage: 8, radius: 25 },
-    PINEAPPLE_BOMB: { name: "Pineapple Bomb", damage: 20, radius: 70 },
-    MANGO_BOMB: { name: "Mango Bomb", damage: 18, radius: 75 },
-  },
-
   // AI settings
   AI_ACCURACY_LEVELS: {
     LOW: 0.3, // 30% accuracy

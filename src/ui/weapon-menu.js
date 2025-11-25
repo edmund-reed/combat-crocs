@@ -11,6 +11,11 @@ class WeaponMenuManager {
       .setInteractive(new Phaser.Geom.Rectangle(Config.GAME_WIDTH - 255, 10, 30, 30), Phaser.Geom.Rectangle.Contains)
       .on("pointerdown", (_, __, ___, event) => {
         event.stopPropagation();
+        // Prevent weapon switching after firing
+        if (scene.turnManager.weaponLocked) {
+          console.log("⚠️ Weapon locked - cannot change after firing");
+          return;
+        }
         this.showWeaponSelectMenu(scene);
       });
 
@@ -26,9 +31,8 @@ class WeaponMenuManager {
 
     // Automatically generate weapon list from configs
     const weapons = Object.keys(Config.WEAPON_CONFIGS).map((weaponKey, index) => {
-      const weaponConfig = Config.WEAPON_TYPES[weaponKey] || {};
       const yPos = h / 2 - 30 + index * 30; // Space out buttons
-      return [weaponConfig.name || weaponKey, weaponKey, yPos];
+      return [weaponKey, weaponKey, yPos]; // Just use weapon key as display name
     });
 
     const elements = {

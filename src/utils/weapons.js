@@ -1,16 +1,12 @@
 // Weapon utilities for Combat Crocs
 
 class WeaponManager {
-  // Simple weapon dispatch system - removes hard-coded weapon references
+  // Weapon dispatch system
   static fireWeapon(scene, player, targetX, targetY, weaponType) {
-    // Simple dispatch table replaces scattered hard-coded checks
     const weaponMethods = {
       BAZOOKA: (scene, player, targetX, targetY) => this.createProjectile(scene, player, targetX, targetY, weaponType),
       GRENADE: (scene, player, targetX, targetY) => this.createProjectile(scene, player, targetX, targetY, weaponType),
       SHOTGUN: (scene, player, targetX, targetY) => this.createShotgunHitscan(scene, player, targetX, targetY),
-      // Future weapons need methods added here as they're implemented
-      UZI: () => console.log("❌ UZI not implemented yet"),
-      FLAMETHROWER: () => console.log("❌ FLAMETHROWER not implemented yet"),
     };
 
     const method = weaponMethods[weaponType];
@@ -22,7 +18,6 @@ class WeaponManager {
     }
   }
 
-  // Legacy method for backward compatibility - will be removed
   static createProjectile(scene, player, targetX, targetY, weaponType = "BAZOOKA") {
     const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
     const power = 25;
@@ -290,45 +285,6 @@ class WeaponManager {
     });
   }
 
-  // Check for terrain intersection with hitscan shot
-  static checkTerrainHitscan(scene, startX, startY, endX, endY) {
-    // Get terrain platforms (assume they're stored in scene as platform segments)
-    // Platforms are typically rectangles with x, y, width, height
-    const platforms = scene.currentMapPlatforms || [];
-
-    // Calculate shot vector
-    const shotX = endX - startX;
-    const shotY = endY - startY;
-    const shotLength = Math.sqrt(shotX * shotX + shotY * shotY);
-
-    if (shotLength === 0) return null;
-
-    // Normalize direction
-    const dirX = shotX / shotLength;
-    const dirY = shotY / shotLength;
-
-    // Check intersection with each platform
-    for (const platform of platforms) {
-      // Simple bbox line intersection
-      const intersection = this.lineRectIntersection(
-        startX,
-        startY,
-        endX,
-        endY,
-        platform.x,
-        platform.y,
-        platform.width,
-        platform.height,
-      );
-
-      if (intersection) {
-        return intersection; // Return hit point
-      }
-    }
-
-    return null; // No terrain hit
-  }
-
   // Simple line-rectangle intersection (returns intersection point)
   static lineRectIntersection(lineStartX, lineStartY, lineEndX, lineEndY, rectX, rectY, rectWidth, rectHeight) {
     const rectLeft = rectX;
@@ -401,10 +357,6 @@ class WeaponManager {
     }
 
     return null; // Clear path - no terrain intersections
-  }
-
-  static getCurrentWeapon() {
-    return "BAZOOKA";
   }
 }
 

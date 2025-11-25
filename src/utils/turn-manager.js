@@ -148,11 +148,11 @@ class TurnManager {
   // Delegated from UIManager for better separation
   static updateWeaponDisplay(scene) {
     const { turnManager: tm } = scene;
-    scene.weaponText?.setText(`Weapon: ${Config.WEAPON_TYPES[tm.getCurrentWeapon()].name}`);
+    scene.weaponText?.setText(`Weapon: ${tm.getCurrentWeapon()}`);
   }
 
   setCurrentWeapon(weaponType) {
-    if (Config.WEAPON_TYPES[weaponType]) {
+    if (Config.WEAPON_CONFIGS[weaponType]) {
       const currentTeamId = this.getCurrentTeam();
       this.weaponByTeam[currentTeamId] = weaponType;
       console.log(`Team ${currentTeamId} weapon switched to: ${weaponType}`);
