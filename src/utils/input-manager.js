@@ -18,7 +18,9 @@ class InputManager {
 
     // Keyboard shortcuts
     scene.input.keyboard.on("keydown-W", () => {
-      UIManager.showWeaponSelectMenu(scene);
+      if (!scene.turnManager.weaponLocked) {
+        UIManager.showWeaponSelectMenu(scene);
+      }
     });
   }
 
@@ -45,19 +47,36 @@ class InputManager {
     const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
     const player = scene.players[currentPlayerIndex];
     const currentWeapon = scene.turnManager.getCurrentWeapon();
+    const turnInProgress = scene.turnManager.isTurnInProgress();
 
-    if (!player.canShoot || scene.turnManager.isTurnInProgress()) return;
+    if (!player.canShoot || turnInProgress) {
+      return;
+    }
 
     console.log(`Player ${player.id} shooting ${currentWeapon} at (${pointer.worldX}, ${pointer.worldY})`);
 
-    // End turn after shooting (bazookas end turn, grenades keep turn until explosion)
-    if (currentWeapon !== "GRENADE") {
-      scene.turnManager.endCurrentTurn();
+    // Decrement weapon ammo
+    scene.turnManager.weaponAmmo[currentWeapon]--;
+    console.log(`Ammo for ${currentWeapon}: ${scene.turnManager.weaponAmmo[currentWeapon]} remaining`);
+
+    // Lock weapon selection after firing (can't change weapons mid-turn)
+    scene.turnManager.weaponLocked = true;
+
+    // Create weapon shot using data-driven dispatch system (MUST COME FIRST)
+    WeaponManager.fireWeapon(scene, player, pointer.worldX, pointer.worldY, currentWeapon);
+
+    // Behavior-driven turn ending (AFTER weapon fires)
+    const weaponConfig = Config.WEAPON_CONFIGS[currentWeapon];
+    if (weaponConfig.behaviorFlags.includes("timerExplosion")) {
+      // Weapons with timer explosions wait for detonation (like grenades)
+    } else {
+      // All other weapons: end turn immediately if no ammo left
+      if (scene.turnManager.weaponAmmo[currentWeapon] <= 0) {
+        scene.turnManager.endCurrentTurn();
+      }
     }
 
-    WeaponManager.createProjectile(scene, player, pointer.worldX, pointer.worldY, currentWeapon);
-    player.canShoot = false;
-    player.canMove = false; // Lock movement during projectile flight
+    // Each weapon manages its own canShoot/canMove state based on config
 
     // Clear aim line
     InputManager.clearAimLine(scene);

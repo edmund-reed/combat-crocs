@@ -11,6 +11,11 @@ class WeaponMenuManager {
       .setInteractive(new Phaser.Geom.Rectangle(Config.GAME_WIDTH - 255, 10, 30, 30), Phaser.Geom.Rectangle.Contains)
       .on("pointerdown", (_, __, ___, event) => {
         event.stopPropagation();
+        // Prevent weapon switching after firing
+        if (scene.turnManager.weaponLocked) {
+          console.log("⚠️ Weapon locked - cannot change after firing");
+          return;
+        }
         this.showWeaponSelectMenu(scene);
       });
 
@@ -23,10 +28,12 @@ class WeaponMenuManager {
     const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
     const menuDepth = 1001;
     const currentWeapon = scene.turnManager.getCurrentWeapon();
-    const weapons = [
-      ["Bazooka", "BAZOOKA", h / 2 - 20],
-      ["Grenade", "GRENADE", h / 2 + 10],
-    ];
+
+    // Automatically generate weapon list from configs
+    const weapons = Object.keys(Config.WEAPON_CONFIGS).map((weaponKey, index) => {
+      const yPos = h / 2 - 30 + index * 30; // Space out buttons
+      return [weaponKey, weaponKey, yPos]; // Just use weapon key as display name
+    });
 
     const elements = {
       overlay: ModalManager.createModalOverlay(scene, () => this.hideWeaponSelectMenu(scene)),
@@ -34,11 +41,11 @@ class WeaponMenuManager {
         .graphics()
         .setDepth(menuDepth + 1)
         .fillStyle(0x333333, 0.95)
-        .fillRoundedRect(w / 2 - 100, h / 2 - 60, 200, 120, 10)
+        .fillRoundedRect(w / 2 - 100, h / 2 - 75, 200, 150, 10)
         .lineStyle(3, 0xffd23f)
-        .strokeRoundedRect(w / 2 - 100, h / 2 - 60, 200, 120, 10),
+        .strokeRoundedRect(w / 2 - 100, h / 2 - 75, 200, 150, 10),
       title: scene.add
-        .text(w / 2, h / 2 - 40, "Select Weapon", {
+        .text(w / 2, h / 2 - 55, "Select Weapon", {
           font: "18px Arial",
           fill: "#FFD23F",
         })

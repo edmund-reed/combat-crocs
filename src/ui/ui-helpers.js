@@ -17,8 +17,8 @@ class UITextHelpers {
 }
 
 class UIButtonHelpers {
-  static addHoverEffect(btn, originalColor = "#FFD23F") {
-    btn.on("pointerover", () => btn.setScale(1.2).setFill("#FFFFFF"));
+  static addHoverEffect(btn, originalColor = "#FFD23F", scale = 1.2) {
+    btn.on("pointerover", () => btn.setScale(scale).setFill("#FFFFFF"));
     btn.on("pointerout", () => btn.setScale(1.0).setFill(originalColor));
     return btn;
   }

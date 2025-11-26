@@ -48,12 +48,7 @@ class PlayerSelectScene extends Phaser.Scene {
 
     // Title
     this.add
-      .text(Config.GAME_WIDTH / 2, 60, "CHOOSE YOUR CROCODILES", {
-        font: "bold 32px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 4,
-      })
+      .text(Config.GAME_WIDTH / 2, 60, "CHOOSE YOUR CROCODILES", UITextHelpers._getPrimaryTextStyle(32, 4))
       .setOrigin(0.5);
 
     // Selected Map Display
@@ -106,6 +101,12 @@ class PlayerSelectScene extends Phaser.Scene {
     }
   }
 
+  _stopIntroMusic() {
+    if (this.introMusic && this.introMusic.isPlaying) {
+      this.introMusic.stop();
+    }
+  }
+
   clearExistingTeamUI() {
     UIManager.clearExistingTeamUI(this);
   }
@@ -115,50 +116,30 @@ class PlayerSelectScene extends Phaser.Scene {
 
     // Start Battle button
     const startBtn = this.add
-      .text(Config.GAME_WIDTH / 2, buttonY, "START BATTLE", {
-        font: "bold 28px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 3,
-      })
+      .text(Config.GAME_WIDTH / 2, buttonY, "START BATTLE", UITextHelpers._getPrimaryTextStyle(28, 3))
       .setOrigin(0.5)
       .setInteractive();
+
+    UIButtonHelpers.addHoverEffect(startBtn, "#FFD23F", 1.1);
 
     // Back to Menu button
     const backBtn = this.add
-      .text(Config.GAME_WIDTH / 2, buttonY + 60, "BACK TO MENU", {
-        font: "bold 20px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 2,
-      })
+      .text(Config.GAME_WIDTH / 2, buttonY + 60, "BACK TO MENU", UITextHelpers._getPrimaryTextStyle(20, 2))
       .setOrigin(0.5)
       .setInteractive();
 
-    // Button hover effects
-    [startBtn, backBtn].forEach(btn => {
-      btn.on("pointerover", () => btn.setScale(1.1).setFill("#FFFFFF"));
-      btn.on("pointerout", () => btn.setScale(1.0).setFill("#FFD23F"));
-    });
+    UIButtonHelpers.addHoverEffect(backBtn, "#FFD23F", 1.1);
 
     // Start battle
     startBtn.on("pointerdown", () => {
       GameStateManager.storeTeams(this.teams);
-
-      // Stop music
-      if (this.introMusic && this.introMusic.isPlaying) {
-        this.introMusic.stop();
-      }
-
-      // Transition to game
+      this._stopIntroMusic();
       this.scene.start("GameScene");
     });
 
     // Back to menu
     backBtn.on("pointerdown", () => {
-      if (this.introMusic && this.introMusic.isPlaying) {
-        this.introMusic.stop();
-      }
+      this._stopIntroMusic();
       this.scene.start("MenuScene");
     });
   }

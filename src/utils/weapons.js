@@ -1,6 +1,23 @@
 // Weapon utilities for Combat Crocs
 
 class WeaponManager {
+  // Weapon dispatch system
+  static fireWeapon(scene, player, targetX, targetY, weaponType) {
+    const weaponMethods = {
+      BAZOOKA: (scene, player, targetX, targetY) => this.createProjectile(scene, player, targetX, targetY, weaponType),
+      GRENADE: (scene, player, targetX, targetY) => this.createProjectile(scene, player, targetX, targetY, weaponType),
+      SHOTGUN: (scene, player, targetX, targetY) => HitscanWeapon.createShotgunHitscan(scene, player, targetX, targetY),
+    };
+
+    const method = weaponMethods[weaponType];
+    if (method) {
+      return method(scene, player, targetX, targetY);
+    } else {
+      console.error(`❌ No method for weapon: ${weaponType}`);
+      return null;
+    }
+  }
+
   // Create and fire a weapon
   static createProjectile(scene, player, targetX, targetY, weaponType = "BAZOOKA") {
     const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
@@ -32,10 +49,18 @@ class WeaponManager {
     });
     InputManager.addProjectileTrail(scene, body);
 
-    // Handle weapon-specific collision logic
-    weaponType === "GRENADE"
-      ? this.setupGrenadeCollision(scene, body, weaponType)
-      : this.setupProjectileCollision(scene, body, weaponType);
+    // Handle weapon-specific collision logic (behavior-driven)
+    const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
+    if (weaponConfig.behaviorFlags.includes("timerExplosion")) {
+      this.setupTimerExplosionCollision(scene, body, weaponConfig, weaponType);
+    } else if (weaponConfig.behaviorFlags.includes("explodesOnImpact")) {
+      this.setupProjectileCollision(scene, body, projectile, weaponType);
+    }
+
+    // Add bounce physics for weapons with bounce flag
+    if (weaponConfig.behaviorFlags.includes("bounces")) {
+      body.restitution = 0.8; // Add bounce
+    }
 
     // Store graphic reference for cleanup
     body.projectileGraphics = projectile;
@@ -87,9 +112,53 @@ class WeaponManager {
     });
   }
 
-  // Setup collision for grenades (timer-based explosion)
-  static setupGrenadeCollision(scene, projectileBody, weaponType) {
-    scene.turnManager.setupGrenadeCollision(scene, projectileBody, weaponType);
+  // Generic timer explosion collision (replaces grenade-specific logic)
+  static setupTimerExplosionCollision(scene, projectileBody, weaponConfig, weaponType) {
+    projectileBody.weaponConfig = weaponConfig;
+    projectileBody.weaponType = weaponType; // Store the weapon type for detonation
+    // Default 3 seconds if not specified
+    const delayMs = weaponConfig.delay || 3000;
+    projectileBody.timerId = setTimeout(() => this.detonateProjectile(scene, projectileBody), delayMs);
+    // Register for automatic cleanup
+    MemoryManager.registerCleanup(scene, projectileBody.timerId, "timeouts");
+  }
+
+  // Projectile detonation for timer-based weapons (grenades)
+  static detonateProjectile(scene, projectileBody) {
+    if (projectileBody.destroyed) return; // Already detonated
+
+    console.log(`💥 Timer detonation`);
+
+    // Use stored weapon type
+    const weaponType = projectileBody.weaponType || "GRENADE";
+
+    // Create explosion at projectile position
+    ExplosionSystem.createExplosion(
+      scene,
+      projectileBody.position.x,
+      projectileBody.position.y,
+      projectileBody.projectileOwner,
+      weaponType,
+    );
+
+    // Clean up projectile
+    this._cleanupProjectile(scene, projectileBody);
+
+    // End turn after explosion
+    scene.endProjectileTurn();
+  }
+
+  // Shared projectile cleanup logic
+  static _cleanupProjectile(scene, projectileBody) {
+    scene.matter.world.remove(projectileBody);
+
+    if (projectileBody.projectileGraphics && typeof projectileBody.projectileGraphics.destroy === "function") {
+      projectileBody.projectileGraphics.destroy();
+    }
+
+    if (projectileBody.debugOutline && typeof projectileBody.debugOutline.destroy === "function") {
+      projectileBody.debugOutline.destroy();
+    }
   }
 
   static getCurrentWeapon() {

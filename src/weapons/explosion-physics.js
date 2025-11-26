@@ -35,11 +35,11 @@ class ExplosionPhysics {
   static platformBlocksPath(platform, explosionX, explosionY, playerX, playerY) {
     const { x: platX, y: platY, width: platW, height: platH } = platform;
 
-    // Platform bounds (axis-aligned rectangle)
-    const platLeft = platX - platW / 2;
-    const platRight = platX + platW / 2;
-    const platTop = platY - platH / 2;
-    const platBottom = platY + platH / 2;
+    // Platform bounds (axis-aligned rectangle) - coordinates are now top-left from terrain.js
+    const platLeft = platX;
+    const platRight = platX + platW;
+    const platTop = platY;
+    const platBottom = platY + platH;
 
     console.log(
       `Platform check: explosion(${explosionX.toFixed(0)}, ${explosionY.toFixed(0)}) → ` +

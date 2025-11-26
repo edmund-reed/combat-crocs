@@ -2,12 +2,10 @@
 class UIComponents {
   static createWeaponDisplay(scene) {
     const { turnManager: tm } = scene;
-    scene.weaponText = scene.add.text(
-      Config.GAME_WIDTH - 200,
-      20,
-      `Weapon: ${Config.WEAPON_TYPES[tm.getCurrentWeapon()].name}`,
-      { ...UITextHelpers._getPrimaryTextStyle(16, 0), font: "16px Arial" },
-    );
+    scene.weaponText = scene.add.text(Config.GAME_WIDTH - 200, 20, `Weapon: ${tm.getCurrentWeapon()}`, {
+      ...UITextHelpers._getPrimaryTextStyle(16, 0),
+      font: "16px Arial",
+    });
   }
 
   static createTimerDisplay(scene) {

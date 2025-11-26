@@ -10,6 +10,17 @@ class TurnManager {
     this.currentTurnTimer = null; // Phaser delayedCall timer
     this.turnInProgress = false; // Prevents next player from moving
     this.weaponByTeam = {}; // Separate weapon selections per team
+
+    // Weapon ammo system - now dynamic based on definitions
+    this.weaponAmmo = {};
+    this.initializeWeaponAmmo();
+  }
+
+  // Initialize weapon ammo from weapon configurations
+  initializeWeaponAmmo() {
+    Object.keys(Config.WEAPON_CONFIGS).forEach(weaponKey => {
+      this.weaponAmmo[weaponKey] = Config.WEAPON_CONFIGS[weaponKey].shotsPerTurn;
+    });
   }
 
   // Initialize based on current teams
@@ -31,9 +42,27 @@ class TurnManager {
     this.currentPlayer = this.getNextPlayerIndex();
     console.log(`🎯 STARTING TURN: Player ${this.currentPlayer}, ${Config.TURN_TIME_LIMIT / 1000}s timer active`);
 
+    // Reset states for the new current player
     const currentPlayerObj = this.scene.players[this.currentPlayer];
     currentPlayerObj.canMove = true;
-    currentPlayerObj.canShoot = true;
+    currentPlayerObj.canShoot = true; // ✅ Explicit reset
+
+    // Ensure ALL players except current are locked
+    this.scene.players.forEach((player, index) => {
+      if (index !== this.currentPlayer) {
+        player.canMove = false;
+        player.canShoot = false;
+      }
+    });
+
+    // Reset weapon ammo for the new turn
+    Object.keys(this.weaponAmmo).forEach(weaponKey => {
+      this.weaponAmmo[weaponKey] = Config.WEAPON_CONFIGS[weaponKey]?.shotsPerTurn || 1;
+    });
+
+    // Unlock weapon selection for new turn
+    this.weaponLocked = false;
+    console.log(`🔄 Ammo reloaded and weapons unlocked for new turn`);
 
     // Start Phaser delayedCall timer (frame-rate independent)
     this.currentTurnTimer = this.scene.time.delayedCall(
@@ -119,39 +148,28 @@ class TurnManager {
   // Delegated from UIManager for better separation
   static updateWeaponDisplay(scene) {
     const { turnManager: tm } = scene;
-    scene.weaponText?.setText(`Weapon: ${Config.WEAPON_TYPES[tm.getCurrentWeapon()].name}`);
+    scene.weaponText?.setText(`Weapon: ${tm.getCurrentWeapon()}`);
   }
 
   setCurrentWeapon(weaponType) {
-    if (Config.WEAPON_TYPES[weaponType]) {
+    if (Config.WEAPON_CONFIGS[weaponType]) {
       const currentTeamId = this.getCurrentTeam();
       this.weaponByTeam[currentTeamId] = weaponType;
       console.log(`Team ${currentTeamId} weapon switched to: ${weaponType}`);
     }
   }
 
-  // Setup collision for grenades (timer-based explosion)
-  setupGrenadeCollision(scene, projectileBody, weaponType) {
-    projectileBody.weaponType = weaponType;
-    projectileBody.timerId = setTimeout(() => this.grenadeDetonate(scene, projectileBody), 3000);
-    // Register for automatic cleanup (no manual tracking needed!)
-    MemoryManager.registerCleanup(scene, projectileBody.timerId, "timeouts");
-  }
-
-  // Detonate grenade timer explosion
-  grenadeDetonate(scene, projectileBody) {
+  // Generic timer explosion handler (used by grenades and other timer-based weapons)
+  detonateTimerExplosion(scene, projectileBody) {
     ExplosionSystem.createExplosion(
       scene,
       projectileBody.position.x,
       projectileBody.position.y,
       projectileBody.projectileOwner,
-      projectileBody.weaponType || "GRENADE",
+      projectileBody.weaponType || "UNKNOWN",
     );
 
-    // Cleanup
-    scene.matter.world.remove(projectileBody);
-    projectileBody.projectileGraphics?.destroy();
-
+    // Cleanup - weapon-specific colliding body removal is handled by caller
     if (projectileBody.timerId) {
       clearTimeout(projectileBody.timerId);
     }
