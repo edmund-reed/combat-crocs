@@ -34,13 +34,6 @@ const Config = {
       shotsPerTurn: 2,
       behaviorFlags: ["hitscan", "multiShot"], // Allows second shot without turn ending
     },
-    // Future weapons just get appropriate flags:
-    FLAMETHROWER: {
-      damage: 8,
-      radius: 40,
-      shotsPerTurn: 10,
-      behaviorFlags: ["hitscan", "multiShot", "rapidFire"],
-    },
   },
 
   // AI settings

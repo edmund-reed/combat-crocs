@@ -68,18 +68,18 @@ class MenuScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive();
 
-    const tutorialButton = this.add
-      .text(Config.GAME_WIDTH / 2, 320, "HOW TO PLAY", {
-        font: "24px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5)
-      .setInteractive();
+    // const tutorialButton = this.add
+    //   .text(Config.GAME_WIDTH / 2, 320, "HOW TO PLAY", {
+    //     font: "24px Arial",
+    //     fill: "#FFD23F",
+    //     stroke: "#FF6B35",
+    //     strokeThickness: 3,
+    //   })
+    //   .setOrigin(0.5)
+    //   .setInteractive();
 
     // Add hover effects
-    [startButton, tutorialButton].forEach(button => {
+    [startButton].forEach(button => {
       button.on("pointerover", () => {
         button.setScale(1.1);
         button.setFill("#FFFFFF");
@@ -100,10 +100,10 @@ class MenuScene extends Phaser.Scene {
       this.scene.start("MapSelectScene");
     });
 
-    tutorialButton.on("pointerdown", () => {
-      this.scene.pause();
-      this.showTutorial();
-    });
+    // tutorialButton.on("pointerdown", () => {
+    //   this.scene.pause();
+    //   this.showTutorial();
+    // });
 
     // Camera shake temporarily disabled for cleaner experience
   }
