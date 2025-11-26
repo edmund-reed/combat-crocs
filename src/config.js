@@ -17,14 +17,14 @@ const Config = {
   // Behavior-driven weapon configurations - eliminates weapon name references
   WEAPON_CONFIGS: {
     BAZOOKA: {
-      damage: 100,
-      radius: 200,
+      damage: 50,
+      radius: 140,
       shotsPerTurn: 1,
       behaviorFlags: ["projectile", "explodesOnImpact"], // Generic behaviors instead of weapon names
     },
     GRENADE: {
-      damage: 15,
-      radius: 80,
+      damage: 50,
+      radius: 140,
       shotsPerTurn: 1,
       behaviorFlags: ["projectile", "timerExplosion", "bounces"], // Multiple flags define behavior
     },
