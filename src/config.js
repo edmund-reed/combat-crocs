@@ -106,3 +106,4 @@ const PhaserConfig = {
 };
 
 window.Config = Config;
+window.PhaserConfig = PhaserConfig;
