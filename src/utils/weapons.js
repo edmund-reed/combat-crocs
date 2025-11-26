@@ -18,6 +18,7 @@ class WeaponManager {
     }
   }
 
+  // Create and fire a weapon
   static createProjectile(scene, player, targetX, targetY, weaponType = "BAZOOKA") {
     const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
     const power = 25;
@@ -48,13 +49,14 @@ class WeaponManager {
     });
     InputManager.addProjectileTrail(scene, body);
 
-    // Handle weapon-specific collision logic
+    // Handle weapon-specific collision logic (behavior-driven)
     const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
     if (weaponConfig.behaviorFlags.includes("timerExplosion")) {
       this.setupTimerExplosionCollision(scene, body, weaponConfig, weaponType);
     } else if (weaponConfig.behaviorFlags.includes("explodesOnImpact")) {
       this.setupProjectileCollision(scene, body, projectile, weaponType);
     }
+
     // Add bounce physics for weapons with bounce flag
     if (weaponConfig.behaviorFlags.includes("bounces")) {
       body.restitution = 0.8; // Add bounce
@@ -95,7 +97,13 @@ class WeaponManager {
             }
 
             ExplosionSystem.createExplosion(scene, explosionX, explosionY, projectileBody.projectileOwner, weaponType);
-            this._cleanupProjectile(scene, projectileBody);
+            scene.matter.world.remove(projectileBody);
+            if (projectileGraphics && typeof projectileGraphics.destroy === "function") {
+              projectileGraphics.destroy();
+            }
+            if (projectileBody.debugOutline && typeof projectileBody.debugOutline.destroy === "function") {
+              projectileBody.debugOutline.destroy();
+            }
             // Call endProjectileTurn to advance to next player
             scene.endProjectileTurn();
           }
@@ -104,11 +112,22 @@ class WeaponManager {
     });
   }
 
+  // Generic timer explosion collision (replaces grenade-specific logic)
+  static setupTimerExplosionCollision(scene, projectileBody, weaponConfig, weaponType) {
+    projectileBody.weaponConfig = weaponConfig;
+    projectileBody.weaponType = weaponType; // Store the weapon type for detonation
+    // Default 3 seconds if not specified
+    const delayMs = weaponConfig.delay || 3000;
+    projectileBody.timerId = setTimeout(() => this.detonateProjectile(scene, projectileBody), delayMs);
+    // Register for automatic cleanup
+    MemoryManager.registerCleanup(scene, projectileBody.timerId, "timeouts");
+  }
+
   // Projectile detonation for timer-based weapons (grenades)
   static detonateProjectile(scene, projectileBody) {
     if (projectileBody.destroyed) return; // Already detonated
 
-    console.log(`💥 Timer detonation: Grenade exploding`);
+    console.log(`💥 Timer detonation`);
 
     // Use stored weapon type
     const weaponType = projectileBody.weaponType || "GRENADE";
@@ -129,7 +148,7 @@ class WeaponManager {
     scene.endProjectileTurn();
   }
 
-  // Shared projectile cleanup logic (consolidated from multiple methods)
+  // Shared projectile cleanup logic
   static _cleanupProjectile(scene, projectileBody) {
     scene.matter.world.remove(projectileBody);
 
@@ -142,15 +161,8 @@ class WeaponManager {
     }
   }
 
-  // Generic timer explosion collision (replaces grenade-specific logic)
-  static setupTimerExplosionCollision(scene, projectileBody, weaponConfig, weaponType) {
-    projectileBody.weaponConfig = weaponConfig;
-    projectileBody.weaponType = weaponType; // Also store the weapon type for detonation
-    // Default 3 seconds if not specified
-    const delayMs = weaponConfig.delay || 3000;
-    projectileBody.timerId = setTimeout(() => this.detonateProjectile(scene, projectileBody), delayMs);
-    // Register for automatic cleanup
-    MemoryManager.registerCleanup(scene, projectileBody.timerId, "timeouts");
+  static getCurrentWeapon() {
+    return "BAZOOKA";
   }
 }
 
