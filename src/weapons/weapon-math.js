@@ -55,6 +55,37 @@ class WeaponMath {
 
     return null; // Clear shot
   }
+
+  // Generic hitscan along line - finds first player hit
+  static hitscanAlongLine = (players, startX, startY, endX, endY, hitRadius = 25, maxRange = 1000) => {
+    const shotX = endX - startX,
+      shotY = endY - startY;
+    const shotLength = Math.sqrt(shotX ** 2 + shotY ** 2);
+    if (shotLength === 0) return null;
+
+    const normShotX = shotX / shotLength,
+      normShotY = shotY / shotLength;
+
+    return (
+      players
+        .filter(p => p.id !== "N/A" && p.health > 0)
+        .map(p => {
+          const dx = p.x - startX,
+            dy = p.y - startY;
+          const projection = dx * normShotX + dy * normShotY;
+          if (projection < 0 || projection > maxRange) return null;
+
+          const perpX = startX + projection * normShotX;
+          const perpY = startY + projection * normShotY;
+          const distanceToLine = Math.sqrt((p.x - perpX) ** 2 + (p.y - perpY) ** 2);
+
+          return distanceToLine <= hitRadius ? { player: p, distance: projection } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.distance - b.distance)
+        .at(0) ?? null
+    );
+  };
 }
 
 window.WeaponMath = WeaponMath;
