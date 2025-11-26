@@ -3,7 +3,7 @@
 
 class ExplosionPhysics {
   // Check if terrain blocks the explosion path to a player
-  static isExplosionBlockedByTerrain(explosionX, explosionY, playerX, playerY, platforms) {
+  static isExplosionBlockedByTerrain(explosionX, explosionY, playerX, playerY, platforms, explosionRadius) {
     console.log(
       `Checking terrain blocking: explosion(${explosionX.toFixed(0)}, ${explosionY.toFixed(
         0,
@@ -55,14 +55,11 @@ class ExplosionPhysics {
       y2: playerY,
     };
 
-    // Check all four edges of the platform
+    // Check if line intersects solid platform rectangle
     if (
-      this.lineIntersectsVertical(lineSegment, platLeft, platTop, platBottom) ||
-      this.lineIntersectsVertical(lineSegment, platRight, platTop, platBottom) ||
-      this.lineIntersectsHorizontal(lineSegment, platTop, platLeft, platRight) ||
-      this.lineIntersectsHorizontal(lineSegment, platBottom, platLeft, platRight)
+      this.lineIntersectsRectangle(explosionX, explosionY, playerX, playerY, platLeft, platTop, platRight, platBottom)
     ) {
-      console.log(`🛡️ BLOCKED: Line crosses platform boundary`);
+      console.log(`🛡️ BLOCKED: Line passes through platform`);
       return true;
     }
 
@@ -102,6 +99,26 @@ class ExplosionPhysics {
 
     // Check if intersection point is within horizontal line segment
     return intersectX >= Math.min(horizX1, horizX2) && intersectX <= Math.max(horizX1, horizX2);
+  }
+
+  // Check if line segment intersects rectangle (comprehensive solid intersection)
+  static lineIntersectsRectangle(x1, y1, x2, y2, rectLeft, rectTop, rectRight, rectBottom) {
+    // Helper: point in rectangle
+    const pointInRect = (px, py) => px >= rectLeft && px <= rectRight && py >= rectTop && py <= rectBottom;
+
+    // Case 1: Either endpoint inside rectangle
+    if (pointInRect(x1, y1) || pointInRect(x2, y2)) {
+      return true; // Line touches or passes through rectangle interior
+    }
+
+    // Case 2: Line crosses rectangle boundaries (within boundary segments)
+    const lineSegment = { x1, y1, x2, y2 };
+    return (
+      this.lineIntersectsVertical(lineSegment, rectLeft, rectTop, rectBottom) ||
+      this.lineIntersectsVertical(lineSegment, rectRight, rectTop, rectBottom) ||
+      this.lineIntersectsHorizontal(lineSegment, rectTop, rectLeft, rectRight) ||
+      this.lineIntersectsHorizontal(lineSegment, rectBottom, rectLeft, rectRight)
+    );
   }
 }
 

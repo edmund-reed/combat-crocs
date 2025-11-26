@@ -24,6 +24,22 @@ class ExplosionSystem {
       onComplete: () => explosion.destroy(),
     });
 
+    // Debug marker: Show red dot at exact explosion location if enabled
+    if (Config.DEBUG_EXPLOSION_MARKERS) {
+      const marker = scene.add.graphics({ x: x, y: y });
+      marker.fillStyle(0xff0000); // Bright red
+      marker.fillCircle(0, 0, 3); // Small 3-pixel radius dot
+      marker.setDepth(1000); // On top of everything
+
+      // Auto-fade after 5 seconds
+      scene.tweens.add({
+        targets: marker,
+        alpha: 0,
+        duration: 5000,
+        onComplete: () => marker.destroy(),
+      });
+    }
+
     // Damage nearby players (check for terrain protection)
     scene.players.forEach((player, index) => {
       const distance = Phaser.Math.Distance.Between(x, y, player.x, player.y);

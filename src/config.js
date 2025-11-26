@@ -53,6 +53,9 @@ const Config = {
   // Turn settings
   TURN_TIME_LIMIT: 30000, // 30 seconds in milliseconds
 
+  // Debug settings
+  DEBUG_EXPLOSION_MARKERS: true, // Shows red dots where explosions occur
+
   // Orlando theme colors
   COLORS: {
     ORANGE: 0xff6b35,
