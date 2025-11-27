@@ -44,13 +44,7 @@ class WeaponMenuManager {
         .fillRoundedRect(w / 2 - 100, h / 2 - 75, 200, 150, 10)
         .lineStyle(3, 0xffd23f)
         .strokeRoundedRect(w / 2 - 100, h / 2 - 75, 200, 150, 10),
-      title: scene.add
-        .text(w / 2, h / 2 - 55, "Select Weapon", {
-          font: "18px Arial",
-          fill: "#FFD23F",
-        })
-        .setOrigin(0.5)
-        .setDepth(menuDepth + 2),
+      title: UITextHelpers.primaryText(scene, w / 2, h / 2 - 55, "Select Weapon", 18).setDepth(menuDepth + 2),
       ...Object.fromEntries(
         weapons.map(([label, type, y]) => [
           `${label.toLowerCase()}Btn`,
@@ -63,10 +57,14 @@ class WeaponMenuManager {
   }
 
   static createWeaponButton(scene, x, y, label, weaponType, isSelected, depth = 0) {
-    const button = scene.add.text(x, y, `${isSelected ? "▶ " : ""}${label}`, {
-      font: "14px Arial",
-      fill: isSelected ? "#00FF00" : "#FFFFFF",
-    });
+    const button = UITextHelpers.createStatusText(
+      scene,
+      x,
+      y,
+      `${isSelected ? "▶ " : ""}${label}`,
+      isSelected ? "#00FF00" : UITextHelpers.SECONDARY_COLOR,
+      14,
+    );
 
     return button
       .setInteractive()

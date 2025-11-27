@@ -54,36 +54,16 @@ class MapSelectScene extends Phaser.Scene {
 
     // Difficulty indicator
     const difficultyColor = mapInfo.difficulty === 1 ? "#00FF00" : "#FFFF00";
-    this.add.text(centerX - 230, y - 25, "★".repeat(mapInfo.difficulty), {
-      font: "16px Arial",
-      fill: difficultyColor,
-    });
+    UITextHelpers.createStatusText(this, centerX - 230, y - 25, "★".repeat(mapInfo.difficulty), difficultyColor, 16);
 
     // Map name
-    this.add
-      .text(centerX, y - 25, mapInfo.name, {
-        font: "bold 20px Arial",
-        fill: "#FFFFFF",
-        stroke: "#000000",
-        strokeThickness: 1,
-      })
-      .setOrigin(0.5);
+    UITextHelpers.secondaryText(this, centerX, y - 25, mapInfo.name, 20);
 
     // Map description
-    this.add
-      .text(centerX, y + 5, mapInfo.description, {
-        font: "14px Arial",
-        fill: "#FFFFFF",
-        stroke: "#000000",
-        strokeThickness: 1,
-      })
-      .setOrigin(0.5);
+    UITextHelpers.secondaryText(this, centerX, y + 5, mapInfo.description, 14);
 
     // Platform count indicator
-    this.add.text(centerX + 200, y + 8, `${mapInfo.platformCount} platforms`, {
-      font: "12px Arial",
-      fill: "#DDDDDD",
-    });
+    UITextHelpers.createMutedText(this, centerX + 200, y + 8, `${mapInfo.platformCount} platforms`, 12);
 
     // Make entire map option clickable
     const mapButton = this.add.zone(centerX, y, 500, 80).setInteractive();

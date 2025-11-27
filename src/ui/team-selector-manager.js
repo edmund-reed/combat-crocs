@@ -47,36 +47,22 @@ class TeamSelectorManager {
     }
 
     // Team label
-    const teamLabel = scene.add.text(x, y, team.name, UITextHelpers._getPrimaryTextStyle(24, 2)).setOrigin(0.5);
+    const teamLabel = UITextHelpers.primaryText(scene, x, y, team.name, 24);
     scene.teamUIElements.push(teamLabel);
 
     // Count display and controls
     const countY = y + 60;
 
     // Minus button (to left of count)
-    const minusBtn = scene.add
-      .text(x - 60, countY, "-", {
-        font: "bold 36px Arial",
-        fill: "#FF6B35",
-      })
-      .setOrigin(0.5)
-      .setInteractive();
+    const minusBtn = UITextHelpers.primaryText(scene, x - 60, countY, "-", 36).setInteractive();
     scene.teamUIElements.push(minusBtn);
 
     // Count display
-    const countText = scene.add
-      .text(x, countY, team.crocCount, UITextHelpers._getPrimaryTextStyle(48, 3))
-      .setOrigin(0.5);
+    const countText = UITextHelpers.primaryText(scene, x, countY, team.crocCount.toString(), 48);
     scene.teamUIElements.push(countText);
 
     // Plus button (to right of count)
-    const plusBtn = scene.add
-      .text(x + 60, countY, "+", {
-        font: "bold 36px Arial",
-        fill: "#FF6B35",
-      })
-      .setOrigin(0.5)
-      .setInteractive();
+    const plusBtn = UITextHelpers.primaryText(scene, x + 60, countY, "+", 36).setInteractive();
     scene.teamUIElements.push(plusBtn);
 
     // Button hover effects - apply global helper

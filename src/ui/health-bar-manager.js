@@ -5,7 +5,7 @@ class HealthBarManager {
     scene.players.forEach(player => {
       // Create empty graphics object - colors will be set dynamically in updateHealthBars
       const bar = scene.add.graphics();
-      const textLabel = scene.add.text(0, 2, `P${player.id}`, { font: "10px Arial", fill: "#FFFFFF" }).setOrigin(0.5);
+      const textLabel = UITextHelpers.createMutedText(scene, 0, 2, `P${player.id}`, 10).setOrigin(0.5);
       scene.healthBars.push({
         barGraphics: bar,
         textLabel,
@@ -16,14 +16,15 @@ class HealthBarManager {
 
   static updateHealthBarPositions(scene) {
     scene.healthBars.forEach(barData => {
-      const player = scene.players.find(p => p.id === barData.playerId);
-      if (!player || player.health <= 0) {
+      const playerIndex = PlayerManager.getPlayerIndexById(scene, barData.playerId);
+      if (!PlayerManager.isPlayerAlive(scene, playerIndex)) {
         barData.barGraphics.setVisible(false);
         barData.textLabel.setVisible(false);
         return;
       }
-      const barX = player.x - 50,
-        barY = player.y - 60;
+      const player = scene.players[playerIndex];
+      const barX = player.x - 50;
+      const barY = player.y - 60;
       barData.barGraphics.setPosition(barX, barY);
       barData.textLabel.setPosition(player.x, barY + 14);
       barData.barGraphics.setVisible(true);
@@ -74,14 +75,7 @@ class HealthBarManager {
       .fillStyle(0x666666)
       .fillRect(x - 8, y - 30, 16, 30);
     gravestone.fillRect(x - 12, y - 35, 24, 8);
-    const ripText = scene.add
-      .text(x, y - 40, "RIP", {
-        font: "bold 10px Arial",
-        fill: "#FFFFFF",
-        stroke: "#000000",
-        strokeThickness: 1,
-      })
-      .setOrigin(0.5);
+    const ripText = UITextHelpers.createStatusText(scene, x, y - 40, "RIP", "#FFFFFF", 10).setOrigin(0.5);
     player.graphics.setVisible(false);
 
     // Register for automatic cleanup (no manual tracking!)

@@ -4,10 +4,7 @@ class MenuScene extends Phaser.Scene {
   }
 
   preload() {
-    // Load background image
     this.load.image("map-bg", "src/assets/map-bg.png");
-
-    // Load audio files
     this.load.audio("introMusic", "src/assets/intro.mp3");
   }
 
@@ -38,35 +35,13 @@ class MenuScene extends Phaser.Scene {
     }
 
     // Title text
-    this.add
-      .text(Config.GAME_WIDTH / 2, 100, "COMBAT CROCS", {
-        font: "bold 48px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 6,
-      })
-      .setOrigin(0.5);
+    UITextHelpers.createTitleText(this, Config.GAME_WIDTH / 2, 100, "COMBAT CROCS");
 
     // Subtitle
-    this.add
-      .text(Config.GAME_WIDTH / 2, 160, "Orlando vs. Crocodiles!", {
-        font: "24px Arial",
-        fill: "#FFFFFF",
-        stroke: "#FF6B35",
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5);
+    UITextHelpers.primaryText(this, Config.GAME_WIDTH / 2, 160, "Orlando vs. Crocodiles!", 24);
 
     // Menu options
-    const startButton = this.add
-      .text(Config.GAME_WIDTH / 2, 250, "START GAME", {
-        font: "32px Arial",
-        fill: "#FFD23F",
-        stroke: "#FF6B35",
-        strokeThickness: 4,
-      })
-      .setOrigin(0.5)
-      .setInteractive();
+    const startButton = UITextHelpers.primaryText(this, Config.GAME_WIDTH / 2, 250, "START GAME", 32).setInteractive();
 
     // const tutorialButton = this.add
     //   .text(Config.GAME_WIDTH / 2, 320, "HOW TO PLAY", {
@@ -114,18 +89,13 @@ class MenuScene extends Phaser.Scene {
     overlay.fillStyle(0x000000, 0.8);
     overlay.fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
 
-    const tutorialText = this.add
-      .text(
-        Config.GAME_WIDTH / 2,
-        Config.GAME_HEIGHT / 2,
-        "HOW TO PLAY:\n\n• Use ARROW KEYS to move and aim\n• SPACE to jump\n• CLICK to shoot weapons\n• Destroy enemies to win!\n\nPress any key to continue...",
-        {
-          font: "20px Arial",
-          fill: "#FFFFFF",
-          align: "center",
-        },
-      )
-      .setOrigin(0.5);
+    const tutorialText = UITextHelpers.secondaryText(
+      this,
+      Config.GAME_WIDTH / 2,
+      Config.GAME_HEIGHT / 2,
+      "HOW TO PLAY:\n\n• Use ARROW KEYS to move and aim\n• SPACE to jump\n• CLICK to shoot weapons\n• Destroy enemies to win!\n\nPress any key to continue...",
+      20,
+    );
 
     const closeGame = event => {
       this.input.keyboard.off("keydown", closeGame);

@@ -1,157 +1,125 @@
 // UI Components for Combat Crocs
 class UIComponents {
-  static createWeaponDisplay(scene) {
+  // Create color button for team selection
+  static createColorButton = (scene, colorOption, isSelected, x, y) => {
+    const btn = scene.add
+      .graphics()
+      .fillStyle(colorOption.hex)
+      .fillRect(0, 0, 25, 25)
+      .lineStyle(isSelected ? 3 : 1, isSelected ? 0x000000 : 0xffffff)
+      .strokeRect(0, 0, 25, 25);
+
+    btn.setPosition(x, y);
+    btn.setInteractive(new Phaser.Geom.Rectangle(0, 0, 25, 25), Phaser.Geom.Rectangle.Contains);
+    return btn;
+  };
+
+  // Handle color selection for team
+  static handleColorSelection = (team, colorOption, scene) => {
+    team.color = colorOption;
+    TeamSelectorManager.refreshTeamSelection(scene);
+  };
+
+  // Ensure sprite array exists for team
+  static ensureSpriteArray = (scene, teamIndex) => {
+    if (!scene.spriteArrays) scene.spriteArrays = [];
+    if (!scene.spriteArrays[teamIndex]) scene.spriteArrays[teamIndex] = [];
+    return scene.spriteArrays[teamIndex];
+  };
+
+  // Get sprite key for team preview
+  static getTeamSpriteKey = teamId => {
+    const sprites = ["croc1", "croc2", "chameleon1", "gecko1"];
+    return sprites[(teamId - 1) % sprites.length];
+  };
+
+  static createWeaponDisplay = scene => {
     const { turnManager: tm } = scene;
-    scene.weaponText = scene.add.text(Config.GAME_WIDTH - 200, 20, `Weapon: ${tm.getCurrentWeapon()}`, {
-      ...UITextHelpers._getPrimaryTextStyle(16, 0),
-      font: "16px Arial",
-    });
-  }
+    scene.weaponText = UITextHelpers.primaryText(
+      scene,
+      Config.GAME_WIDTH - 200,
+      20,
+      `Weapon: ${tm.getCurrentWeapon()}`,
+      16,
+    );
+  };
 
-  static createTimerDisplay(scene) {
-    scene.timerText = scene.add.text(Config.GAME_WIDTH - 200, 50, "Time: 30", {
-      font: "16px Arial",
-      fill: "#FFFFFF",
-    });
-  }
+  static createTimerDisplay = scene => {
+    scene.timerText = UITextHelpers.secondaryText(scene, Config.GAME_WIDTH - 200, 50, "Time: 30", 16);
+  };
 
-  static createTurnIndicator(scene) {
-    scene.playerIndicator = UITextHelpers.createInteractiveText(
+  static createTurnIndicator = scene => {
+    scene.playerIndicator = UITextHelpers.primaryText(scene, Config.GAME_WIDTH / 2, 20, "Player 1's Turn", 20);
+  };
+
+  static createInstructions = scene => {
+    return UITextHelpers.secondaryText(
       scene,
       Config.GAME_WIDTH / 2,
-      20,
-      "Player 1's Turn",
-      UITextHelpers._getPrimaryTextStyle(20),
-      0.5,
+      50,
+      "Move: Arrow Keys | Aim: Mouse | Shoot: Click | Jump: Spacebar | Weapons: W or 🔫",
+      14,
     );
-  }
+  };
 
-  static createInstructions(scene) {
-    return scene.add
-      .text(
-        Config.GAME_WIDTH / 2,
-        50,
-        "Move: Arrow Keys | Aim: Mouse | Shoot: Click | Jump: Spacebar | Weapons: W or 🔫",
-        {
-          font: "14px Arial",
-          fill: "#FFFFFF",
-          stroke: "#000000",
-          strokeThickness: 2,
-        },
-      )
-      .setOrigin(0.5);
-  }
+  static createColorSelector = (scene, x, y, team, availableColors) => {
+    const colorLabel = UITextHelpers.primaryText(scene, x, y - 20, "Color", 16);
+    scene.teamUIElements.push(colorLabel);
 
-  static createColorSelector(parentScene, x, y, team, availableColors) {
-    // Label for color selection using helper
-    const colorLabel = parentScene.add
-      .text(x, y - 20, "Color", UITextHelpers._getPrimaryTextStyle(16, 1))
-      .setOrigin(0.5);
-    parentScene.teamUIElements.push(colorLabel);
-
-    // Create color swatch buttons
     const buttonSpacing = 35;
     const startX = x - ((availableColors.length - 1) * buttonSpacing) / 2;
 
-    // Create a color button for each available color
     availableColors.forEach((colorOption, colorIndex) => {
-      const isSelected = team.color && team.color.hex === colorOption.hex;
+      const isSelected = team.color?.hex === colorOption.hex;
+      const colorBtn = this.createColorButton(scene, colorOption, isSelected, startX + colorIndex * buttonSpacing, y);
 
-      const colorBtn = parentScene.add
-        .graphics()
-        .fillStyle(colorOption.hex)
-        .fillRect(0, 0, 25, 25)
-        .lineStyle(isSelected ? 3 : 1, isSelected ? 0x000000 : 0xffffff)
-        .strokeRect(0, 0, 25, 25);
-
-      colorBtn.setPosition(startX + colorIndex * buttonSpacing, y);
-      colorBtn.setInteractive(new Phaser.Geom.Rectangle(0, 0, 25, 25), Phaser.Geom.Rectangle.Contains);
-
-      colorBtn.on("pointerdown", () => {
-        // Set new color for this team
-        team.color = colorOption;
-
-        // Refresh the team selection to update selection indicators
-        TeamSelectorManager.refreshTeamSelection(parentScene);
-      });
-
-      parentScene.teamUIElements.push(colorBtn);
+      colorBtn.on("pointerdown", () => this.handleColorSelection(team, colorOption, scene));
+      scene.teamUIElements.push(colorBtn);
     });
 
-    // Set default color if none selected
     if (!team.color) {
       team.color = availableColors[(team.id - 1) % availableColors.length];
     }
-  }
+  };
 
-  static updateCrocPreview(parentScene, x, y, count, teamIndex) {
-    if (!parentScene.teams || !parentScene.teams[teamIndex]) {
+  static updateCrocPreview = (scene, x, y, count, teamIndex) => {
+    if (!scene.teams?.[teamIndex]) {
       console.warn(`Team at index ${teamIndex} not found, skipping croc preview`);
       return;
     }
 
-    // Create unique sprite array for each team if not exists
-    if (!parentScene.spriteArrays) {
-      parentScene.spriteArrays = [];
-    }
-    if (!parentScene.spriteArrays[teamIndex]) {
-      parentScene.spriteArrays[teamIndex] = [];
-    }
+    const spriteArray = this.ensureSpriteArray(scene, teamIndex);
 
-    const spriteArray = parentScene.spriteArrays[teamIndex];
-
-    // Remove existing crocs for this team only
-    if (spriteArray && spriteArray.length > 0) {
-      spriteArray.forEach(sprite => sprite.destroy());
-    }
-
+    spriteArray.forEach(sprite => sprite.destroy());
     spriteArray.length = 0;
 
-    // Use team-consistent sprites: rotate through all available sprites
-    const availableSprites = ["croc1", "croc2", "chameleon1", "gecko1"];
-    const spriteKey = availableSprites[(parentScene.teams[teamIndex].id - 1) % availableSprites.length];
-
-    // Create croc sprites based on count - smaller for preview
-    const spacing = 60;
-    const startX = x - ((count - 1) * spacing) / 2;
+    const spriteKey = this.getTeamSpriteKey(scene.teams[teamIndex].id);
+    const spacing = 60,
+      startX = x - ((count - 1) * spacing) / 2;
 
     for (let i = 0; i < count; i++) {
-      const croc = parentScene.add.sprite(startX + i * spacing, y, spriteKey);
-      croc.setScale(0.08); // Smaller for preview
+      const croc = scene.add.sprite(startX + i * spacing, y, spriteKey).setScale(0.08);
       spriteArray.push(croc);
     }
-  }
+  };
 
-  static createTeamCountSelector(scene) {
-    const selectorY = 170;
+  static createTeamCountSelector = scene => {
+    const selectorY = 170,
+      centerX = Config.GAME_WIDTH / 2;
 
-    // Label with primary styling
-    scene.add
-      .text(Config.GAME_WIDTH / 2, selectorY, "Number of Teams", UITextHelpers._getPrimaryTextStyle(18))
-      .setOrigin(0.5);
+    UITextHelpers.primaryText(scene, centerX, selectorY, "Number of Teams", 18);
 
-    // Create buttons with helper functions
     const minusBtn = UIButtonHelpers.addHoverEffect(
-      UITextHelpers.createInteractiveText(scene, Config.GAME_WIDTH / 2 - 80, selectorY + 50, "-", {
-        font: "bold 36px Arial",
-        fill: "#FF6B35",
-      }),
+      UITextHelpers.createInteractiveText(scene, centerX - 80, selectorY + 50, "-", "primary", 36),
     );
 
-    // Count display
-    scene.teamCountText = scene.add
-      .text(Config.GAME_WIDTH / 2, selectorY + 50, scene.teamCount, UITextHelpers._getPrimaryTextStyle(48, 3))
-      .setOrigin(0.5);
+    scene.teamCountText = UITextHelpers.primaryText(scene, centerX, selectorY + 50, scene.teamCount.toString(), 48);
 
     const plusBtn = UIButtonHelpers.addHoverEffect(
-      UITextHelpers.createInteractiveText(scene, Config.GAME_WIDTH / 2 + 80, selectorY + 50, "+", {
-        font: "bold 36px Arial",
-        fill: "#FF6B35",
-      }),
+      UITextHelpers.createInteractiveText(scene, centerX + 80, selectorY + 50, "+", "primary", 36),
     );
 
-    // Button logic - abstracted to eliminate duplication
-    const updateTeamCount = (modifier, condition) => {
+    const updateCount = (modifier, condition) => {
       if (condition()) {
         scene.teamCount += modifier;
         scene.teamCountText.setText(scene.teamCount);
@@ -160,9 +128,9 @@ class UIComponents {
       }
     };
 
-    minusBtn.on("pointerdown", () => updateTeamCount(-1, () => scene.teamCount > 2));
-    plusBtn.on("pointerdown", () => updateTeamCount(1, () => scene.teamCount < 5));
-  }
+    minusBtn.on("pointerdown", () => updateCount(-1, () => scene.teamCount > 2));
+    plusBtn.on("pointerdown", () => updateCount(1, () => scene.teamCount < 5));
+  };
 }
 
 window.UIComponents = UIComponents;

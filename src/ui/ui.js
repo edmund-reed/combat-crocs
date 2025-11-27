@@ -34,13 +34,13 @@ class UIManager {
     overlay.fillStyle(0x000000, 0.8);
     overlay.fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
 
-    const gameOverText = scene.add
-      .text(Config.GAME_WIDTH / 2, Config.GAME_HEIGHT / 2, `${winnerTeam} Wins!\n\nClick to return to menu`, {
-        font: "bold 32px Arial",
-        fill: "#FFD23F",
-        align: "center",
-      })
-      .setOrigin(0.5);
+    const gameOverText = UITextHelpers.primaryText(
+      scene,
+      Config.GAME_WIDTH / 2,
+      Config.GAME_HEIGHT / 2,
+      `${winnerTeam} Wins!\n\nClick to return to menu`,
+      32,
+    );
 
     // Make it interactive and handle the click
     gameOverText.setInteractive();
@@ -109,7 +109,7 @@ class UIManager {
     // Check which teams have living players
     const aliveTeams = teams.filter(team => {
       const teamPlayers = scene.players.filter(p => typeof p.id === "string" && p.id.startsWith(team.id));
-      return teamPlayers.some(p => p.health > 0);
+      return teamPlayers.some(p => PlayerManager.isPlayerAlive(scene, scene.players.indexOf(p)));
     });
 
     // If only one team remains, they win
