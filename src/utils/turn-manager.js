@@ -2,165 +2,137 @@
 
 class TurnManager {
   constructor(scene) {
-    this.scene = scene;
-    this.currentPlayer = 0;
-    this.currentTeamIndex = 0; // Index in teams array
-    this.currentTeamId = 0; // ID of currently playing team
-    this.playerIndices = []; // Which player in each team plays next
-    this.currentTurnTimer = null; // Phaser delayedCall timer
-    this.turnInProgress = false; // Prevents next player from moving
-    this.weaponByTeam = {}; // Separate weapon selections per team
-
-    // Weapon ammo system - now dynamic based on definitions
-    this.weaponAmmo = {};
+    Object.assign(this, {
+      scene,
+      currentPlayer: 0,
+      currentTeamIndex: 0,
+      currentTeamId: 0,
+      playerIndices: [],
+      currentTurnTimer: null,
+      turnInProgress: false,
+      weaponByTeam: {},
+      weaponAmmo: {},
+    });
     this.initializeWeaponAmmo();
   }
 
   // Initialize weapon ammo from weapon configurations
-  initializeWeaponAmmo() {
+  initializeWeaponAmmo = () => {
     Object.keys(Config.WEAPON_CONFIGS).forEach(weaponKey => {
       this.weaponAmmo[weaponKey] = Config.WEAPON_CONFIGS[weaponKey].shotsPerTurn;
     });
-  }
+  };
 
-  // Initialize based on current teams
-  initializeTeams() {
+  initializeTeams = () => {
     const teams = GameStateManager.getTeams();
     this.playerIndices = new Array(teams.length).fill(0);
-    teams.forEach(team => {
-      this.weaponByTeam[team.id] = "BAZOOKA"; // Default weapon for new teams
-    });
-  }
+    teams.forEach(({ id }) => (this.weaponByTeam[id] = "BAZOOKA"));
+  };
 
-  startTurn() {
-    // Cancel any existing turn timer
-    if (this.currentTurnTimer) {
-      this.currentTurnTimer.destroy();
-      this.currentTurnTimer = null;
-    }
-
+  startTurn = () => {
+    this.currentTurnTimer?.destroy();
+    this.currentTurnTimer = null;
     this.currentPlayer = this.getNextPlayerIndex();
-    console.log(`🎯 STARTING TURN: Player ${this.currentPlayer}, ${Config.TURN_TIME_LIMIT / 1000}s timer active`);
 
-    // Reset states for the new current player
+    console.log(`🎯 TURN: Player ${this.currentPlayer}, ${Config.TURN_TIME_LIMIT / 1000}s`);
+
     const currentPlayerObj = this.scene.players[this.currentPlayer];
-    currentPlayerObj.canMove = true;
-    currentPlayerObj.canShoot = true; // ✅ Explicit reset
+    currentPlayerObj.canMove = currentPlayerObj.canShoot = true;
 
-    // Ensure ALL players except current are locked
     this.scene.players.forEach((player, index) => {
-      if (index !== this.currentPlayer) {
-        player.canMove = false;
-        player.canShoot = false;
-      }
+      if (index !== this.currentPlayer) player.canMove = player.canShoot = false;
     });
 
-    // Reset weapon ammo for the new turn
-    Object.keys(this.weaponAmmo).forEach(weaponKey => {
-      this.weaponAmmo[weaponKey] = Config.WEAPON_CONFIGS[weaponKey]?.shotsPerTurn || 1;
+    Object.keys(this.weaponAmmo).forEach(key => {
+      this.weaponAmmo[key] = Config.WEAPON_CONFIGS[key]?.shotsPerTurn || 1;
     });
 
-    // Unlock weapon selection for new turn
     this.weaponLocked = false;
-    console.log(`🔄 Ammo reloaded and weapons unlocked for new turn`);
+    this.currentTurnTimer = this.scene.time.delayedCall(Config.TURN_TIME_LIMIT, () => this.handleTurnTimeout());
 
-    // Start Phaser delayedCall timer (frame-rate independent)
-    this.currentTurnTimer = this.scene.time.delayedCall(
-      Config.TURN_TIME_LIMIT,
-      () => this.handleTurnTimeout(),
-      [],
-      this,
-    );
-
-    // Delegate UI updates to UIManager
     UIManager.updateTurnIndicator(this.scene, currentPlayerObj);
     UIManager.updatePlayerHighlighting(this.scene, this.currentPlayer);
-    UIManager.updateWeaponDisplay(this.scene); // Update weapon display for new team
-
+    UIManager.updateWeaponDisplay(this.scene);
     UIManager.clearAimLine(this.scene);
-  }
+  };
 
   // Handle automatic turn timeout (called by Phaser delayedCall)
-  handleTurnTimeout() {
+  handleTurnTimeout = () => {
     if (!this.turnInProgress) {
-      console.log(`⏰ TURN TIMEOUT: ${Config.TURN_TIME_LIMIT / 1000}s expired, starting next turn`);
-      this.currentTurnTimer = null; // Clear reference
-      this.startTurn(); // Start next player's turn
+      console.log("⏰ TIMEOUT → next turn");
+      this.currentTurnTimer = null;
+      this.startTurn();
     }
-  }
+  };
 
-  getNextPlayerIndex() {
+  // Find the next living player within a specific team using round-robin
+  findNextLivingPlayerInTeam = team => {
+    const teamIndex = GameStateManager.getTeams().findIndex(t => t.id === team.id);
+
+    for (let offset = 0; offset < team.crocCount; offset++) {
+      const playerNum = ((this.playerIndices[teamIndex] + offset) % team.crocCount) + 1;
+      const playerIndex = PlayerManager.getPlayerIndexById(this.scene, `${team.id}${playerNum}`);
+
+      if (PlayerManager.isPlayerAlive(this.scene, playerIndex)) {
+        this.playerIndices[teamIndex] = (this.playerIndices[teamIndex] + offset + 1) % team.crocCount;
+        return playerIndex;
+      }
+    }
+
+    return -1;
+  };
+
+  // Advance to the next team in round-robin fashion
+  advanceToNextTeam = () => {
+    this.currentTeamIndex = (this.currentTeamIndex + 1) % GameStateManager.getTeams().length;
+  };
+
+  // Get the next player index using round-robin team and player selection
+  getNextPlayerIndex = () => {
     const teams = GameStateManager.getTeams();
-    const maxAttempts = this.scene.players.length;
 
-    for (let attempts = 0; attempts < maxAttempts; attempts++) {
-      const currentTeam = teams[this.currentTeamIndex];
+    for (let attempts = 0; attempts < teams.length; attempts++) {
+      const playerIndex = this.findNextLivingPlayerInTeam(teams[this.currentTeamIndex]);
 
-      // Find next living player in current team
-      for (let playerOffset = 0; playerOffset < currentTeam.crocCount; playerOffset++) {
-        const playerNum = ((this.playerIndices[this.currentTeamIndex] + playerOffset) % currentTeam.crocCount) + 1;
-        const targetPlayerId = `${currentTeam.id}${playerNum}`;
-        const playerIndex = this.scene.players.findIndex(player => player.id === targetPlayerId);
-
-        if (playerIndex >= 0 && this.scene.players[playerIndex].health > 0) {
-          // Found living player - set current team and update indices
-          this.currentTeamId = currentTeam.id;
-          this.playerIndices[this.currentTeamIndex] =
-            (this.playerIndices[this.currentTeamIndex] + playerOffset + 1) % currentTeam.crocCount;
-          this.currentTeamIndex = (this.currentTeamIndex + 1) % teams.length;
-          return playerIndex;
-        }
+      if (playerIndex >= 0) {
+        this.currentTeamId = teams[this.currentTeamIndex].id;
+        this.advanceToNextTeam();
+        return playerIndex;
       }
 
-      // No living players left in this team, advance to next team
-      this.currentTeamIndex = (this.currentTeamIndex + 1) % teams.length;
+      this.advanceToNextTeam();
     }
 
     console.warn("No living players found");
     return 0;
-  }
+  };
 
-  endCurrentTurn() {
-    // Reset turn state and flag for next turn
-    console.log("Projectile turn ended, resetting turnInProgress to false");
+  endCurrentTurn = () => {
+    console.log("Projectile turn ended, resetting turnInProgress");
     this.turnInProgress = false;
-    return true; // Signal that turn should continue to next player
-  }
+    return true;
+  };
 
-  // Get current turn state for external access
-  getCurrentPlayerIndex() {
-    return this.currentPlayer;
-  }
-
-  getCurrentTeam() {
-    return this.currentTeamId || 0;
-  }
-
-  isTurnInProgress() {
-    return this.turnInProgress;
-  }
-
-  getCurrentWeapon() {
-    const currentTeamId = this.getCurrentTeam();
-    return this.weaponByTeam[currentTeamId] || "BAZOOKA";
-  }
+  getCurrentPlayerIndex = () => this.currentPlayer;
+  getCurrentTeam = () => this.currentTeamId || 0;
+  isTurnInProgress = () => this.turnInProgress;
+  getCurrentWeapon = () => this.weaponByTeam[this.getCurrentTeam()] || "BAZOOKA";
 
   // Delegated from UIManager for better separation
-  static updateWeaponDisplay(scene) {
+  static updateWeaponDisplay = scene => {
     const { turnManager: tm } = scene;
     scene.weaponText?.setText(`Weapon: ${tm.getCurrentWeapon()}`);
-  }
+  };
 
-  setCurrentWeapon(weaponType) {
+  setCurrentWeapon = weaponType => {
     if (Config.WEAPON_CONFIGS[weaponType]) {
-      const currentTeamId = this.getCurrentTeam();
-      this.weaponByTeam[currentTeamId] = weaponType;
-      console.log(`Team ${currentTeamId} weapon switched to: ${weaponType}`);
+      this.weaponByTeam[this.getCurrentTeam()] = weaponType;
+      console.log(`Team ${this.getCurrentTeam()} → ${weaponType}`);
     }
-  }
+  };
 
   // Generic timer explosion handler (used by grenades and other timer-based weapons)
-  detonateTimerExplosion(scene, projectileBody) {
+  detonateTimerExplosion = (scene, projectileBody) => {
     ExplosionSystem.createExplosion(
       scene,
       projectileBody.position.x,
@@ -169,13 +141,9 @@ class TurnManager {
       projectileBody.weaponType || "UNKNOWN",
     );
 
-    // Cleanup - weapon-specific colliding body removal is handled by caller
-    if (projectileBody.timerId) {
-      clearTimeout(projectileBody.timerId);
-    }
-
+    projectileBody.timerId && clearTimeout(projectileBody.timerId);
     scene.endProjectileTurn();
-  }
+  };
 }
 
 window.TurnManager = TurnManager;

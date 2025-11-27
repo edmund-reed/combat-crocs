@@ -1,176 +1,146 @@
 // Player utilities for Combat Crocs
 
 class PlayerManager {
-  // Create a crocodile player
-  static createPlayer(scene, id, x, y, color) {
-    // Choose sprite based on team (rotate through available sprites)
-    let spriteKey = "croc1"; // Default sprite
-
+  static getSpriteForPlayer = id => {
     if (typeof id === "string" && id.length >= 2) {
-      // Team-based ID system: 11, 12, 21, 22, etc. where first digit is team
       const teamId = parseInt(id.charAt(0));
-      // Rotate through all available character sprites based on team ID
-      const availableSprites = ["croc1", "croc2", "chameleon1", "gecko1"];
-      spriteKey = availableSprites[(teamId - 1) % availableSprites.length];
-    } else {
-      // Legacy numeric ID system for backward compatibility
-      spriteKey = id === 1 ? "croc1" : "croc2";
+      const sprites = ["croc1", "croc2", "chameleon1", "gecko1"];
+      return sprites[(teamId - 1) % sprites.length];
     }
+    return id === 1 ? "croc1" : "croc2"; // Legacy fallback
+  };
 
-    console.log(`🐊 Creating Player ${id} with sprite: ${spriteKey}`);
+  static createHitAreaMarker = scene => {
+    const marker = scene.add.graphics().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25);
+    marker.setDepth(-1);
+    return marker;
+  };
 
-    // Create player sprite
-    const playerSprite = scene.add.sprite(x, y, spriteKey);
-    playerSprite.setScale(0.12); // Scale down to appropriate game size (~36-48px instead of 300-400px)
-    playerSprite.setOrigin(0.5, 0.7); // Center horizontally, slightly below center for ground contact
-
-    // Flip sprite based on team (alternate left/right for visual distinction)
-    const teamId = parseInt(id.charAt(0));
-    const shouldFaceLeft = teamId % 2 === 0; // Team 2,4,6 face left; Team 1,3,5 face right
-    playerSprite.setFlipX(shouldFaceLeft);
-
-    // Add accurate hit area visualization (25px radius circle) - matches actual hit detection
-    const hitAreaMarker = scene.add
-      .graphics()
-      .lineStyle(2, 0x00ff00, 0.7) // Green outline
-      .strokeCircle(0, 0, 25); // 25px radius circle centered on player
-
-    hitAreaMarker.setDepth(-1); // Behind sprite
-
-    console.log(
-      `🖼️ Created sprite ${spriteKey} at (${x}, ${y}) with scale 0.12, facing ${shouldFaceLeft ? "left" : "right"}`,
-    );
-
-    // Create physics body with collision settings
-    const body = scene.matter.add.rectangle(x, y, 30, 20, {
+  static createPhysicsBody = (scene, x, y) =>
+    scene.matter.add.rectangle(x, y, 30, 20, {
       friction: 0.1,
       restitution: 0.1,
       density: 0.01,
-      // Players don't collide with each other, only with terrain
       collisionFilter: {
-        group: 0, // No group - allows custom collision control
-        mask: 1, // Only collide with category 1 (terrain)
-        category: 2, // Players are in category 2
+        group: 0,
+        mask: 1,
+        category: 2,
       },
     });
 
-    const player = {
-      id: id,
-      graphics: playerSprite, // Use sprite instead of procedural graphics
-      body: body,
-      hitAreaMarker: hitAreaMarker, // Store reference to hit area marker
-      x: x,
-      y: y,
+  static createPlayer = (scene, id, x, y, color) => {
+    const spriteKey = this.getSpriteForPlayer(id);
+    const teamId = parseInt(id.charAt(0));
+    const shouldFaceLeft = teamId % 2 === 0;
+
+    console.log(`🐊 Creating Player ${id} with sprite: ${spriteKey}`);
+
+    const playerSprite = scene.add.sprite(x, y, spriteKey);
+    playerSprite.setScale(0.12).setOrigin(0.5, 0.7).setFlipX(shouldFaceLeft);
+
+    const hitAreaMarker = this.createHitAreaMarker(scene);
+    const body = this.createPhysicsBody(scene, x, y);
+
+    console.log(`🖼️ Created ${spriteKey} at (${x}, ${y}), facing ${shouldFaceLeft ? "left" : "right"}`);
+
+    return {
+      id,
+      graphics: playerSprite,
+      body,
+      hitAreaMarker,
+      x,
+      y,
       health: 100,
-      color: color,
+      color,
       aimAngle: 0,
       canMove: false,
       canShoot: false,
-      facingLeft: shouldFaceLeft, // Track which direction sprite is facing
+      facingLeft: shouldFaceLeft,
     };
+  };
 
-    return player;
-  }
-
-  // Update player position sync
-  static updatePositionSync(player) {
-    player.x = player.body.position.x;
-    player.y = player.body.position.y;
+  static updatePositionSync = player => {
+    const { position } = player.body;
+    player.x = position.x;
+    player.y = position.y;
     player.graphics.setPosition(player.x, player.y);
-  }
+  };
 
-  // Update hit area marker position (called separately to keep visuals synced)
-  static updateHitAreaMarker(player) {
-    if (player.hitAreaMarker) {
-      player.hitAreaMarker.setPosition(player.x, player.y); // Move to player position
-      player.hitAreaMarker.clear();
-      player.hitAreaMarker.lineStyle(2, 0x00ff00, 0.7);
-      player.hitAreaMarker.strokeCircle(0, 0, 25); // Always centered at origin since marker will be moved
-    }
-  }
+  static updateHitAreaMarker = player => {
+    if (!player.hitAreaMarker) return;
+    player.hitAreaMarker.setPosition(player.x, player.y).clear();
+    player.hitAreaMarker.lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25);
+  };
 
   // Update player physics (gravity, velocity) for ALL players - called every frame
-  static updatePlayerPhysics(scene, player) {
-    // Update position sync
-    player.x = player.body.position.x;
-    player.y = player.body.position.y;
-    player.graphics.setPosition(player.x, player.y);
+  static updatePlayerPhysics = (scene, player) => {
+    this.updatePositionSync(player);
 
-    // Enforce screen boundaries for ALL players
     if (player.x < 30 || player.x > Config.GAME_WIDTH - 30) {
       const clampedX = Math.max(35, Math.min(Config.GAME_WIDTH - 35, player.x));
       scene.matter.body.setPosition(player.body, { x: clampedX, y: player.y });
       player.x = clampedX;
       player.graphics.setPosition(player.x, player.y);
     }
-  }
+  };
 
   // Reset player for new turn
-  static resetForTurn(player) {
-    player.canMove = false;
-    player.canShoot = false;
-  }
+  static resetForTurn = player => Object.assign(player, { canMove: false, canShoot: false });
 
   // Setup player for their turn
-  static activateForTurn(player) {
-    player.canMove = true;
-    player.canShoot = true;
-  }
+  static activateForTurn = player => Object.assign(player, { canMove: true, canShoot: true });
 
   // Assign random spawn positions to all players (delegated to SpawnManager)
-  static assignRandomSpawnPositions(scene, players) {
-    SpawnManager.assignRandomSpawnPositions(scene, players);
-  }
+  static assignRandomSpawnPositions = (scene, players) => SpawnManager.assignRandomSpawnPositions(scene, players);
+
+  // Check if a player at the given index is alive
+  static isPlayerAlive = (scene, playerIndex) =>
+    playerIndex >= 0 && playerIndex < scene.players.length && scene.players[playerIndex].health > 0;
+
+  // Find player index by player ID
+  static getPlayerIndexById = (scene, playerId) => scene.players.findIndex(player => player.id === playerId);
+
+  // Get team color with fallback
+  static getTeamColor = (team, teamIndex) => team.color?.hex ?? (teamIndex % 5) + 1;
+
+  // Create players for a specific team
+  static createTeamPlayers = (scene, team, teamIndex, spawnY) => {
+    const teamColor = this.getTeamColor(team, teamIndex);
+    console.log(`Team ${team.id} using color: 0x${teamColor.toString(16)}`);
+
+    for (let i = 0; i < team.crocCount; i++) {
+      const playerId = `${team.id}${i + 1}`;
+      const player = this.createPlayer(scene, playerId, 100 + teamIndex * 100 + i * 50, spawnY, teamColor);
+      scene.players.push(player);
+    }
+  };
+
+  // Update scene references after player creation
+  static updateSceneReferences = scene => {
+    scene.players.forEach(player => {
+      scene.playerSprites[player.id] = player.graphics;
+      scene.playerBodies[player.id] = player.body;
+      player.hitAreaMarker?.setPosition(player.x, player.y);
+    });
+  };
 
   // Create all players for the game (moved from GameScene.js)
-  static createGamePlayers(scene) {
-    // Get teams from global game state
+  static createGamePlayers = scene => {
     const teams = GameStateManager.getTeams();
-
     scene.players = [];
     scene.playerSprites = {};
     scene.playerBodies = {};
 
-    // Calculate spawn positions for multiple players per team
-    const groundY = Config.GAME_HEIGHT - 100;
-    const spawnY = groundY - 10; // Small offset so they sit properly on ground
+    const spawnY = Config.GAME_HEIGHT - 110; // Ground level with offset
 
-    // Create ALL players first with temporary positions
-    teams.forEach((team, teamIndex) => {
-      // Use selected team color or fallback to default
-      const teamColor = team.color && team.color.hex ? team.color.hex : (teamIndex % 5) + 1; // Fallback to numerical if needed
-      console.log(`Team ${team.id} using color: 0x${teamColor.toString(16)}`);
+    teams.forEach((team, teamIndex) => this.createTeamPlayers(scene, team, teamIndex, spawnY));
 
-      for (let i = 0; i < team.crocCount; i++) {
-        const playerId = `${team.id}${i + 1}`;
-        const player = this.createPlayer(
-          scene,
-          playerId,
-          100 + teamIndex * 100 + i * 50, // Temporary positions spaced by team
-          spawnY,
-          teamColor,
-        );
-        scene.players.push(player);
-      }
-    });
-
-    // Now assign random positions to ALL players
     this.assignRandomSpawnPositions(scene, scene.players);
-
-    // Update sprite and body references
-    scene.players.forEach(player => {
-      scene.playerSprites[player.id] = player.graphics;
-      scene.playerBodies[player.id] = player.body;
-      // Update hit area marker position and redrawing after random repositioning
-      if (player.hitAreaMarker) {
-        player.hitAreaMarker.setPosition(player.x, player.y); // Move marker to player position
-        // Marker already drawn correctly in updateHitAreaMarker, just position it
-      }
-    });
+    this.updateSceneReferences(scene);
 
     const teamSummary = teams.map(t => `Team ${t.id} (${t.crocCount})`).join(", ");
     console.log(`Created ${scene.players.length} players: ${teamSummary}`);
-  }
+  };
 }
 
 window.PlayerManager = PlayerManager;

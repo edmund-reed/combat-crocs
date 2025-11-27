@@ -109,7 +109,7 @@ class UIManager {
     // Check which teams have living players
     const aliveTeams = teams.filter(team => {
       const teamPlayers = scene.players.filter(p => typeof p.id === "string" && p.id.startsWith(team.id));
-      return teamPlayers.some(p => p.health > 0);
+      return teamPlayers.some(p => PlayerManager.isPlayerAlive(scene, scene.players.indexOf(p)));
     });
 
     // If only one team remains, they win

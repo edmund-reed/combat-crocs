@@ -16,14 +16,15 @@ class HealthBarManager {
 
   static updateHealthBarPositions(scene) {
     scene.healthBars.forEach(barData => {
-      const player = scene.players.find(p => p.id === barData.playerId);
-      if (!player || player.health <= 0) {
+      const playerIndex = PlayerManager.getPlayerIndexById(scene, barData.playerId);
+      if (!PlayerManager.isPlayerAlive(scene, playerIndex)) {
         barData.barGraphics.setVisible(false);
         barData.textLabel.setVisible(false);
         return;
       }
-      const barX = player.x - 50,
-        barY = player.y - 60;
+      const player = scene.players[playerIndex];
+      const barX = player.x - 50;
+      const barY = player.y - 60;
       barData.barGraphics.setPosition(barX, barY);
       barData.textLabel.setPosition(player.x, barY + 14);
       barData.barGraphics.setVisible(true);
