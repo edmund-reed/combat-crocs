@@ -35,48 +35,35 @@ class UIComponents {
 
   static createWeaponDisplay = scene => {
     const { turnManager: tm } = scene;
-    scene.weaponText = scene.add.text(Config.GAME_WIDTH - 200, 20, `Weapon: ${tm.getCurrentWeapon()}`, {
-      ...UITextHelpers._getPrimaryTextStyle(16, 0),
-      font: "16px Arial",
-    });
-  };
-
-  static createTimerDisplay = scene => {
-    scene.timerText = scene.add.text(Config.GAME_WIDTH - 200, 50, "Time: 30", {
-      font: "16px Arial",
-      fill: "#FFFFFF",
-    });
-  };
-
-  static createTurnIndicator = scene => {
-    scene.playerIndicator = UITextHelpers.createInteractiveText(
+    scene.weaponText = UITextHelpers.primaryText(
       scene,
-      Config.GAME_WIDTH / 2,
+      Config.GAME_WIDTH - 200,
       20,
-      "Player 1's Turn",
-      UITextHelpers._getPrimaryTextStyle(20),
-      0.5,
+      `Weapon: ${tm.getCurrentWeapon()}`,
+      16,
     );
   };
 
+  static createTimerDisplay = scene => {
+    scene.timerText = UITextHelpers.secondaryText(scene, Config.GAME_WIDTH - 200, 50, "Time: 30", 16);
+  };
+
+  static createTurnIndicator = scene => {
+    scene.playerIndicator = UITextHelpers.primaryText(scene, Config.GAME_WIDTH / 2, 20, "Player 1's Turn", 20);
+  };
+
   static createInstructions = scene => {
-    return scene.add
-      .text(
-        Config.GAME_WIDTH / 2,
-        50,
-        "Move: Arrow Keys | Aim: Mouse | Shoot: Click | Jump: Spacebar | Weapons: W or 🔫",
-        {
-          font: "14px Arial",
-          fill: "#FFFFFF",
-          stroke: "#000000",
-          strokeThickness: 2,
-        },
-      )
-      .setOrigin(0.5);
+    return UITextHelpers.secondaryText(
+      scene,
+      Config.GAME_WIDTH / 2,
+      50,
+      "Move: Arrow Keys | Aim: Mouse | Shoot: Click | Jump: Spacebar | Weapons: W or 🔫",
+      14,
+    );
   };
 
   static createColorSelector = (scene, x, y, team, availableColors) => {
-    const colorLabel = scene.add.text(x, y - 20, "Color", UITextHelpers._getPrimaryTextStyle(16, 1)).setOrigin(0.5);
+    const colorLabel = UITextHelpers.primaryText(scene, x, y - 20, "Color", 16);
     scene.teamUIElements.push(colorLabel);
 
     const buttonSpacing = 35;
@@ -120,24 +107,16 @@ class UIComponents {
     const selectorY = 170,
       centerX = Config.GAME_WIDTH / 2;
 
-    scene.add.text(centerX, selectorY, "Number of Teams", UITextHelpers._getPrimaryTextStyle(18)).setOrigin(0.5);
+    UITextHelpers.primaryText(scene, centerX, selectorY, "Number of Teams", 18);
 
     const minusBtn = UIButtonHelpers.addHoverEffect(
-      UITextHelpers.createInteractiveText(scene, centerX - 80, selectorY + 50, "-", {
-        font: "bold 36px Arial",
-        fill: "#FF6B35",
-      }),
+      UITextHelpers.createInteractiveText(scene, centerX - 80, selectorY + 50, "-", "primary", 36),
     );
 
-    scene.teamCountText = scene.add
-      .text(centerX, selectorY + 50, scene.teamCount, UITextHelpers._getPrimaryTextStyle(48, 3))
-      .setOrigin(0.5);
+    scene.teamCountText = UITextHelpers.primaryText(scene, centerX, selectorY + 50, scene.teamCount.toString(), 48);
 
     const plusBtn = UIButtonHelpers.addHoverEffect(
-      UITextHelpers.createInteractiveText(scene, centerX + 80, selectorY + 50, "+", {
-        font: "bold 36px Arial",
-        fill: "#FF6B35",
-      }),
+      UITextHelpers.createInteractiveText(scene, centerX + 80, selectorY + 50, "+", "primary", 36),
     );
 
     const updateCount = (modifier, condition) => {
