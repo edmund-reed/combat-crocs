@@ -4,6 +4,7 @@
   "description": "Worms-style turn-based strategy game featuring crocodiles in an Orlando setting",
   "main": "src/game.js",
   "scripts": {
+    "prepare": "cp node_modules/phaser/dist/phaser.min.js .",
     "start": "lsof -ti:3001 | xargs kill -9 2>/dev/null || true && python3 -m http.server 3001",
     "start:fallback": "python -m SimpleHTTPServer 3001",
     "dev": "python3 -m http.server 3001"

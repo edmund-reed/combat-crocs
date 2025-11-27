@@ -17,14 +17,14 @@ const Config = {
   // Behavior-driven weapon configurations - eliminates weapon name references
   WEAPON_CONFIGS: {
     BAZOOKA: {
-      damage: 100,
-      radius: 200,
+      damage: 50,
+      radius: 140,
       shotsPerTurn: 1,
       behaviorFlags: ["projectile", "explodesOnImpact"], // Generic behaviors instead of weapon names
     },
     GRENADE: {
-      damage: 15,
-      radius: 80,
+      damage: 50,
+      radius: 140,
       shotsPerTurn: 1,
       behaviorFlags: ["projectile", "timerExplosion", "bounces"], // Multiple flags define behavior
     },
@@ -33,13 +33,6 @@ const Config = {
       radius: 35,
       shotsPerTurn: 2,
       behaviorFlags: ["hitscan", "multiShot"], // Allows second shot without turn ending
-    },
-    // Future weapons just get appropriate flags:
-    FLAMETHROWER: {
-      damage: 8,
-      radius: 40,
-      shotsPerTurn: 10,
-      behaviorFlags: ["hitscan", "multiShot", "rapidFire"],
     },
   },
 
@@ -106,3 +99,4 @@ const PhaserConfig = {
 };
 
 window.Config = Config;
+window.PhaserConfig = PhaserConfig;
