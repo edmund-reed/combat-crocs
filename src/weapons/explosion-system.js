@@ -30,13 +30,7 @@ class ExplosionSystem {
       console.log(`Player ${index + 1} distance: ${distance.toFixed(1)}, health: ${player.health}`);
 
       if (distance < radius) {
-        const blockedByTerrain = ExplosionPhysics.isExplosionBlockedByTerrain(
-          x,
-          y,
-          player.x,
-          player.y,
-          scene.currentMapPlatforms,
-        );
+        const blockedByTerrain = PhysicsManager.isExplosionBlocked(x, y, player.x, player.y, scene.currentMapPlatforms);
 
         if (!blockedByTerrain) {
           // Apply damage with distance falloff

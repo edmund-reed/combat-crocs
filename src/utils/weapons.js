@@ -21,23 +21,20 @@ class WeaponManager {
     const power = 25;
     const spawnDistance = 8;
 
-    const body = scene.matter.add.circle(
+    const body = PhysicsManager.createProjectileBody(
+      scene,
       player.x + Math.cos(angle) * spawnDistance,
       player.y + Math.sin(angle) * spawnDistance,
-      5,
-      { friction: 0.1, restitution: 0.8 },
+      weaponType,
     );
 
     const projectile = scene.add.graphics({ x: body.position.x, y: body.position.y });
     projectile.fillStyle(0xff0000).fillCircle(0, 0, 5);
 
     body.projectileOwner = player.id;
+    body.projectileGraphics = projectile;
 
-    scene.matter.body.setVelocity(body, {
-      x: Math.cos(angle) * power,
-      y: Math.sin(angle) * power,
-    });
-
+    PhysicsManager.applyProjectileVelocity(scene, body, angle, power);
     InputManager.addProjectileTrail(scene, body);
 
     const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
@@ -49,58 +46,7 @@ class WeaponManager {
       this.setupProjectileCollision(scene, body, projectile, weaponType);
     }
 
-    if (behaviorFlags.includes("bounces")) body.restitution = 0.8;
-    body.projectileGraphics = projectile;
-
     return { body, projectile };
-  };
-
-  // Calculate explosion position offset from projectile
-  static calculateExplosionPosition = body => {
-    const { position, velocity } = body;
-    let { x, y } = position;
-
-    if (velocity.x || velocity.y) {
-      const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
-      if (speed > 0) {
-        const offset = 50;
-        x -= (velocity.x / speed) * offset;
-        y -= (velocity.y / speed) * offset;
-      }
-    }
-
-    return { x, y };
-  };
-
-  // Handle collision cleanup and explosion
-  static handleCollisionCleanup = (scene, projectileBody, projectileGraphics, weaponType) => {
-    const { x: explosionX, y: explosionY } = this.calculateExplosionPosition(projectileBody);
-
-    ExplosionSystem.createExplosion(scene, explosionX, explosionY, projectileBody.projectileOwner, weaponType);
-    scene.matter.world.remove(projectileBody);
-    projectileGraphics?.destroy?.();
-    projectileBody.debugOutline?.destroy?.();
-    scene.endProjectileTurn();
-  };
-
-  // Check if projectile is involved in collision
-  static isProjectileInvolved = ({ bodyA, bodyB }, projectileBody) =>
-    bodyA === projectileBody || bodyB === projectileBody;
-
-  // Setup collision detection for projectiles
-  static setupProjectileCollision = (scene, projectileBody, projectileGraphics, weaponType) => {
-    let hasHit = false;
-
-    scene.matter.world.on("collisionstart", event => {
-      if (projectileBody.destroyed || hasHit) return;
-
-      const collision = event.pairs.find(pair => this.isProjectileInvolved(pair, projectileBody));
-      if (!collision) return;
-
-      console.log("💥 Projectile collision!");
-      hasHit = true;
-      this.handleCollisionCleanup(scene, projectileBody, projectileGraphics, weaponType);
-    });
   };
 
   // Generic timer explosion collision (replaces grenade-specific logic)
@@ -122,6 +68,30 @@ class WeaponManager {
     ExplosionSystem.createExplosion(scene, position.x, position.y, projectileBody.projectileOwner, weaponType);
     this._cleanupProjectile(scene, projectileBody);
     scene.endProjectileTurn();
+  };
+
+  // Setup collision detection for projectiles that explode on impact
+  static setupProjectileCollision = (scene, projectileBody, projectileGraphics, weaponType) => {
+    let hasHit = false;
+
+    scene.matter.world.on("collisionstart", event => {
+      if (projectileBody.destroyed || hasHit) return;
+
+      const collision = event.pairs.find(pair => pair.bodyA === projectileBody || pair.bodyB === projectileBody);
+
+      if (!collision) return;
+
+      console.log("💥 Projectile collision!");
+      hasHit = true;
+
+      const { x: explosionX, y: explosionY } = PhysicsManager.calculateExplosionPosition(projectileBody);
+      ExplosionSystem.createExplosion(scene, explosionX, explosionY, projectileBody.projectileOwner, weaponType);
+
+      scene.matter.world.remove(projectileBody);
+      projectileGraphics?.destroy?.();
+      projectileBody.debugOutline?.destroy?.();
+      scene.endProjectileTurn();
+    });
   };
 
   // Shared projectile cleanup logic

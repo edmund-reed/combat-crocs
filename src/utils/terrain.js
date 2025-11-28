@@ -11,20 +11,12 @@ class TerrainManager {
     scene.terrain.fillRect(0, groundY, Config.GAME_WIDTH, 100);
 
     // Create physics body
-    const groundBody = scene.matter.add.rectangle(
+    const groundBody = PhysicsManager.createTerrainBody(
+      scene,
       Config.GAME_WIDTH / 2,
       Config.GAME_HEIGHT - 50,
       Config.GAME_WIDTH,
       100,
-      {
-        isStatic: true,
-        friction: 1.0,
-        frictionStatic: 1.0,
-        // Terrain collides with players (category 2)
-        collisionFilter: {
-          category: 1, // Terrain is in category 1
-        },
-      },
     );
 
     return { y: groundY, body: groundBody };
@@ -65,15 +57,7 @@ class TerrainManager {
       );
 
       // Create physics body
-      scene.matter.add.rectangle(platformData.x, yPos, platformData.width, platformData.height, {
-        isStatic: true,
-        friction: 1.0,
-        frictionStatic: 1.0,
-        // Terrain collides with players (category 2)
-        collisionFilter: {
-          category: 1, // Terrain is in category 1
-        },
-      });
+      PhysicsManager.createTerrainBody(scene, platformData.x, yPos, platformData.width, platformData.height);
 
       // Store processed platform data for weapons blocking system
       // Use TOP-LEFT coordinates for intersection algorithms

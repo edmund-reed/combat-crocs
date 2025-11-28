@@ -7,7 +7,7 @@ const Config = {
   BACKGROUND_COLOR: 0x4a56a8, // Bright blue
 
   // Physics settings
-  GRAVITY: 300,
+  GRAVITY: 1.5, // Final gravity value used by Phaser (was 300/200)
   BOUNCE: 0.2,
 
   // Player settings
@@ -70,7 +70,7 @@ const PhaserConfig = {
     default: "matter",
     matter: {
       gravity: {
-        y: Config.GRAVITY / 200, // Phaser uses different gravity scale
+        y: Config.GRAVITY, // Direct use of final gravity value
       },
       debug: false, // Disable physics debug - we'll add manual debug for projectiles
       enableSleeping: false,

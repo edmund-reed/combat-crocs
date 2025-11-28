@@ -16,17 +16,7 @@ class PlayerManager {
     return marker;
   };
 
-  static createPhysicsBody = (scene, x, y) =>
-    scene.matter.add.rectangle(x, y, 30, 20, {
-      friction: 0.1,
-      restitution: 0.1,
-      density: 0.01,
-      collisionFilter: {
-        group: 0,
-        mask: 1,
-        category: 2,
-      },
-    });
+  static createPhysicsBody = (scene, x, y) => PhysicsManager.createPlayerBody(scene, x, y);
 
   static createPlayer = (scene, id, x, y, color) => {
     const spriteKey = this.getSpriteForPlayer(id);
