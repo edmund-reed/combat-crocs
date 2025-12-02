@@ -4,11 +4,12 @@ import { GameStateManager, Logger, PhysicsManager } from "@utils";
 
 class PlayerManager {
   static getSpriteForPlayer = id => {
-    if (typeof id === "string" && id.length >= 2) {
-      const sprites = ["croc1", "croc2", "chameleon1", "gecko1"];
-      return sprites[(parseInt(id.charAt(0)) - 1) % sprites.length];
-    }
-    return id === 1 ? "croc1" : "croc2";
+    const sprites = ["croc1", "croc2", "chameleon1", "gecko1"];
+    return typeof id === "string" && id.length >= 2
+      ? sprites[(parseInt(id.charAt(0)) - 1) % sprites.length]
+      : id === 1
+      ? "croc1"
+      : "croc2";
   };
 
   static createPlayer = (scene, id, x, y, color) => {
@@ -18,17 +19,11 @@ class PlayerManager {
 
     Logger.playerAction(`Creating Player ${id} with sprite: ${spriteKey}`);
 
-    const playerSprite = scene.add.sprite(x, y, spriteKey).setScale(0.12).setOrigin(0.5, 0.7).setFlipX(shouldFaceLeft);
-    const hitAreaMarker = scene.add.graphics().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25).setDepth(-1);
-    const body = PhysicsManager.createPlayerBody(scene, x, y);
-
-    Logger.playerAction(`Created ${spriteKey} at (${x}, ${y}), facing ${shouldFaceLeft ? "left" : "right"}`);
-
     return {
       id,
-      graphics: playerSprite,
-      body,
-      hitAreaMarker,
+      graphics: scene.add.sprite(x, y, spriteKey).setScale(0.12).setOrigin(0.5, 0.7).setFlipX(shouldFaceLeft),
+      body: PhysicsManager.createPlayerBody(scene, x, y),
+      hitAreaMarker: scene.add.graphics().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25).setDepth(-1),
       x,
       y,
       health: 100,
@@ -47,13 +42,11 @@ class PlayerManager {
     player.graphics.setPosition(x, y);
   };
 
-  static updateHitAreaMarker = player => {
+  static updateHitAreaMarker = player =>
     player.hitAreaMarker?.setPosition(player.x, player.y).clear().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25);
-  };
 
   static updatePlayerPhysics = (scene, player) => {
     this.updatePositionSync(player);
-
     if (player.x < 30 || player.x > Config.GAME_WIDTH - 30) {
       const clampedX = Math.max(35, Math.min(Config.GAME_WIDTH - 35, player.x));
       scene.matter.body.setPosition(player.body, { x: clampedX, y: player.y });
@@ -71,11 +64,10 @@ class PlayerManager {
 
   static createTeamPlayers = (scene, team, teamIndex, spawnY) => {
     const teamColor = team.color?.hex ?? (teamIndex % 5) + 1;
-    Logger.playerAction(`Team ${team.id} using color: 0x${teamColor.toString(16)}`);
-
     for (let i = 0; i < team.crocCount; i++) {
-      const playerId = `${team.id}${i + 1}`;
-      scene.players.push(this.createPlayer(scene, playerId, 100 + teamIndex * 100 + i * 50, spawnY, teamColor));
+      scene.players.push(
+        this.createPlayer(scene, `${team.id}${i + 1}`, 100 + teamIndex * 100 + i * 50, spawnY, teamColor),
+      );
     }
   };
 

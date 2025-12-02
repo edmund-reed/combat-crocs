@@ -13,30 +13,26 @@ class MenuScene extends Phaser.Scene {
 
   create() {
     const { GAME_WIDTH, GAME_HEIGHT } = Config;
+    const centerX = GAME_WIDTH / 2;
 
-    // Background image - cover style, anchored to bottom
-    const bgImage = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT, "map-bg");
-    const scale = Math.max(GAME_WIDTH / bgImage.width, GAME_HEIGHT / bgImage.height);
-    bgImage.setScale(scale).setOrigin(0.5, 1);
+    const bgImage = this.add.image(centerX, GAME_HEIGHT, "map-bg");
+    bgImage.setScale(Math.max(GAME_WIDTH / bgImage.width, GAME_HEIGHT / bgImage.height)).setOrigin(0.5, 1);
 
-    // Intro music
     if (this.cache.audio?.get("introMusic")) {
       this.introMusic = this.sound.add("introMusic", { loop: true, volume: 0.3 });
       this.introMusic.play();
     }
 
-    // UI
-    UITextHelpers.createTitleText(this, GAME_WIDTH / 2, 100, "COMBAT CROCS");
-    UITextHelpers.primaryText(this, GAME_WIDTH / 2, 160, "Orlando vs. Crocodiles!", 24);
+    UITextHelpers.createTitleText(this, centerX, 100, "COMBAT CROCS");
+    UITextHelpers.primaryText(this, centerX, 160, "Orlando vs. Crocodiles!", 24);
 
-    const startButton = UITextHelpers.primaryText(this, GAME_WIDTH / 2, 250, "START GAME", 32).setInteractive();
-    UIButtonHelpers.addHoverEffect(startButton);
-
-    startButton.on("pointerdown", () => {
-      this.introMusic?.stop();
-      this.introMusic?.destroy();
-      this.scene.start("MapSelectScene");
-    });
+    const startButton = UIButtonHelpers.addHoverEffect(
+      UITextHelpers.primaryText(this, centerX, 250, "START GAME", 32).setInteractive(),
+    );
+    startButton.on(
+      "pointerdown",
+      () => (this.introMusic?.stop(), this.introMusic?.destroy(), this.scene.start("MapSelectScene")),
+    );
   }
 
   showTutorial() {
