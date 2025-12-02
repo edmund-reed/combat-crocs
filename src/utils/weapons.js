@@ -1,5 +1,3 @@
-// Weapon utilities for Combat Crocs
-
 import { Config } from "@config";
 import { HitscanWeapon, ExplosionSystem } from "@weapons";
 import { InputManager, MemoryManager, Logger, PhysicsManager } from "@utils";
@@ -7,21 +5,16 @@ import { InputManager, MemoryManager, Logger, PhysicsManager } from "@utils";
 class WeaponManager {
   static fireWeapon = (scene, player, targetX, targetY, weaponType) => {
     const weaponMethods = {
-      BAZOOKA: (scene, player, targetX, targetY) => this.createProjectile(scene, player, targetX, targetY, weaponType),
-      GRENADE: (scene, player, targetX, targetY) => this.createProjectile(scene, player, targetX, targetY, weaponType),
-      SHOTGUN: (scene, player, targetX, targetY) => HitscanWeapon.createShotgunHitscan(scene, player, targetX, targetY),
+      BAZOOKA: () => this.createProjectile(scene, player, targetX, targetY, weaponType),
+      GRENADE: () => this.createProjectile(scene, player, targetX, targetY, weaponType),
+      SHOTGUN: () => HitscanWeapon.createShotgunHitscan(scene, player, targetX, targetY),
     };
 
-    const method = weaponMethods[weaponType];
-    if (method) return method(scene, player, targetX, targetY);
-    Logger.error(`No method for weapon: ${weaponType}`);
-    return null;
+    return weaponMethods[weaponType]?.() || (Logger.error(`No method for weapon: ${weaponType}`), null);
   };
 
-  // Create and fire a weapon
   static createProjectile = (scene, player, targetX, targetY, weaponType = "BAZOOKA") => {
     const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
-    const power = 25;
     const spawnDistance = 8;
 
     const body = PhysicsManager.createProjectileBody(
@@ -31,20 +24,20 @@ class WeaponManager {
       weaponType,
     );
 
-    const projectile = scene.add.graphics({ x: body.position.x, y: body.position.y });
-    projectile.fillStyle(0xff0000).fillCircle(0, 0, 5);
+    const projectile = scene.add
+      .graphics({ x: body.position.x, y: body.position.y })
+      .fillStyle(0xff0000)
+      .fillCircle(0, 0, 5);
 
-    body.projectileOwner = player.id;
-    body.projectileGraphics = projectile;
+    Object.assign(body, { projectileOwner: player.id, projectileGraphics: projectile });
 
-    PhysicsManager.applyProjectileVelocity(scene, body, angle, power);
+    PhysicsManager.applyProjectileVelocity(scene, body, angle, 25);
     InputManager.addProjectileTrail(scene, body);
 
-    const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
-    const { behaviorFlags } = weaponConfig;
+    const { behaviorFlags } = Config.WEAPON_CONFIGS[weaponType];
 
     if (behaviorFlags.includes("timerExplosion")) {
-      this.setupTimerExplosionCollision(scene, body, weaponConfig, weaponType);
+      this.setupTimerExplosionCollision(scene, body, Config.WEAPON_CONFIGS[weaponType], weaponType);
     } else if (behaviorFlags.includes("explodesOnImpact")) {
       this.setupProjectileCollision(scene, body, projectile, weaponType);
     }
@@ -54,41 +47,38 @@ class WeaponManager {
 
   static setupTimerExplosionCollision = (scene, projectileBody, weaponConfig, weaponType) => {
     Object.assign(projectileBody, { weaponConfig, weaponType });
-    const delayMs = weaponConfig.delay || 3000;
-    projectileBody.timerId = setTimeout(() => this.detonateProjectile(scene, projectileBody), delayMs);
+    projectileBody.timerId = setTimeout(
+      () => this.detonateProjectile(scene, projectileBody),
+      weaponConfig.delay || 3000,
+    );
     MemoryManager.registerCleanup(scene, projectileBody.timerId, "timeouts");
   };
 
-  // Projectile detonation for timer-based weapons (grenades)
   static detonateProjectile = (scene, projectileBody) => {
     if (projectileBody.destroyed) return;
-
     Logger.weaponEvent("Timer detonation");
-    const weaponType = projectileBody.weaponType || "GRENADE";
-    const { position } = projectileBody;
-
-    ExplosionSystem.createExplosion(scene, position.x, position.y, projectileBody.projectileOwner, weaponType);
+    ExplosionSystem.createExplosion(
+      scene,
+      projectileBody.position.x,
+      projectileBody.position.y,
+      projectileBody.projectileOwner,
+      projectileBody.weaponType || "GRENADE",
+    );
     this._cleanupProjectile(scene, projectileBody);
     scene.endProjectileTurn();
   };
 
-  // Setup collision detection for projectiles that explode on impact
   static setupProjectileCollision = (scene, projectileBody, projectileGraphics, weaponType) => {
     let hasHit = false;
-
     scene.matter.world.on("collisionstart", event => {
       if (projectileBody.destroyed || hasHit) return;
-
       const collision = event.pairs.find(pair => pair.bodyA === projectileBody || pair.bodyB === projectileBody);
-
       if (!collision) return;
 
       Logger.weaponEvent("Projectile collision!");
       hasHit = true;
-
-      const { x: explosionX, y: explosionY } = PhysicsManager.calculateExplosionPosition(projectileBody);
-      ExplosionSystem.createExplosion(scene, explosionX, explosionY, projectileBody.projectileOwner, weaponType);
-
+      const { x, y } = PhysicsManager.calculateExplosionPosition(projectileBody);
+      ExplosionSystem.createExplosion(scene, x, y, projectileBody.projectileOwner, weaponType);
       scene.matter.world.remove(projectileBody);
       projectileGraphics?.destroy?.();
       projectileBody.debugOutline?.destroy?.();
@@ -96,7 +86,6 @@ class WeaponManager {
     });
   };
 
-  // Shared projectile cleanup logic
   static _cleanupProjectile = (scene, projectileBody) => {
     scene.matter.world.remove(projectileBody);
     projectileBody.projectileGraphics?.destroy?.();
