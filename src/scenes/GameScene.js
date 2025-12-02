@@ -8,71 +8,45 @@ class GameScene extends Phaser.Scene {
   }
 
   init() {
-    // Initialize game state
-    this.players = [];
-    this.gameStarted = false;
-    this.terrain = null;
-    this.aimLine = null; // Yellow direction arrow
-    this.currentMapPlatforms = []; // Store current map's platform data
-
-    // Initialize turn manager
-    this.turnManager = new TurnManager(this);
+    Object.assign(this, {
+      players: [],
+      gameStarted: false,
+      terrain: null,
+      aimLine: null,
+      currentMapPlatforms: [],
+      turnManager: new TurnManager(this),
+    });
   }
 
   preload() {
-    // Load all character sprites
-    this.load.image("croc1", "src/assets/croc1.png");
-    this.load.image("croc2", "src/assets/croc2.png");
-    this.load.image("chameleon1", "src/assets/chameleon1.png");
-    this.load.image("gecko1", "src/assets/gecko1.png");
+    ["croc1", "croc2", "chameleon1", "gecko1"].forEach(sprite => this.load.image(sprite, `src/assets/${sprite}.png`));
   }
 
   create() {
-    // Create the basic terrain
     TerrainManager.createGameTerrain(this);
-
-    // Create players
     PlayerManager.createGamePlayers(this);
-
-    // Initialize physics world with centralized settings
     PhysicsManager.initializePhysics(this);
-
-    // Create UI elements
     UIManager.createGameUI(this);
-
-    // Set up input handling
     InputManager.setupInput(this);
 
-    // Initialize turn system
     this.turnManager.initializeTeams();
     this.turnManager.startTurn();
 
-    // Add slight camera shake effect occasionally
     this.time.addEvent({
       delay: 8000,
-      callback: () => {
-        if (!this.scene.isPaused) {
-          this.cameras.main.shake(300, 0.01);
-        }
-      },
+      callback: () => !this.scene.isPaused && this.cameras.main.shake(300, 0.01),
       loop: true,
     });
 
-    // Initialize memory management - automatic cleanup for all resources
     MemoryManager.initialize(this);
-
     console.log("🎮 GameScene initialization complete");
   }
 
   update(delta) {
-    if (!this.gameStarted) {
-      this.gameStarted = true;
-    }
+    if (!this.gameStarted) this.gameStarted = true;
 
-    // Check for game end conditions at the start of each update
     UIManager.checkAndHandleGameEnd(this);
 
-    // Update turn timer display from Phaser delayedCall (for UI feedback)
     if (this.turnManager.currentTurnTimer) {
       const remainingTime = Math.ceil(
         (this.turnManager.currentTurnTimer.delay - this.turnManager.currentTurnTimer.elapsed) / 1000,
@@ -80,17 +54,15 @@ class GameScene extends Phaser.Scene {
       this.timerText.setText(`Time: ${remainingTime}`);
     }
 
-    // PHYSICS: Update ALL players (gravity, position sync) - runs even during projectile flight
     this.players.forEach(player => {
       PlayerManager.updatePlayerPhysics(this, player);
-      // Update hit area visualization to follow player movement
       PlayerManager.updateHitAreaMarker(player);
     });
 
-    // CONTROLS: Only current player gets movement controls when they can move
     const currentPlayerIndex = this.turnManager.getCurrentPlayerIndex();
-    if (this.players[currentPlayerIndex].canMove) {
-      const currentPlayer = this.players[currentPlayerIndex];
+    const currentPlayer = this.players[currentPlayerIndex];
+
+    if (currentPlayer.canMove) {
       MovementManager.handleMovement(
         this,
         currentPlayer,
@@ -99,41 +71,27 @@ class GameScene extends Phaser.Scene {
       );
     }
 
-    // Clean physics flow: Players continue their jump/fall during projectile flight
-    // Movement controls are restored only when their turn begins
-
-    // Update aim line continuously when player can shoot (follows player movement)
-    if (this.players[currentPlayerIndex].canShoot) {
+    if (currentPlayer.canShoot) {
       UIManager.updateAimLine(this);
     } else {
       UIManager.clearAimLine(this);
     }
 
-    // Update projectile positions and debug outlines
     this.matter.world.getAllBodies().forEach(body => {
       if (body.projectileGraphics && !body.destroyed) {
-        // Sync projectile graphics with physics body
         body.projectileGraphics.setPosition(body.position.x, body.position.y);
-
-        // Sync debug outline with physics body
-        if (body.debugOutline) {
-          body.debugOutline.setPosition(body.position.x, body.position.y);
-        }
+        body.debugOutline?.setPosition(body.position.x, body.position.y);
       }
     });
 
-    // Update health bar positions and graphics(colors/fill) above players
     HealthBarManager.updateHealthBarPositions(this);
     HealthBarManager.updateHealthBars(this);
   }
 
   endProjectileTurn() {
-    // Reset turn state and start next player's turn with explosion effect delay
     console.log("Projectile turn ended, starting next turn after explosion delay");
-
-    // Small delay before starting next turn (for explosion effect)
     this.time.addEvent({
-      delay: 500, // 0.5 seconds delay for explosion effect
+      delay: 500,
       callback: () => {
         console.log("Starting next turn from endProjectileTurn");
         this.turnManager.startTurn();

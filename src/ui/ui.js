@@ -1,4 +1,3 @@
-// UI utilities for Combat Crocs
 import { Config } from "@config";
 import { UITextHelpers, UIButtonHelpers } from "./ui-helpers.js";
 import UIComponents from "./ui-components.js";
@@ -9,24 +8,21 @@ import ModalManager from "./modal-manager.js";
 import { InputManager, TurnManager, GameStateManager, PlayerManager } from "@utils";
 
 class UIManager {
-  // Export managers for direct use in scenes
   static HealthBar = HealthBarManager;
   static TeamSelector = TeamSelectorManager;
   static Components = UIComponents;
 
-  // Team count selector - moved from UIComponents to avoid circular dependency
   static createTeamCountSelector = scene => {
+    const { GAME_WIDTH } = Config;
     const selectorY = 170,
-      centerX = Config.GAME_WIDTH / 2;
+      centerX = GAME_WIDTH / 2;
 
     UITextHelpers.primaryText(scene, centerX, selectorY, "Number of Teams", 18);
 
     const minusBtn = UIButtonHelpers.addHoverEffect(
       UITextHelpers.createInteractiveText(scene, centerX - 80, selectorY + 50, "-", "primary", 36),
     );
-
     scene.teamCountText = UITextHelpers.primaryText(scene, centerX, selectorY + 50, scene.teamCount.toString(), 48);
-
     const plusBtn = UIButtonHelpers.addHoverEffect(
       UITextHelpers.createInteractiveText(scene, centerX + 80, selectorY + 50, "+", "primary", 36),
     );
@@ -44,10 +40,7 @@ class UIManager {
     plusBtn.on("pointerdown", () => updateCount(1, () => scene.teamCount < 5));
   };
 
-  // Update timer display
-  static updateTimer(scene, timeLeft) {
-    scene.timerText.setText(`Time: ${Math.ceil(timeLeft)}`);
-  }
+  static updateTimer = (scene, timeLeft) => scene.timerText.setText(`Time: ${Math.ceil(timeLeft)}`);
 
   // Show game end screen
   static showGameEndScreen(scene, winnerTeam) {
@@ -91,23 +84,16 @@ class UIManager {
   static updateWeaponDisplay = scene => TurnManager.updateWeaponDisplay(scene);
 
   static updateTurnIndicator(scene, currentPlayer) {
-    const playerName = `Player ${currentPlayer.id}`;
-    scene.playerIndicator.setText(`${playerName}'s Turn`);
-
-    // Color based on team ID
+    scene.playerIndicator.setText(`Player ${currentPlayer.id}'s Turn`);
     const teamId = parseInt(currentPlayer.id.charAt(0));
-    const teamColors = [0x00ff00, 0xffd23f, 0x0000ff, 0xff00ff, 0x00ffff]; // Green, Orange, Blue, Magenta, Cyan
-    const color = teamColors[(teamId - 1) % teamColors.length] || 0xffffff;
-    scene.playerIndicator.setFill(color);
+    const teamColors = [0x00ff00, 0xffd23f, 0x0000ff, 0xff00ff, 0x00ffff];
+    scene.playerIndicator.setFill(teamColors[(teamId - 1) % teamColors.length] || 0xffffff);
   }
 
-  static updatePlayerHighlighting(scene, currentPlayerIndex) {
-    scene.players.forEach((player, index) => {
-      player.graphics.setAlpha(index === currentPlayerIndex ? 1.0 : 0.5);
-    });
-  }
+  static updatePlayerHighlighting = (scene, currentPlayerIndex) => {
+    scene.players.forEach((p, i) => p.graphics.setAlpha(i === currentPlayerIndex ? 1.0 : 0.5));
+  };
 
-  // Create all UI elements for game scene (moved from GameScene.js)
   static createGameUI(scene) {
     HealthBarManager.createHealthBars(scene);
     UIComponents.createWeaponDisplay(scene);
@@ -117,28 +103,21 @@ class UIManager {
     WeaponMenuManager.createWeaponSelectIcon(scene);
   }
 
-  // Check if game has ended and handle UI (moved from GameScene.js)
   static checkAndHandleGameEnd(scene) {
     const teams = GameStateManager.getTeams();
-
-    // Check which teams have living players
     const aliveTeams = teams.filter(team => {
       const teamPlayers = scene.players.filter(p => typeof p.id === "string" && p.id.startsWith(team.id));
       return teamPlayers.some(p => PlayerManager.isPlayerAlive(scene, scene.players.indexOf(p)));
     });
 
-    // If only one team remains, they win
     if (aliveTeams.length === 1) {
-      const winningTeam = aliveTeams[0];
-      this.showGameEndScreen(scene, winningTeam.name);
+      this.showGameEndScreen(scene, aliveTeams[0].name);
       return true;
     } else if (aliveTeams.length === 0) {
-      // Edge case: no teams alive (all players dead simultaneously)
       this.showGameEndScreen(scene, "No One");
       return true;
     }
-
-    return false; // Game continues
+    return false;
   }
 }
 

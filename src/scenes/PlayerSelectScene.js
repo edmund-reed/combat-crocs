@@ -110,50 +110,27 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 
   createActionButtons() {
-    const buttonY = Config.GAME_HEIGHT - 100; // Moved down 50px to use bottom space
+    const { GAME_WIDTH, GAME_HEIGHT } = Config;
+    const buttonY = GAME_HEIGHT - 100;
+    const buttonStyle = { font: "28px Arial", fill: "#0000FF", stroke: "#FFFFFF", strokeThickness: 3 };
 
-    // Start Battle button
     const startBtn = this.add
-      .text(Config.GAME_WIDTH / 2, buttonY, "START BATTLE", {
-        font: "28px Arial",
-        fill: "#0000FF", // Blue text for better contrast
-        stroke: "#FFFFFF",
-        strokeThickness: 3,
-      })
+      .text(GAME_WIDTH / 2, buttonY, "START BATTLE", buttonStyle)
       .setOrigin(0.5)
       .setInteractive();
-
-    // Custom hover effect for blue button
-    startBtn.on("pointerover", () => startBtn.setScale(1.1).setFill("#FFFFFF"));
-    startBtn.on("pointerout", () => startBtn.setScale(1.0).setFill("#0000FF"));
-
-    // Back to Menu button
-    const backBtn = this.add
-      .text(Config.GAME_WIDTH / 2, buttonY + 60, "BACK TO MENU", {
-        font: "20px Arial",
-        fill: "#0000FF", // Blue text for better contrast
-        stroke: "#FFFFFF",
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5)
-      .setInteractive();
-
-    // Custom hover effect for blue button
-    backBtn.on("pointerover", () => backBtn.setScale(1.1).setFill("#FFFFFF"));
-    backBtn.on("pointerout", () => backBtn.setScale(1.0).setFill("#0000FF"));
-
-    // Start battle
+    UIButtonHelpers.addHoverEffect(startBtn, "#0000FF");
     startBtn.on("pointerdown", () => {
       GameStateManager.storeTeams(this.teams);
       this._stopIntroMusic();
       this.scene.start("GameScene");
     });
 
-    // Back to menu
-    backBtn.on("pointerdown", () => {
-      this._stopIntroMusic();
-      this.scene.start("MenuScene");
-    });
+    const backBtn = this.add
+      .text(GAME_WIDTH / 2, buttonY + 60, "BACK TO MENU", { ...buttonStyle, font: "20px Arial", strokeThickness: 2 })
+      .setOrigin(0.5)
+      .setInteractive();
+    UIButtonHelpers.addHoverEffect(backBtn, "#0000FF");
+    backBtn.on("pointerdown", () => (this._stopIntroMusic(), this.scene.start("MenuScene")));
   }
 }
 

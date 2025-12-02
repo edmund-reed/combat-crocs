@@ -1,12 +1,9 @@
-// Team Selector Manager for Combat Crocs
-// Handles team selection UI creation and management
 import { Config } from "@config";
 import { UITextHelpers, UIButtonHelpers } from "@ui";
 import UIComponents from "./ui-components.js";
 
 class TeamSelectorManager {
   static updateTeamsForCount(scene) {
-    // Adjust teams array based on new count
     while (scene.teams.length < scene.teamCount) {
       const newTeamId = scene.teams.length + 1;
       scene.teams.push({
@@ -16,105 +13,64 @@ class TeamSelectorManager {
         color: scene.availableColors[(newTeamId - 1) % scene.availableColors.length],
       });
     }
-
-    // Remove excess teams
-    while (scene.teams.length > scene.teamCount) {
-      scene.teams.pop();
-    }
+    while (scene.teams.length > scene.teamCount) scene.teams.pop();
   }
 
   static createTeamSelection(scene) {
     this.clearExistingTeamUI(scene);
-
     const availableWidth = Math.min(scene.teamCount * 200, 1000);
 
     for (let i = 0; i < scene.teamCount; i++) {
       const team = scene.teams[i];
-
-      // Center all teams horizontally across the screen
-      let xPos;
-      if (scene.teamCount === 1) {
-        xPos = Config.GAME_WIDTH / 2;
-      } else {
-        // Evenly distribute teams across the available width
-        const startX = Config.GAME_WIDTH / 2 - availableWidth / 2;
-        xPos = startX + i * (scene.teamCount <= 1 ? 0 : availableWidth / (scene.teamCount - 1));
-      }
+      const xPos =
+        scene.teamCount === 1
+          ? Config.GAME_WIDTH / 2
+          : Config.GAME_WIDTH / 2 - availableWidth / 2 + i * (availableWidth / (scene.teamCount - 1));
 
       this.createDynamicTeamSelector(scene, xPos, 340, team, i);
     }
   }
 
   static createDynamicTeamSelector(scene, x, y, team, teamIndex) {
-    if (!scene.teamUIElements) {
-      scene.teamUIElements = [];
-    }
+    if (!scene.teamUIElements) scene.teamUIElements = [];
 
-    // Team label
-    const teamLabel = UITextHelpers.primaryText(scene, x, y, team.name, 24);
-    scene.teamUIElements.push(teamLabel);
-
-    // Count display and controls
     const countY = y + 60;
+    scene.teamUIElements.push(UITextHelpers.primaryText(scene, x, y, team.name, 24));
 
-    // Minus button (to left of count)
     const minusBtn = UITextHelpers.primaryText(scene, x - 60, countY, "-", 36).setInteractive();
-    scene.teamUIElements.push(minusBtn);
-
-    // Count display
     const countText = UITextHelpers.primaryText(scene, x, countY, team.crocCount.toString(), 48);
-    scene.teamUIElements.push(countText);
-
-    // Plus button (to right of count)
     const plusBtn = UITextHelpers.primaryText(scene, x + 60, countY, "+", 36).setInteractive();
-    scene.teamUIElements.push(plusBtn);
 
-    // Button hover effects - apply global helper
+    scene.teamUIElements.push(minusBtn, countText, plusBtn);
+
     UIButtonHelpers.addHoverEffect(minusBtn, "#FF6B35");
     UIButtonHelpers.addHoverEffect(plusBtn, "#FF6B35");
 
-    minusBtn.on("pointerdown", () => {
-      if (team.crocCount > 1) {
-        team.crocCount--;
+    const updateCount = (delta, condition) => {
+      if (condition()) {
+        team.crocCount += delta;
         countText.setText(team.crocCount);
         UIComponents.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
       }
-    });
+    };
 
-    plusBtn.on("pointerdown", () => {
-      if (team.crocCount < 3) {
-        // Max per team still 3
-        team.crocCount++;
-        countText.setText(team.crocCount);
-        UIComponents.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
-      }
-    });
+    minusBtn.on("pointerdown", () => updateCount(-1, () => team.crocCount > 1));
+    plusBtn.on("pointerdown", () => updateCount(1, () => team.crocCount < 3));
 
     UIComponents.createColorSelector(scene, x, y + 110, team, scene.availableColors);
     UIComponents.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
   }
 
-  static refreshTeamSelection(scene) {
-    // Regenerate team selection UI based on current teams
-    this.createTeamSelection(scene);
-  }
+  static refreshTeamSelection = scene => this.createTeamSelection(scene);
 
   static clearExistingTeamUI(scene) {
-    // Destroy all team-related UI elements from previous renders
-    if (scene.teamUIElements) {
-      scene.teamUIElements.forEach(element => element.destroy());
-      scene.teamUIElements = [];
-    }
+    scene.teamUIElements?.forEach(el => el.destroy());
+    if (scene.teamUIElements) scene.teamUIElements = [];
 
-    // Destroy all sprites in new dynamic sprite arrays
-    if (scene.spriteArrays) {
-      scene.spriteArrays.forEach(teamSprites => {
-        if (teamSprites && teamSprites.length > 0) {
-          teamSprites.forEach(sprite => sprite.destroy());
-          teamSprites.length = 0;
-        }
-      });
-    }
+    scene.spriteArrays?.forEach(teamSprites => {
+      teamSprites?.forEach(sprite => sprite.destroy());
+      if (teamSprites) teamSprites.length = 0;
+    });
   }
 }
 
