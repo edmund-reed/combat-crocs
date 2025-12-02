@@ -1,5 +1,4 @@
-import { Config, PhaserConfig } from "./config.js";
-import Logger from "./utils/logger.js";
+import { Config, PhaserConfig, Logger } from "./config.js";
 import MenuScene from "./scenes/MenuScene.js";
 import MapSelectScene from "./scenes/MapSelectScene.js";
 import PlayerSelectScene from "./scenes/PlayerSelectScene.js";

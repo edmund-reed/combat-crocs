@@ -1,9 +1,9 @@
 // Weapon Menu Manager for Combat Crocs
 
 import { Config } from "@config";
-import ModalManager from "./modal-manager.js";
 import { UITextHelpers } from "./ui-helpers.js";
 import { TurnManager } from "@utils";
+import UIManager from "./ui.js";
 
 class WeaponMenuManager {
   static createWeaponSelectIcon(scene) {
@@ -45,7 +45,7 @@ class WeaponMenuManager {
     });
 
     const elements = {
-      overlay: ModalManager.createModalOverlay(scene, () => this.hideWeaponSelectMenu(scene)),
+      overlay: UIManager.createModalOverlay(scene, () => this.hideWeaponSelectMenu(scene)),
       menuBg: scene.add
         .graphics()
         .setDepth(menuDepth + 1)
@@ -89,7 +89,7 @@ class WeaponMenuManager {
   static hideWeaponSelectMenu(scene) {
     if (!scene.weaponMenu) return;
 
-    ModalManager.clearModalOverlays(scene);
+    UIManager.clearModalOverlays(scene);
 
     if (scene.inputManagerBackup) {
       scene.input.on("pointermove", scene.inputManagerBackup.aimingHandler);

@@ -1,5 +1,5 @@
 import { Config } from "@config";
-import { GameStateManager, Logger, PlayerManager } from "@utils";
+import { StateManager, Logger, PlayerManager } from "@utils";
 import { UIManager } from "@ui";
 import { ExplosionSystem } from "@weapons";
 
@@ -19,7 +19,7 @@ class TurnManager {
   }
 
   initializeTeams = () => {
-    const teams = GameStateManager.getTeams();
+    const teams = StateManager.getTeams();
     this.playerIndices = new Array(teams.length).fill(0);
     teams.forEach(({ id }) => (this.weaponByTeam[id] = "BAZOOKA"));
   };
@@ -51,7 +51,7 @@ class TurnManager {
   };
 
   findNextLivingPlayerInTeam = team => {
-    const teamIndex = GameStateManager.getTeams().findIndex(t => t.id === team.id);
+    const teamIndex = StateManager.getTeams().findIndex(t => t.id === team.id);
 
     for (let offset = 0; offset < team.crocCount; offset++) {
       const playerNum = ((this.playerIndices[teamIndex] + offset) % team.crocCount) + 1;
@@ -67,7 +67,7 @@ class TurnManager {
   };
 
   getNextPlayerIndex = () => {
-    const teams = GameStateManager.getTeams();
+    const teams = StateManager.getTeams();
 
     for (let attempts = 0; attempts < teams.length; attempts++) {
       const playerIndex = this.findNextLivingPlayerInTeam(teams[this.currentTeamIndex]);

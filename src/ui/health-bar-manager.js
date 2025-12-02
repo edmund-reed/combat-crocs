@@ -1,7 +1,7 @@
 // Health Bar Manager for Combat Crocs
 
 import { UITextHelpers } from "./ui-helpers.js";
-import { PlayerManager, MemoryManager } from "@utils";
+import { PlayerManager, StateManager } from "@utils";
 
 class HealthBarManager {
   static createHealthBars(scene) {
@@ -83,7 +83,7 @@ class HealthBarManager {
     player.graphics.setVisible(false);
 
     // Register for automatic cleanup (no manual tracking!)
-    MemoryManager.registerCleanup(scene, { gravestone, ripText }, "effects");
+    StateManager.registerCleanup(scene, { gravestone, ripText }, "effects");
   }
 }
 
