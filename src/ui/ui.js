@@ -9,24 +9,10 @@ import ModalManager from "./modal-manager.js";
 import { InputManager, TurnManager, GameStateManager, PlayerManager } from "@utils";
 
 class UIManager {
-  // Health bars - delegated to HealthBarManager
-  static createHealthBars = scene => HealthBarManager.createHealthBars(scene);
-  static updateHealthBarPositions = scene => HealthBarManager.updateHealthBarPositions(scene);
-  static updateHealthBars = scene => HealthBarManager.updateHealthBars(scene);
-  static showGravestone = (scene, player) => HealthBarManager.showGravestone(scene, player);
-
-  // UI Components - delegated to UIComponents
-  static createWeaponDisplay = scene => UIComponents.createWeaponDisplay(scene);
-  static createTimerDisplay = scene => UIComponents.createTimerDisplay(scene);
-  static createTurnIndicator = scene => UIComponents.createTurnIndicator(scene);
-  static createInstructions = scene => UIComponents.createInstructions(scene);
-  static createColorSelector = (...params) => UIComponents.createColorSelector(...params);
-  static updateCrocPreview = (...params) => UIComponents.updateCrocPreview(...params);
-
-  // Team Selection Manager - delegated to TeamSelectorManager
-  static createTeamSelection = scene => TeamSelectorManager.createTeamSelection(scene);
-  static refreshTeamSelection = scene => TeamSelectorManager.refreshTeamSelection(scene);
-  static clearExistingTeamUI = scene => TeamSelectorManager.clearExistingTeamUI(scene);
+  // Export managers for direct use in scenes
+  static HealthBar = HealthBarManager;
+  static TeamSelector = TeamSelectorManager;
+  static Components = UIComponents;
 
   // Team count selector - moved from UIComponents to avoid circular dependency
   static createTeamCountSelector = scene => {
@@ -130,12 +116,12 @@ class UIManager {
 
   // Create all UI elements for game scene (moved from GameScene.js)
   static createGameUI(scene) {
-    this.createHealthBars(scene);
-    this.createWeaponDisplay(scene);
-    this.createTimerDisplay(scene);
-    this.createTurnIndicator(scene);
-    this.createInstructions(scene);
-    this.createWeaponSelectIcon(scene);
+    HealthBarManager.createHealthBars(scene);
+    UIComponents.createWeaponDisplay(scene);
+    UIComponents.createTimerDisplay(scene);
+    UIComponents.createTurnIndicator(scene);
+    UIComponents.createInstructions(scene);
+    WeaponMenuManager.createWeaponSelectIcon(scene);
   }
 
   // Check if game has ended and handle UI (moved from GameScene.js)

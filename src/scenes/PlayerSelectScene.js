@@ -2,7 +2,7 @@
 // Allows players to choose number of crocs per team before starting battle
 
 import { Config } from "@config";
-import { UITextHelpers, UIButtonHelpers, UIManager } from "@ui";
+import { UITextHelpers, UIButtonHelpers, UIManager, TeamSelectorManager } from "@ui";
 import { GameStateManager, Maps as MapManager } from "@utils";
 
 class PlayerSelectScene extends Phaser.Scene {
@@ -93,7 +93,7 @@ class PlayerSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Create team selection areas - started lower
-    UIManager.createTeamSelection(this);
+    TeamSelectorManager.createTeamSelection(this);
     this.createActionButtons();
 
     // Start music if available
@@ -112,7 +112,7 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 
   clearExistingTeamUI() {
-    UIManager.clearExistingTeamUI(this);
+    TeamSelectorManager.clearExistingTeamUI(this);
   }
 
   createActionButtons() {

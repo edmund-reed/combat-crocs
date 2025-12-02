@@ -1,5 +1,5 @@
 import { TurnManager, TerrainManager, PlayerManager, PhysicsManager, InputManager, MemoryManager } from "@utils";
-import { UIManager } from "@ui";
+import { UIManager, HealthBarManager } from "@ui";
 import { MovementManager } from "@player";
 
 class GameScene extends Phaser.Scene {
@@ -123,8 +123,8 @@ class GameScene extends Phaser.Scene {
     });
 
     // Update health bar positions and graphics(colors/fill) above players
-    UIManager.updateHealthBarPositions(this);
-    UIManager.updateHealthBars(this);
+    HealthBarManager.updateHealthBarPositions(this);
+    HealthBarManager.updateHealthBars(this);
   }
 
   endProjectileTurn() {

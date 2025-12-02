@@ -2,7 +2,7 @@
 
 import { Config } from "@config";
 import WeaponMath from "@weapons/weapon-math.js";
-import UIManager from "@ui/ui.js";
+import { HealthBarManager } from "@ui";
 
 class HitscanWeapon {
   // Streamlined hitscan with generic utilities
@@ -43,7 +43,7 @@ class HitscanWeapon {
     console.log(`🔫 HITSCAN DAMAGE: Player ${hitPlayer.id} ${damage} damage (${healthBefore} → ${hitPlayer.health})`);
     console.log(`🔫 Hit distance: ${hitDist?.toFixed(1)}`);
 
-    UIManager.updateHealthBars(scene);
+    HealthBarManager.updateHealthBars(scene);
     scene.checkGameEnd?.();
     this.showShotgunTrail(scene, player.x, player.y, hitPlayer.x, hitPlayer.y);
 

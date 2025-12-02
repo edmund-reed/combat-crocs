@@ -2,7 +2,7 @@
 // Handles team selection UI creation and management
 import { Config } from "@config";
 import { UITextHelpers, UIButtonHelpers } from "@ui";
-import UIManager from "./ui.js";
+import UIComponents from "./ui-components.js";
 
 class TeamSelectorManager {
   static updateTeamsForCount(scene) {
@@ -77,7 +77,7 @@ class TeamSelectorManager {
       if (team.crocCount > 1) {
         team.crocCount--;
         countText.setText(team.crocCount);
-        UIManager.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
+        UIComponents.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
       }
     });
 
@@ -86,12 +86,12 @@ class TeamSelectorManager {
         // Max per team still 3
         team.crocCount++;
         countText.setText(team.crocCount);
-        UIManager.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
+        UIComponents.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
       }
     });
 
-    UIManager.createColorSelector(scene, x, y + 110, team, scene.availableColors);
-    UIManager.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
+    UIComponents.createColorSelector(scene, x, y + 110, team, scene.availableColors);
+    UIComponents.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
   }
 
   static refreshTeamSelection(scene) {

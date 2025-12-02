@@ -2,7 +2,7 @@
 
 import { Config } from "@config";
 import PhysicsManager from "@utils/physics-manager.js";
-import UIManager from "@ui/ui.js";
+import { HealthBarManager } from "@ui";
 
 class ExplosionSystem {
   // Create explosion effect and apply damage
@@ -45,7 +45,7 @@ class ExplosionSystem {
           );
 
           player.health = Math.max(0, player.health - damage);
-          UIManager.updateHealthBars(scene);
+          HealthBarManager.updateHealthBars(scene);
 
           // Check if the game should end after damage
           scene.checkGameEnd?.();
