@@ -2,24 +2,18 @@
 
 import { Config } from "@config";
 import WeaponMath from "@weapons/weapon-math.js";
-import UIManager from "@ui/ui.js";
+import { HealthBarManager } from "@ui";
 
 class HitscanWeapon {
   // Streamlined hitscan with generic utilities
   static createShotgunHitscan = (scene, player, targetX, targetY) => {
     console.log(`🔍 SHOTGUN: Player ${player.id} shooting at (${targetX}, ${targetY})`);
 
-    // Extract weapon config once at top
     const weapon = Config.WEAPON_CONFIGS.SHOTGUN;
     const { damage, behaviorFlags } = weapon;
-
-    // Filter targets once
     const targets = scene.players.filter(p => p.id !== player.id && p.health > 0);
-
-    // Single call to generic hitscan utility
-    const hitResult = WeaponMath.hitscanAlongLine(targets, player.x, player.y, targetX, targetY);
-    const hitPlayer = hitResult?.player ?? null;
-    const hitDist = hitResult?.distance ?? null;
+    const { player: hitPlayer, distance: hitDist } =
+      WeaponMath.hitscanAlongLine(targets, player.x, player.y, targetX, targetY) || {};
 
     // Handle outcomes
     if (!hitPlayer) {
@@ -43,7 +37,7 @@ class HitscanWeapon {
     console.log(`🔫 HITSCAN DAMAGE: Player ${hitPlayer.id} ${damage} damage (${healthBefore} → ${hitPlayer.health})`);
     console.log(`🔫 Hit distance: ${hitDist?.toFixed(1)}`);
 
-    UIManager.updateHealthBars(scene);
+    HealthBarManager.updateHealthBars(scene);
     scene.checkGameEnd?.();
     this.showShotgunTrail(scene, player.x, player.y, hitPlayer.x, hitPlayer.y);
 

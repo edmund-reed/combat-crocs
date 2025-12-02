@@ -1,9 +1,6 @@
-// Turn management utilities for Combat Crocs
-
 import { Config } from "@config";
-import { GameStateManager, Logger } from "@utils";
+import { GameStateManager, Logger, PlayerManager } from "@utils";
 import { UIManager } from "@ui";
-import { PlayerManager } from "@utils";
 import { ExplosionSystem } from "@weapons";
 
 class TurnManager {
@@ -17,16 +14,9 @@ class TurnManager {
       currentTurnTimer: null,
       turnInProgress: false,
       weaponByTeam: {},
-      weaponAmmo: {},
+      weaponAmmo: Object.fromEntries(Object.entries(Config.WEAPON_CONFIGS).map(([k, v]) => [k, v.shotsPerTurn])),
     });
-    this.initializeWeaponAmmo();
   }
-
-  initializeWeaponAmmo = () => {
-    Object.keys(Config.WEAPON_CONFIGS).forEach(weaponKey => {
-      this.weaponAmmo[weaponKey] = Config.WEAPON_CONFIGS[weaponKey].shotsPerTurn;
-    });
-  };
 
   initializeTeams = () => {
     const teams = GameStateManager.getTeams();
@@ -36,37 +26,28 @@ class TurnManager {
 
   startTurn = () => {
     this.currentTurnTimer?.destroy();
-    this.currentTurnTimer = null;
     this.currentPlayer = this.getNextPlayerIndex();
-
     Logger.gameEvent(`TURN: Player ${this.currentPlayer}, ${Config.TURN_TIME_LIMIT / 1000}s`);
 
     const currentPlayerObj = this.scene.players[this.currentPlayer];
     currentPlayerObj.canMove = currentPlayerObj.canShoot = true;
+    this.scene.players.forEach((p, i) => i !== this.currentPlayer && (p.canMove = p.canShoot = false));
 
-    this.scene.players.forEach((player, index) => {
-      if (index !== this.currentPlayer) player.canMove = player.canShoot = false;
-    });
-
-    Object.keys(this.weaponAmmo).forEach(key => {
-      this.weaponAmmo[key] = Config.WEAPON_CONFIGS[key]?.shotsPerTurn || 1;
-    });
+    Object.keys(this.weaponAmmo).forEach(key => (this.weaponAmmo[key] = Config.WEAPON_CONFIGS[key]?.shotsPerTurn || 1));
 
     this.weaponLocked = false;
-    this.currentTurnTimer = this.scene.time.delayedCall(Config.TURN_TIME_LIMIT, () => this.handleTurnTimeout());
+    this.currentTurnTimer = this.scene.time.delayedCall(Config.TURN_TIME_LIMIT, () => {
+      if (!this.turnInProgress) {
+        Logger.gameEvent("TIMEOUT → next turn");
+        this.currentTurnTimer = null;
+        this.startTurn();
+      }
+    });
 
     UIManager.updateTurnIndicator(this.scene, currentPlayerObj);
     UIManager.updatePlayerHighlighting(this.scene, this.currentPlayer);
     UIManager.updateWeaponDisplay(this.scene);
     UIManager.clearAimLine(this.scene);
-  };
-
-  handleTurnTimeout = () => {
-    if (!this.turnInProgress) {
-      Logger.gameEvent("TIMEOUT → next turn");
-      this.currentTurnTimer = null;
-      this.startTurn();
-    }
   };
 
   findNextLivingPlayerInTeam = team => {
@@ -85,11 +66,6 @@ class TurnManager {
     return -1;
   };
 
-  advanceToNextTeam = () => {
-    this.currentTeamIndex = (this.currentTeamIndex + 1) % GameStateManager.getTeams().length;
-  };
-
-  // Get the next player index using round-robin team and player selection
   getNextPlayerIndex = () => {
     const teams = GameStateManager.getTeams();
 
@@ -98,32 +74,26 @@ class TurnManager {
 
       if (playerIndex >= 0) {
         this.currentTeamId = teams[this.currentTeamIndex].id;
-        this.advanceToNextTeam();
+        this.currentTeamIndex = (this.currentTeamIndex + 1) % teams.length;
         return playerIndex;
       }
 
-      this.advanceToNextTeam();
+      this.currentTeamIndex = (this.currentTeamIndex + 1) % teams.length;
     }
 
     Logger.warn("No living players found");
     return 0;
   };
 
-  endCurrentTurn = () => {
-    Logger.gameEvent("Projectile turn ended, resetting turnInProgress");
-    this.turnInProgress = false;
-    return true;
-  };
+  endCurrentTurn = () => (Logger.gameEvent("Projectile turn ended"), (this.turnInProgress = false), true);
 
   getCurrentPlayerIndex = () => this.currentPlayer;
   getCurrentTeam = () => this.currentTeamId || 0;
   isTurnInProgress = () => this.turnInProgress;
   getCurrentWeapon = () => this.weaponByTeam[this.getCurrentTeam()] || "BAZOOKA";
 
-  // Delegated from UIManager for better separation
   static updateWeaponDisplay = scene => {
-    const { turnManager: tm } = scene;
-    scene.weaponText?.setText(`Weapon: ${tm.getCurrentWeapon()}`);
+    scene.weaponText?.setText(`Weapon: ${scene.turnManager.getCurrentWeapon()}`);
   };
 
   setCurrentWeapon = weaponType => {
@@ -133,7 +103,6 @@ class TurnManager {
     }
   };
 
-  // Generic timer explosion handler (used by grenades and other timer-based weapons)
   detonateTimerExplosion = (scene, projectileBody) => {
     ExplosionSystem.createExplosion(
       scene,
@@ -142,7 +111,6 @@ class TurnManager {
       projectileBody.projectileOwner,
       projectileBody.weaponType || "UNKNOWN",
     );
-
     projectileBody.timerId && clearTimeout(projectileBody.timerId);
     scene.endProjectileTurn();
   };

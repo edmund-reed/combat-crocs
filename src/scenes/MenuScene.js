@@ -12,78 +12,27 @@ class MenuScene extends Phaser.Scene {
   }
 
   create() {
-    // Create image background with bottom aligned (crops from top only, fills width)
-    const bgImage = this.add.image(Config.GAME_WIDTH / 2, Config.GAME_HEIGHT, "map-bg");
+    const { GAME_WIDTH, GAME_HEIGHT } = Config;
+    const centerX = GAME_WIDTH / 2;
 
-    // Scale to cover entire screen area (background-size: cover)
-    const scaleX = Config.GAME_WIDTH / bgImage.width;
-    const scaleY = Config.GAME_HEIGHT / bgImage.height;
-    const scale = Math.max(scaleX, scaleY); // Cover behavior - fills all available space
+    const bgImage = this.add.image(centerX, GAME_HEIGHT, "map-bg");
+    bgImage.setScale(Math.max(GAME_WIDTH / bgImage.width, GAME_HEIGHT / bgImage.height)).setOrigin(0.5, 1);
 
-    bgImage.setScale(scale);
-
-    // Anchor to bottom center so bottom stays visible and only top crops
-    bgImage.setOrigin(0.5, 1);
-
-    // Start the intro music if loaded
-    try {
-      if (this.cache.audio && this.cache.audio.get("introMusic")) {
-        this.introMusic = this.sound.add("introMusic");
-        this.introMusic.setLoop(true);
-        this.introMusic.setVolume(0.3); // Start with 30% volume
-        this.introMusic.play();
-      }
-    } catch (error) {
-      console.log("Audio loading error:", error.message);
+    if (this.cache.audio?.get("introMusic")) {
+      this.introMusic = this.sound.add("introMusic", { loop: true, volume: 0.3 });
+      this.introMusic.play();
     }
 
-    // Title text
-    UITextHelpers.createTitleText(this, Config.GAME_WIDTH / 2, 100, "COMBAT CROCS");
+    UITextHelpers.createTitleText(this, centerX, 100, "COMBAT CROCS");
+    UITextHelpers.primaryText(this, centerX, 160, "Orlando vs. Crocodiles!", 24);
 
-    // Subtitle
-    UITextHelpers.primaryText(this, Config.GAME_WIDTH / 2, 160, "Orlando vs. Crocodiles!", 24);
-
-    // Menu options
-    const startButton = UITextHelpers.primaryText(this, Config.GAME_WIDTH / 2, 250, "START GAME", 32).setInteractive();
-
-    // const tutorialButton = this.add
-    //   .text(Config.GAME_WIDTH / 2, 320, "HOW TO PLAY", {
-    //     font: "24px Arial",
-    //     fill: "#FFD23F",
-    //     stroke: "#FF6B35",
-    //     strokeThickness: 3,
-    //   })
-    //   .setOrigin(0.5)
-    //   .setInteractive();
-
-    // Add hover effects
-    [startButton].forEach(button => {
-      button.on("pointerover", () => {
-        button.setScale(1.1);
-        button.setFill("#FFFFFF");
-      });
-      button.on("pointerout", () => {
-        button.setScale(1.0);
-        button.setFill("#FFD23F");
-      });
-    });
-
-    // Start game on click
-    startButton.on("pointerdown", () => {
-      // Stop intro music before transitioning
-      if (this.introMusic && this.introMusic.isPlaying) {
-        this.introMusic.stop();
-        this.introMusic.destroy();
-      }
-      this.scene.start("MapSelectScene");
-    });
-
-    // tutorialButton.on("pointerdown", () => {
-    //   this.scene.pause();
-    //   this.showTutorial();
-    // });
-
-    // Camera shake temporarily disabled for cleaner experience
+    const startButton = UIButtonHelpers.addHoverEffect(
+      UITextHelpers.primaryText(this, centerX, 250, "START GAME", 32).setInteractive(),
+    );
+    startButton.on(
+      "pointerdown",
+      () => (this.introMusic?.stop(), this.introMusic?.destroy(), this.scene.start("MapSelectScene")),
+    );
   }
 
   showTutorial() {
