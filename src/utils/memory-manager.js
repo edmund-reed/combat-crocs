@@ -63,4 +63,4 @@ class MemoryManager {
   }
 }
 
-window.MemoryManager = MemoryManager;
+export default MemoryManager;

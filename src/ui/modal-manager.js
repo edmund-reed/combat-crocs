@@ -1,4 +1,7 @@
 // Modal Manager for Combat Crocs
+
+import { Config } from "@config";
+
 class ModalManager {
   static createModalOverlay(scene, closeCallback = null) {
     const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
@@ -25,4 +28,4 @@ class ModalManager {
   }
 }
 
-window.ModalManager = ModalManager;
+export default ModalManager;

@@ -1,6 +1,8 @@
 // Spawn Manager for Combat Crocs
 // Handles player spawning and positioning logic
 
+import { Config } from "@config";
+
 class SpawnManager {
   // Assign random spawn positions to all players
   static assignRandomSpawnPositions(scene, players) {
@@ -81,4 +83,4 @@ class SpawnManager {
   }
 }
 
-window.SpawnManager = SpawnManager;
+export default SpawnManager;

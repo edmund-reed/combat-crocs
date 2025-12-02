@@ -88,4 +88,4 @@ class WeaponMath {
   };
 }
 
-window.WeaponMath = WeaponMath;
+export default WeaponMath;

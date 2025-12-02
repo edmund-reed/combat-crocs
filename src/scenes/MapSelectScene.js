@@ -1,6 +1,10 @@
 // Map Selection Scene for Combat Crocs
 // Allows players to choose which map/arena to play on
 
+import { Config } from "@config";
+import { UITextHelpers, UIButtonHelpers } from "@ui";
+import { Maps as MapManager } from "@utils";
+
 class MapSelectScene extends Phaser.Scene {
   constructor() {
     super({ key: "MapSelectScene" });
@@ -31,13 +35,13 @@ class MapSelectScene extends Phaser.Scene {
   }
 
   createMapSelection() {
-    const mapIds = window.MapManager.getMapIds();
-    const startY = 180;
+    const mapIds = MapManager.getMapIds();
+    const startY = 200; // Add gap between subtitle and map list
     const mapSpacing = 120;
 
     // Display each available map
     mapIds.forEach((mapId, index) => {
-      const mapInfo = window.MapManager.getMapDisplayInfo(mapId);
+      const mapInfo = MapManager.getMapDisplayInfo(mapId);
       const y = startY + index * mapSpacing;
       this.createMapOption(mapId, mapInfo, y, index);
     });
@@ -53,7 +57,7 @@ class MapSelectScene extends Phaser.Scene {
       .fillRect(centerX - 250, y - 40, 500, 80);
 
     // Difficulty indicator
-    const difficultyColor = mapInfo.difficulty === 1 ? "#00FF00" : "#FFFF00";
+    const difficultyColor = mapInfo.difficulty === 1 ? "#00FF00" : "#FFFF88"; // Brighter yellow
     UITextHelpers.createStatusText(this, centerX - 230, y - 25, "★".repeat(mapInfo.difficulty), difficultyColor, 16);
 
     // Map name
@@ -80,7 +84,7 @@ class MapSelectScene extends Phaser.Scene {
     // Selection handling
     mapButton.on("pointerdown", () => {
       // Store selected map in global state
-      window.MapManager.setCurrentMap(mapId);
+      MapManager.setCurrentMap(mapId);
       window.CombatCrocs.gameState.game.selectedMap = mapId;
 
       console.log(`Selected map: ${mapInfo.name} (${mapId})`);
@@ -94,12 +98,19 @@ class MapSelectScene extends Phaser.Scene {
     const buttonY = Config.GAME_HEIGHT - 120;
 
     // Back to Menu button
-    const backBtn = UIButtonHelpers.addHoverEffect(
-      this.add
-        .text(Config.GAME_WIDTH / 2, buttonY, "BACK TO MENU", UITextHelpers._getPrimaryTextStyle(20, 2))
-        .setOrigin(0.5)
-        .setInteractive(),
-    );
+    const backBtn = this.add
+      .text(Config.GAME_WIDTH / 2, buttonY, "BACK TO MENU", {
+        font: "20px Arial",
+        fill: "#0000FF", // Blue text for better contrast
+        stroke: "#FFFFFF",
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5)
+      .setInteractive();
+
+    // Custom hover effect for blue button
+    backBtn.on("pointerover", () => backBtn.setScale(1.1).setFill("#FFFFFF"));
+    backBtn.on("pointerout", () => backBtn.setScale(1.0).setFill("#0000FF"));
 
     // Back to menu
     backBtn.on("pointerdown", () => {
@@ -108,4 +119,4 @@ class MapSelectScene extends Phaser.Scene {
   }
 }
 
-window.MapSelectScene = MapSelectScene;
+export default MapSelectScene;

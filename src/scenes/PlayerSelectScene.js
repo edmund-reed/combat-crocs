@@ -1,6 +1,10 @@
 // Player Selection Scene for Combat Crocs
 // Allows players to choose number of crocs per team before starting battle
 
+import { Config } from "@config";
+import { UITextHelpers, UIButtonHelpers, UIManager } from "@ui";
+import { GameStateManager, Maps as MapManager } from "@utils";
+
 class PlayerSelectScene extends Phaser.Scene {
   constructor() {
     super({ key: "PlayerSelectScene" });
@@ -43,8 +47,8 @@ class PlayerSelectScene extends Phaser.Scene {
       .fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
 
     // Get selected map info
-    const selectedMap = window.MapManager.getCurrentMap();
-    const mapInfo = window.MapManager.getMapDisplayInfo(selectedMap.id);
+    const selectedMap = MapManager.getCurrentMap();
+    const mapInfo = MapManager.getMapDisplayInfo(selectedMap.id);
 
     // Title
     this.add
@@ -116,19 +120,33 @@ class PlayerSelectScene extends Phaser.Scene {
 
     // Start Battle button
     const startBtn = this.add
-      .text(Config.GAME_WIDTH / 2, buttonY, "START BATTLE", UITextHelpers._getPrimaryTextStyle(28, 3))
+      .text(Config.GAME_WIDTH / 2, buttonY, "START BATTLE", {
+        font: "28px Arial",
+        fill: "#0000FF", // Blue text for better contrast
+        stroke: "#FFFFFF",
+        strokeThickness: 3,
+      })
       .setOrigin(0.5)
       .setInteractive();
 
-    UIButtonHelpers.addHoverEffect(startBtn, "#FFD23F", 1.1);
+    // Custom hover effect for blue button
+    startBtn.on("pointerover", () => startBtn.setScale(1.1).setFill("#FFFFFF"));
+    startBtn.on("pointerout", () => startBtn.setScale(1.0).setFill("#0000FF"));
 
     // Back to Menu button
     const backBtn = this.add
-      .text(Config.GAME_WIDTH / 2, buttonY + 60, "BACK TO MENU", UITextHelpers._getPrimaryTextStyle(20, 2))
+      .text(Config.GAME_WIDTH / 2, buttonY + 60, "BACK TO MENU", {
+        font: "20px Arial",
+        fill: "#0000FF", // Blue text for better contrast
+        stroke: "#FFFFFF",
+        strokeThickness: 2,
+      })
       .setOrigin(0.5)
       .setInteractive();
 
-    UIButtonHelpers.addHoverEffect(backBtn, "#FFD23F", 1.1);
+    // Custom hover effect for blue button
+    backBtn.on("pointerover", () => backBtn.setScale(1.1).setFill("#FFFFFF"));
+    backBtn.on("pointerout", () => backBtn.setScale(1.0).setFill("#0000FF"));
 
     // Start battle
     startBtn.on("pointerdown", () => {
@@ -145,4 +163,4 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 }
 
-window.PlayerSelectScene = PlayerSelectScene;
+export default PlayerSelectScene;

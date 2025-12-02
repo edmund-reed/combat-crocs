@@ -1,3 +1,6 @@
+import { Config } from "@config";
+import { UITextHelpers, UIButtonHelpers } from "@ui";
+
 class MenuScene extends Phaser.Scene {
   constructor() {
     super({ key: "MenuScene" });
@@ -109,3 +112,5 @@ class MenuScene extends Phaser.Scene {
     this.input.on("pointerdown", closeGame, this);
   }
 }
+
+export default MenuScene;

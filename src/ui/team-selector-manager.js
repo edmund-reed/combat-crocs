@@ -1,5 +1,9 @@
 // Team Selector Manager for Combat Crocs
 // Handles team selection UI creation and management
+import { Config } from "@config";
+import { UITextHelpers, UIButtonHelpers } from "@ui";
+import UIManager from "./ui.js";
+
 class TeamSelectorManager {
   static updateTeamsForCount(scene) {
     // Adjust teams array based on new count
@@ -114,4 +118,4 @@ class TeamSelectorManager {
   }
 }
 
-window.TeamSelectorManager = TeamSelectorManager;
+export default TeamSelectorManager;

@@ -105,4 +105,4 @@ class ExplosionPhysics {
   }
 }
 
-window.ExplosionPhysics = ExplosionPhysics;
+export default ExplosionPhysics;

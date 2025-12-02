@@ -1,3 +1,7 @@
+import { TurnManager, TerrainManager, PlayerManager, PhysicsManager, InputManager, MemoryManager } from "@utils";
+import { UIManager } from "@ui";
+import { MovementManager } from "@player";
+
 class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: "GameScene" });
@@ -30,8 +34,8 @@ class GameScene extends Phaser.Scene {
     // Create players
     PlayerManager.createGamePlayers(this);
 
-    // Set up physics world bounds
-    this.matter.world.setBounds(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
+    // Initialize physics world with centralized settings
+    PhysicsManager.initializePhysics(this);
 
     // Create UI elements
     UIManager.createGameUI(this);
@@ -137,3 +141,5 @@ class GameScene extends Phaser.Scene {
     });
   }
 }
+
+export default GameScene;

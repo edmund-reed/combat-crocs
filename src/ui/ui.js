@@ -1,4 +1,13 @@
 // UI utilities for Combat Crocs
+import { Config } from "@config";
+import { UITextHelpers, UIButtonHelpers } from "./ui-helpers.js";
+import UIComponents from "./ui-components.js";
+import TeamSelectorManager from "./team-selector-manager.js";
+import HealthBarManager from "./health-bar-manager.js";
+import WeaponMenuManager from "./weapon-menu.js";
+import ModalManager from "./modal-manager.js";
+import { InputManager, TurnManager, GameStateManager, PlayerManager } from "@utils";
+
 class UIManager {
   // Health bars - delegated to HealthBarManager
   static createHealthBars = scene => HealthBarManager.createHealthBars(scene);
@@ -19,8 +28,35 @@ class UIManager {
   static refreshTeamSelection = scene => TeamSelectorManager.refreshTeamSelection(scene);
   static clearExistingTeamUI = scene => TeamSelectorManager.clearExistingTeamUI(scene);
 
-  // Team count selector - delegated to UIComponents
-  static createTeamCountSelector = scene => UIComponents.createTeamCountSelector(scene);
+  // Team count selector - moved from UIComponents to avoid circular dependency
+  static createTeamCountSelector = scene => {
+    const selectorY = 170,
+      centerX = Config.GAME_WIDTH / 2;
+
+    UITextHelpers.primaryText(scene, centerX, selectorY, "Number of Teams", 18);
+
+    const minusBtn = UIButtonHelpers.addHoverEffect(
+      UITextHelpers.createInteractiveText(scene, centerX - 80, selectorY + 50, "-", "primary", 36),
+    );
+
+    scene.teamCountText = UITextHelpers.primaryText(scene, centerX, selectorY + 50, scene.teamCount.toString(), 48);
+
+    const plusBtn = UIButtonHelpers.addHoverEffect(
+      UITextHelpers.createInteractiveText(scene, centerX + 80, selectorY + 50, "+", "primary", 36),
+    );
+
+    const updateCount = (modifier, condition) => {
+      if (condition()) {
+        scene.teamCount += modifier;
+        scene.teamCountText.setText(scene.teamCount);
+        TeamSelectorManager.updateTeamsForCount(scene);
+        TeamSelectorManager.refreshTeamSelection(scene);
+      }
+    };
+
+    minusBtn.on("pointerdown", () => updateCount(-1, () => scene.teamCount > 2));
+    plusBtn.on("pointerdown", () => updateCount(1, () => scene.teamCount < 5));
+  };
 
   // Update timer display
   static updateTimer(scene, timeLeft) {
@@ -127,4 +163,4 @@ class UIManager {
   }
 }
 
-window.UIManager = UIManager;
+export default UIManager;

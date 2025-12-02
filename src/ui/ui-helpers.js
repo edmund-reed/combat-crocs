@@ -80,5 +80,4 @@ class UIButtonHelpers {
   }
 }
 
-window.UITextHelpers = UITextHelpers;
-window.UIButtonHelpers = UIButtonHelpers;
+export { UITextHelpers, UIButtonHelpers };

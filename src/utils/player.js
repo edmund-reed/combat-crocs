@@ -1,5 +1,10 @@
 // Player utilities for Combat Crocs
 
+import { Config } from "@config";
+import { SpawnManager } from "@player";
+import { GameStateManager, Logger } from "@utils";
+import { PhysicsManager } from "@utils";
+
 class PlayerManager {
   static getSpriteForPlayer = id => {
     if (typeof id === "string" && id.length >= 2) {
@@ -16,24 +21,14 @@ class PlayerManager {
     return marker;
   };
 
-  static createPhysicsBody = (scene, x, y) =>
-    scene.matter.add.rectangle(x, y, 30, 20, {
-      friction: 0.1,
-      restitution: 0.1,
-      density: 0.01,
-      collisionFilter: {
-        group: 0,
-        mask: 1,
-        category: 2,
-      },
-    });
+  static createPhysicsBody = (scene, x, y) => PhysicsManager.createPlayerBody(scene, x, y);
 
   static createPlayer = (scene, id, x, y, color) => {
     const spriteKey = this.getSpriteForPlayer(id);
     const teamId = parseInt(id.charAt(0));
     const shouldFaceLeft = teamId % 2 === 0;
 
-    console.log(`🐊 Creating Player ${id} with sprite: ${spriteKey}`);
+    Logger.playerAction(`Creating Player ${id} with sprite: ${spriteKey}`);
 
     const playerSprite = scene.add.sprite(x, y, spriteKey);
     playerSprite.setScale(0.12).setOrigin(0.5, 0.7).setFlipX(shouldFaceLeft);
@@ -41,7 +36,7 @@ class PlayerManager {
     const hitAreaMarker = this.createHitAreaMarker(scene);
     const body = this.createPhysicsBody(scene, x, y);
 
-    console.log(`🖼️ Created ${spriteKey} at (${x}, ${y}), facing ${shouldFaceLeft ? "left" : "right"}`);
+    Logger.playerAction(`Created ${spriteKey} at (${x}, ${y}), facing ${shouldFaceLeft ? "left" : "right"}`);
 
     return {
       id,
@@ -106,7 +101,7 @@ class PlayerManager {
   // Create players for a specific team
   static createTeamPlayers = (scene, team, teamIndex, spawnY) => {
     const teamColor = this.getTeamColor(team, teamIndex);
-    console.log(`Team ${team.id} using color: 0x${teamColor.toString(16)}`);
+    Logger.playerAction(`Team ${team.id} using color: 0x${teamColor.toString(16)}`);
 
     for (let i = 0; i < team.crocCount; i++) {
       const playerId = `${team.id}${i + 1}`;
@@ -139,8 +134,8 @@ class PlayerManager {
     this.updateSceneReferences(scene);
 
     const teamSummary = teams.map(t => `Team ${t.id} (${t.crocCount})`).join(", ");
-    console.log(`Created ${scene.players.length} players: ${teamSummary}`);
+    Logger.gameEvent(`Created ${scene.players.length} players: ${teamSummary}`);
   };
 }
 
-window.PlayerManager = PlayerManager;
+export default PlayerManager;

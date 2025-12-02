@@ -1,6 +1,8 @@
 // Movement Manager for Combat Crocs
 // Handles player movement, controls, and jumping logic
 
+import { Config } from "@config";
+
 class MovementManager {
   // Handle player movement CONTROLS (separate from physics) - called only for current player
   static handleMovement(scene, player, cursors, spaceKey) {
@@ -94,4 +96,4 @@ class MovementManager {
   }
 }
 
-window.MovementManager = MovementManager;
+export default MovementManager;

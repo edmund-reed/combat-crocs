@@ -1,14 +1,23 @@
 // Weapon Menu Manager for Combat Crocs
+
+import { Config } from "@config";
+import ModalManager from "./modal-manager.js";
+import { UITextHelpers } from "./ui-helpers.js";
+import { TurnManager } from "@utils";
+
 class WeaponMenuManager {
   static createWeaponSelectIcon(scene) {
-    const icon = scene.add
-      .graphics()
-      .fillStyle(0xffd23f)
-      .fillRect(Config.GAME_WIDTH - 250, 22, 24, 4)
-      .fillRect(Config.GAME_WIDTH - 250, 20, 4, 12);
+    const iconX = Config.GAME_WIDTH - 100; // Moved way right for definite gap
+    const iconY = 18; // Moved up to center with weapon text
+    const icon = scene.add.graphics().fillStyle(0xffd23f);
+
+    // Burger menu: 3 horizontal lines stacked vertically
+    icon.fillRect(iconX, iconY, 18, 3); // Top line
+    icon.fillRect(iconX, iconY + 6, 18, 3); // Middle line
+    icon.fillRect(iconX, iconY + 12, 18, 3); // Bottom line
 
     icon
-      .setInteractive(new Phaser.Geom.Rectangle(Config.GAME_WIDTH - 255, 10, 30, 30), Phaser.Geom.Rectangle.Contains)
+      .setInteractive(new Phaser.Geom.Rectangle(iconX - 5, iconY - 5, 28, 23), Phaser.Geom.Rectangle.Contains)
       .on("pointerdown", (_, __, ___, event) => {
         event.stopPropagation();
         // Prevent weapon switching after firing
@@ -48,7 +57,7 @@ class WeaponMenuManager {
       ...Object.fromEntries(
         weapons.map(([label, type, y]) => [
           `${label.toLowerCase()}Btn`,
-          this.createWeaponButton(scene, w / 2 - 75, y, label, type, currentWeapon === type, menuDepth + 3),
+          this.createWeaponButton(scene, w / 2 - 60, y, label, type, currentWeapon === type, menuDepth + 3),
         ]),
       ),
     };
@@ -93,4 +102,4 @@ class WeaponMenuManager {
   }
 }
 
-window.WeaponMenuManager = WeaponMenuManager;
+export default WeaponMenuManager;

@@ -90,4 +90,6 @@ class MapManager {
 }
 
 // Singleton instance
-window.MapManager = new MapManager();
+const mapManagerInstance = new MapManager();
+
+export default mapManagerInstance;
