@@ -22,11 +22,10 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 
   create() {
-    // Initialize selection state
-    this.teamCount = 2; // Default to 2 teams
-    this.selectedTeamIndex = 0; // For individual team croc selection
+    const { GAME_WIDTH, GAME_HEIGHT } = Config;
 
-    // Available team colors with names
+    this.teamCount = 2;
+    this.selectedTeamIndex = 0;
     this.availableColors = [
       { name: "Red", hex: 0xff0000 },
       { name: "Yellow", hex: 0xffff00 },
@@ -34,32 +33,27 @@ class PlayerSelectScene extends Phaser.Scene {
       { name: "Blue", hex: 0x0000ff },
       { name: "Purple", hex: 0x8a2be2 },
     ];
-
     this.teams = [
-      { id: 1, name: "Team 1", crocCount: 1, color: this.availableColors[0] }, // Red
-      { id: 2, name: "Team 2", crocCount: 1, color: this.availableColors[1] }, // Yellow
+      { id: 1, name: "Team 1", crocCount: 1, color: this.availableColors[0] },
+      { id: 2, name: "Team 2", crocCount: 1, color: this.availableColors[1] },
     ];
 
-    // Background
     this.add
       .graphics()
       .fillGradientStyle(0xff6b35, 0xf7931e, 0xffd23f, 0xffd23f, 1)
-      .fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
+      .fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     // Get selected map info
     const selectedMap = MapManager.getCurrentMap();
     const mapInfo = MapManager.getMapDisplayInfo(selectedMap.id);
 
-    // Title
     this.add
-      .text(Config.GAME_WIDTH / 2, 60, "CHOOSE YOUR CROCODILES", UITextHelpers._getPrimaryTextStyle(32, 4))
+      .text(GAME_WIDTH / 2, 60, "CHOOSE YOUR CROCODILES", UITextHelpers._getPrimaryTextStyle(32, 4))
       .setOrigin(0.5);
 
-    // Selected Map Display
     const mapBoxY = 110;
-
     this.add
-      .text(Config.GAME_WIDTH / 2, mapBoxY, `Map: ${mapInfo.name}`, {
+      .text(GAME_WIDTH / 2, mapBoxY, `Map: ${mapInfo.name}`, {
         font: "bold 18px Arial",
         fill: "#000000",
         stroke: "#FFFFFF",

@@ -11,27 +11,33 @@ class MapSelectScene extends Phaser.Scene {
   }
 
   create() {
-    // Background
+    const { GAME_WIDTH, GAME_HEIGHT } = Config;
+
     this.add
       .graphics()
       .fillGradientStyle(0xff6b35, 0xf7931e, 0xffd23f, 0xffd23f, 1)
-      .fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
-
-    // Title
+      .fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     this.add
-      .text(Config.GAME_WIDTH / 2, 80, "CHOOSE YOUR BATTLEFIELD", UITextHelpers._getPrimaryTextStyle(36, 4))
+      .text(GAME_WIDTH / 2, 80, "CHOOSE YOUR BATTLEFIELD", UITextHelpers._getPrimaryTextStyle(36, 4))
+      .setOrigin(0.5);
+    this.add
+      .text(GAME_WIDTH / 2, 130, "Select a map to fight on", UITextHelpers._getPrimaryTextStyle(18, 2))
       .setOrigin(0.5);
 
-    // Subtitle
-    this.add
-      .text(Config.GAME_WIDTH / 2, 130, "Select a map to fight on", UITextHelpers._getPrimaryTextStyle(18, 2))
-      .setOrigin(0.5);
-
-    // Create map selection options
     this.createMapSelection();
 
-    // Action buttons
-    this.createActionButtons();
+    const backBtn = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 120, "BACK TO MENU", {
+        font: "20px Arial",
+        fill: "#0000FF",
+        stroke: "#FFFFFF",
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5)
+      .setInteractive();
+
+    UIButtonHelpers.addHoverEffect(backBtn, "#0000FF");
+    backBtn.on("pointerdown", () => this.scene.start("MenuScene"));
   }
 
   createMapSelection() {
@@ -91,30 +97,6 @@ class MapSelectScene extends Phaser.Scene {
 
       // Transition to player selection
       this.scene.start("PlayerSelectScene");
-    });
-  }
-
-  createActionButtons() {
-    const buttonY = Config.GAME_HEIGHT - 120;
-
-    // Back to Menu button
-    const backBtn = this.add
-      .text(Config.GAME_WIDTH / 2, buttonY, "BACK TO MENU", {
-        font: "20px Arial",
-        fill: "#0000FF", // Blue text for better contrast
-        stroke: "#FFFFFF",
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5)
-      .setInteractive();
-
-    // Custom hover effect for blue button
-    backBtn.on("pointerover", () => backBtn.setScale(1.1).setFill("#FFFFFF"));
-    backBtn.on("pointerout", () => backBtn.setScale(1.0).setFill("#0000FF"));
-
-    // Back to menu
-    backBtn.on("pointerdown", () => {
-      this.scene.start("MenuScene");
     });
   }
 }
