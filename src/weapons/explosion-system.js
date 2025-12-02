@@ -7,8 +7,7 @@ import { HealthBarManager } from "@ui";
 class ExplosionSystem {
   // Create explosion effect and apply damage
   static createExplosion(scene, x, y, projectileOwner = null, weaponType = "BAZOOKA") {
-    const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
-    const radius = weaponConfig.radius;
+    const { radius, damage: maxDamage } = Config.WEAPON_CONFIGS[weaponType];
     console.log(
       `ACTUAL EXPLOSION at (${x.toFixed(1)}, ${y.toFixed(1)}) from ${
         projectileOwner ? `Player ${projectileOwner}` : "timeout"
@@ -38,7 +37,6 @@ class ExplosionSystem {
 
         if (!blockedByTerrain) {
           // Apply damage with distance falloff
-          const maxDamage = weaponConfig.damage;
           const damage = Math.max(0, maxDamage - (distance / radius) * (maxDamage * 0.75));
           console.log(
             `${projectileOwner === player.id ? "🎯 OWN" : "💥"} Player ${index + 1} hit for ${damage} damage`,

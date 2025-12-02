@@ -9,17 +9,11 @@ class HitscanWeapon {
   static createShotgunHitscan = (scene, player, targetX, targetY) => {
     console.log(`🔍 SHOTGUN: Player ${player.id} shooting at (${targetX}, ${targetY})`);
 
-    // Extract weapon config once at top
     const weapon = Config.WEAPON_CONFIGS.SHOTGUN;
     const { damage, behaviorFlags } = weapon;
-
-    // Filter targets once
     const targets = scene.players.filter(p => p.id !== player.id && p.health > 0);
-
-    // Single call to generic hitscan utility
-    const hitResult = WeaponMath.hitscanAlongLine(targets, player.x, player.y, targetX, targetY);
-    const hitPlayer = hitResult?.player ?? null;
-    const hitDist = hitResult?.distance ?? null;
+    const { player: hitPlayer, distance: hitDist } =
+      WeaponMath.hitscanAlongLine(targets, player.x, player.y, targetX, targetY) || {};
 
     // Handle outcomes
     if (!hitPlayer) {

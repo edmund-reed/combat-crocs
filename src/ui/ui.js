@@ -51,35 +51,28 @@ class UIManager {
 
   // Show game end screen
   static showGameEndScreen(scene, winnerTeam) {
-    // Don't pause the scene - keep input working
+    const { GAME_WIDTH, GAME_HEIGHT } = Config;
+    const returnToMenu = () => {
+      scene.scene.stop();
+      scene.scene.start("MenuScene");
+    };
+
+    // Overlay
     const overlay = scene.add.graphics();
     overlay.fillStyle(0x000000, 0.8);
-    overlay.fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
+    overlay.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT), Phaser.Geom.Rectangle.Contains);
+    overlay.on("pointerdown", returnToMenu);
 
+    // Game over text
     const gameOverText = UITextHelpers.primaryText(
       scene,
-      Config.GAME_WIDTH / 2,
-      Config.GAME_HEIGHT / 2,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2,
       `${winnerTeam} Wins!\n\nClick to return to menu`,
       32,
     );
-
-    // Make it interactive and handle the click
-    gameOverText.setInteractive();
-    gameOverText.on("pointerdown", () => {
-      scene.scene.stop();
-      scene.scene.start("MenuScene");
-    });
-
-    // Also allow clicking anywhere on the overlay
-    overlay.setInteractive(
-      new Phaser.Geom.Rectangle(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT),
-      Phaser.Geom.Rectangle.Contains,
-    );
-    overlay.on("pointerdown", () => {
-      scene.scene.stop();
-      scene.scene.start("MenuScene");
-    });
+    gameOverText.setInteractive().on("pointerdown", returnToMenu);
   }
 
   // Aiming line - delegated to InputManager
