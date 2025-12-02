@@ -1,5 +1,9 @@
 // Terrain utilities for Combat Crocs
 
+import { Config } from "@config";
+import PhysicsManager from "./physics-manager.js";
+import MapManager from "./maps.js";
+
 class TerrainManager {
   // Create simple flat ground
   static createGround(scene) {
@@ -87,10 +91,10 @@ class TerrainManager {
     this.createGround(scene);
 
     // Get selected map and create platforms based on its configuration
-    const selectedMap = window.MapManager.getCurrentMap();
+    const selectedMap = MapManager.getCurrentMap();
     scene.currentMapPlatforms = this.createPlatforms(scene, selectedMap);
     console.log(`🎮 Loaded ${scene.currentMapPlatforms.length} platforms for map: ${selectedMap.name}`);
   }
 }
 
-window.TerrainManager = TerrainManager;
+export default TerrainManager;

@@ -1,4 +1,8 @@
 // Health Bar Manager for Combat Crocs
+
+import { UITextHelpers } from "./ui-helpers.js";
+import { PlayerManager, MemoryManager } from "@utils";
+
 class HealthBarManager {
   static createHealthBars(scene) {
     scene.healthBars = [];
@@ -83,4 +87,4 @@ class HealthBarManager {
   }
 }
 
-window.HealthBarManager = HealthBarManager;
+export default HealthBarManager;

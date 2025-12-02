@@ -1,6 +1,10 @@
 // Map Selection Scene for Combat Crocs
 // Allows players to choose which map/arena to play on
 
+import { Config } from "@config";
+import { UITextHelpers, UIButtonHelpers } from "@ui";
+import { Maps as MapManager } from "@utils";
+
 class MapSelectScene extends Phaser.Scene {
   constructor() {
     super({ key: "MapSelectScene" });
@@ -31,13 +35,13 @@ class MapSelectScene extends Phaser.Scene {
   }
 
   createMapSelection() {
-    const mapIds = window.MapManager.getMapIds();
+    const mapIds = MapManager.getMapIds();
     const startY = 180;
     const mapSpacing = 120;
 
     // Display each available map
     mapIds.forEach((mapId, index) => {
-      const mapInfo = window.MapManager.getMapDisplayInfo(mapId);
+      const mapInfo = MapManager.getMapDisplayInfo(mapId);
       const y = startY + index * mapSpacing;
       this.createMapOption(mapId, mapInfo, y, index);
     });
@@ -80,7 +84,7 @@ class MapSelectScene extends Phaser.Scene {
     // Selection handling
     mapButton.on("pointerdown", () => {
       // Store selected map in global state
-      window.MapManager.setCurrentMap(mapId);
+      MapManager.setCurrentMap(mapId);
       window.CombatCrocs.gameState.game.selectedMap = mapId;
 
       console.log(`Selected map: ${mapInfo.name} (${mapId})`);
@@ -108,4 +112,4 @@ class MapSelectScene extends Phaser.Scene {
   }
 }
 
-window.MapSelectScene = MapSelectScene;
+export default MapSelectScene;

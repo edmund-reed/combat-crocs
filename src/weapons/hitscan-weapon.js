@@ -1,4 +1,9 @@
 // Hitscan weapon system for Combat Crocs - High-Level Pipeline Architecture
+
+import { Config } from "@config";
+import WeaponMath from "@weapons/weapon-math.js";
+import UIManager from "@ui/ui.js";
+
 class HitscanWeapon {
   // Streamlined hitscan with generic utilities
   static createShotgunHitscan = (scene, player, targetX, targetY) => {
@@ -78,4 +83,4 @@ class HitscanWeapon {
   }
 }
 
-window.HitscanWeapon = HitscanWeapon;
+export default HitscanWeapon;

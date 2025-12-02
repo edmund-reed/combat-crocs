@@ -1,7 +1,10 @@
 // Weapon utilities for Combat Crocs
 
+import { Config } from "@config";
+import { HitscanWeapon, ExplosionSystem } from "@weapons";
+import { InputManager, MemoryManager, Logger, PhysicsManager } from "@utils";
+
 class WeaponManager {
-  // Weapon dispatch system
   static fireWeapon = (scene, player, targetX, targetY, weaponType) => {
     const weaponMethods = {
       BAZOOKA: (scene, player, targetX, targetY) => this.createProjectile(scene, player, targetX, targetY, weaponType),
@@ -11,7 +14,7 @@ class WeaponManager {
 
     const method = weaponMethods[weaponType];
     if (method) return method(scene, player, targetX, targetY);
-    console.error(`❌ No method for weapon: ${weaponType}`);
+    Logger.error(`No method for weapon: ${weaponType}`);
     return null;
   };
 
@@ -49,7 +52,6 @@ class WeaponManager {
     return { body, projectile };
   };
 
-  // Generic timer explosion collision (replaces grenade-specific logic)
   static setupTimerExplosionCollision = (scene, projectileBody, weaponConfig, weaponType) => {
     Object.assign(projectileBody, { weaponConfig, weaponType });
     const delayMs = weaponConfig.delay || 3000;
@@ -61,7 +63,7 @@ class WeaponManager {
   static detonateProjectile = (scene, projectileBody) => {
     if (projectileBody.destroyed) return;
 
-    console.log("💥 Timer detonation");
+    Logger.weaponEvent("Timer detonation");
     const weaponType = projectileBody.weaponType || "GRENADE";
     const { position } = projectileBody;
 
@@ -81,7 +83,7 @@ class WeaponManager {
 
       if (!collision) return;
 
-      console.log("💥 Projectile collision!");
+      Logger.weaponEvent("Projectile collision!");
       hasHit = true;
 
       const { x: explosionX, y: explosionY } = PhysicsManager.calculateExplosionPosition(projectileBody);
@@ -104,4 +106,4 @@ class WeaponManager {
   static getCurrentWeapon = () => "BAZOOKA";
 }
 
-window.WeaponManager = WeaponManager;
+export default WeaponManager;

@@ -1,6 +1,9 @@
 // Centralized Physics Manager for Combat Crocs
 // Single source of truth for all physics behavior and collision handling
 
+import { Config } from "@config";
+import { ExplosionPhysics } from "@weapons";
+
 class PhysicsManager {
   static CATEGORIES = { TERRAIN: 1, PLAYERS: 2, PROJECTILES: 4 };
   static CONFIG = {
@@ -82,4 +85,4 @@ class PhysicsManager {
   };
 }
 
-window.PhysicsManager = PhysicsManager;
+export default PhysicsManager;

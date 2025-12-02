@@ -51,4 +51,4 @@ class GameStateManager {
   }
 }
 
-window.GameStateManager = GameStateManager;
+export default GameStateManager;

@@ -1,3 +1,7 @@
+import { TurnManager, TerrainManager, PlayerManager, PhysicsManager, InputManager, MemoryManager } from "@utils";
+import { UIManager } from "@ui";
+import { MovementManager } from "@player";
+
 class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: "GameScene" });
@@ -137,3 +141,5 @@ class GameScene extends Phaser.Scene {
     });
   }
 }
+
+export default GameScene;

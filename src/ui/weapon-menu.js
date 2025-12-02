@@ -1,4 +1,10 @@
 // Weapon Menu Manager for Combat Crocs
+
+import { Config } from "@config";
+import ModalManager from "./modal-manager.js";
+import { UITextHelpers } from "./ui-helpers.js";
+import { TurnManager } from "@utils";
+
 class WeaponMenuManager {
   static createWeaponSelectIcon(scene) {
     const icon = scene.add
@@ -93,4 +99,4 @@ class WeaponMenuManager {
   }
 }
 
-window.WeaponMenuManager = WeaponMenuManager;
+export default WeaponMenuManager;

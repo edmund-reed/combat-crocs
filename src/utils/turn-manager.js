@@ -1,5 +1,11 @@
 // Turn management utilities for Combat Crocs
 
+import { Config } from "@config";
+import { GameStateManager, Logger } from "@utils";
+import { UIManager } from "@ui";
+import { PlayerManager } from "@utils";
+import { ExplosionSystem } from "@weapons";
+
 class TurnManager {
   constructor(scene) {
     Object.assign(this, {
@@ -16,7 +22,6 @@ class TurnManager {
     this.initializeWeaponAmmo();
   }
 
-  // Initialize weapon ammo from weapon configurations
   initializeWeaponAmmo = () => {
     Object.keys(Config.WEAPON_CONFIGS).forEach(weaponKey => {
       this.weaponAmmo[weaponKey] = Config.WEAPON_CONFIGS[weaponKey].shotsPerTurn;
@@ -34,7 +39,7 @@ class TurnManager {
     this.currentTurnTimer = null;
     this.currentPlayer = this.getNextPlayerIndex();
 
-    console.log(`🎯 TURN: Player ${this.currentPlayer}, ${Config.TURN_TIME_LIMIT / 1000}s`);
+    Logger.gameEvent(`TURN: Player ${this.currentPlayer}, ${Config.TURN_TIME_LIMIT / 1000}s`);
 
     const currentPlayerObj = this.scene.players[this.currentPlayer];
     currentPlayerObj.canMove = currentPlayerObj.canShoot = true;
@@ -56,16 +61,14 @@ class TurnManager {
     UIManager.clearAimLine(this.scene);
   };
 
-  // Handle automatic turn timeout (called by Phaser delayedCall)
   handleTurnTimeout = () => {
     if (!this.turnInProgress) {
-      console.log("⏰ TIMEOUT → next turn");
+      Logger.gameEvent("TIMEOUT → next turn");
       this.currentTurnTimer = null;
       this.startTurn();
     }
   };
 
-  // Find the next living player within a specific team using round-robin
   findNextLivingPlayerInTeam = team => {
     const teamIndex = GameStateManager.getTeams().findIndex(t => t.id === team.id);
 
@@ -82,7 +85,6 @@ class TurnManager {
     return -1;
   };
 
-  // Advance to the next team in round-robin fashion
   advanceToNextTeam = () => {
     this.currentTeamIndex = (this.currentTeamIndex + 1) % GameStateManager.getTeams().length;
   };
@@ -103,12 +105,12 @@ class TurnManager {
       this.advanceToNextTeam();
     }
 
-    console.warn("No living players found");
+    Logger.warn("No living players found");
     return 0;
   };
 
   endCurrentTurn = () => {
-    console.log("Projectile turn ended, resetting turnInProgress");
+    Logger.gameEvent("Projectile turn ended, resetting turnInProgress");
     this.turnInProgress = false;
     return true;
   };
@@ -127,7 +129,7 @@ class TurnManager {
   setCurrentWeapon = weaponType => {
     if (Config.WEAPON_CONFIGS[weaponType]) {
       this.weaponByTeam[this.getCurrentTeam()] = weaponType;
-      console.log(`Team ${this.getCurrentTeam()} → ${weaponType}`);
+      Logger.weaponEvent(`Team ${this.getCurrentTeam()} → ${weaponType}`);
     }
   };
 
@@ -146,4 +148,4 @@ class TurnManager {
   };
 }
 
-window.TurnManager = TurnManager;
+export default TurnManager;

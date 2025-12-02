@@ -1,6 +1,15 @@
 // Main Combat Crocs Game Entry Point
 // Initializes the Phaser game with all scenes and configuration
 
+import { Config, PhaserConfig } from "./config.js";
+import Logger from "./utils/logger.js";
+
+// Import scene classes
+import MenuScene from "./scenes/MenuScene.js";
+import MapSelectScene from "./scenes/MapSelectScene.js";
+import PlayerSelectScene from "./scenes/PlayerSelectScene.js";
+import GameScene from "./scenes/GameScene.js";
+
 class CombatCrocsGame {
   constructor() {
     // Initialize the Phaser game instance with scenes now that they're loaded
@@ -14,10 +23,8 @@ class CombatCrocsGame {
     // Game state management
     this.initializeGameState();
 
-    console.log("Combat Crocs Game Initialized!");
-    console.log(
-      "Controls: Arrow keys to move/jump, SPACE to jump, Mouse click to shoot"
-    );
+    Logger.gameEvent("Combat Crocs Game Initialized!");
+    Logger.gameEvent("Controls: Arrow keys to move/jump, SPACE to jump, Mouse click to shoot");
   }
 
   initializeGameState() {
@@ -59,16 +66,15 @@ document.addEventListener("DOMContentLoaded", () => {
   window.CombatCrocsInstance = new CombatCrocsGame();
 
   // Add some debugging info for development
-  console.log("Phaser version:", Phaser.VERSION);
-  console.log("Game configuration loaded:", Config);
+  Logger.debug("Phaser version:", Phaser.VERSION);
+  Logger.debug("Game configuration loaded:", Config);
 
   // Add keyboard shortcuts for development
-  document.addEventListener("keydown", (event) => {
+  document.addEventListener("keydown", event => {
     // Press 'R' to restart the current scene
     if (event.key.toLowerCase() === "r" && event.ctrlKey) {
       event.preventDefault();
-      const currentScene =
-        window.CombatCrocsInstance.getGame().scene.getScenes(true)[0];
+      const currentScene = window.CombatCrocsInstance.getGame().scene.getScenes(true)[0];
       if (currentScene) {
         currentScene.scene.restart();
       }
@@ -83,15 +89,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // Press 'P' to pause/unpause
     if (event.key.toLowerCase() === "p" && event.ctrlKey) {
       event.preventDefault();
-      const currentScene =
-        window.CombatCrocsInstance.getGame().scene.getScenes(true)[0];
+      const currentScene = window.CombatCrocsInstance.getGame().scene.getScenes(true)[0];
       if (currentScene) {
         if (currentScene.scene.isPaused()) {
           currentScene.scene.resume();
-          console.log("Game resumed");
+          Logger.gameEvent("Game resumed");
         } else {
           currentScene.scene.pause();
-          console.log("Game paused");
+          Logger.gameEvent("Game paused");
         }
       }
     }
@@ -127,9 +132,7 @@ gameCanvas.innerHTML = `
 
 // Replace loading text after game initializes
 setTimeout(() => {
-  const loadingPlaceholder = document.getElementById(
-    "game-loading-placeholder"
-  );
+  const loadingPlaceholder = document.getElementById("game-loading-placeholder");
   if (loadingPlaceholder) {
     loadingPlaceholder.remove();
   }
@@ -158,8 +161,8 @@ setTimeout(() => {
 }, 100);
 
 // Error handling for game initialization
-window.addEventListener("error", (event) => {
-  console.error("Game initialization error:", event.error);
+window.addEventListener("error", event => {
+  Logger.error("Game initialization error:", event.error);
   const uiIndicator = document.querySelector(".turn-indicator");
   if (uiIndicator) {
     uiIndicator.textContent = "Error loading game. Check console for details.";
@@ -168,6 +171,6 @@ window.addEventListener("error", (event) => {
 });
 
 // Handle Phaser-specific errors
-window.addEventListener("phaserError", (event) => {
-  console.error("Phaser error:", event.detail);
+window.addEventListener("phaserError", event => {
+  Logger.error("Phaser error:", event.detail);
 });

@@ -1,6 +1,10 @@
 // Player Selection Scene for Combat Crocs
 // Allows players to choose number of crocs per team before starting battle
 
+import { Config } from "@config";
+import { UITextHelpers, UIButtonHelpers, UIManager } from "@ui";
+import { GameStateManager, Maps as MapManager } from "@utils";
+
 class PlayerSelectScene extends Phaser.Scene {
   constructor() {
     super({ key: "PlayerSelectScene" });
@@ -43,8 +47,8 @@ class PlayerSelectScene extends Phaser.Scene {
       .fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
 
     // Get selected map info
-    const selectedMap = window.MapManager.getCurrentMap();
-    const mapInfo = window.MapManager.getMapDisplayInfo(selectedMap.id);
+    const selectedMap = MapManager.getCurrentMap();
+    const mapInfo = MapManager.getMapDisplayInfo(selectedMap.id);
 
     // Title
     this.add
@@ -145,4 +149,4 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 }
 
-window.PlayerSelectScene = PlayerSelectScene;
+export default PlayerSelectScene;

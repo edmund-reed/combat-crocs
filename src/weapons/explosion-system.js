@@ -1,5 +1,9 @@
 // Explosion effect and damage system for Combat Crocs
 
+import { Config } from "@config";
+import PhysicsManager from "@utils/physics-manager.js";
+import UIManager from "@ui/ui.js";
+
 class ExplosionSystem {
   // Create explosion effect and apply damage
   static createExplosion(scene, x, y, projectileOwner = null, weaponType = "BAZOOKA") {
@@ -58,4 +62,4 @@ class ExplosionSystem {
   }
 }
 
-window.ExplosionSystem = ExplosionSystem;
+export default ExplosionSystem;

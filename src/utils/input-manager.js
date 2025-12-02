@@ -1,5 +1,9 @@
 // Input management utilities for Combat Crocs
 
+import { Config } from "@config";
+import { UIManager } from "@ui";
+import { WeaponManager } from "@utils";
+
 class InputManager {
   // Set up keyboard and mouse controls for the scene
   static setupInput(scene) {
@@ -152,4 +156,4 @@ class InputManager {
   }
 }
 
-window.InputManager = InputManager;
+export default InputManager;
