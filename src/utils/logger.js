@@ -1,70 +1,19 @@
 // Combat Crocs Logging Utility
-// Centralized logging system with configurable levels
+// Simple console wrapper with semantic methods
 
-class Logger {
-  static LEVELS = {
-    ERROR: 0,
-    WARN: 1,
-    INFO: 2,
-    DEBUG: 3,
-  };
+const Logger = {
+  error: (msg, ...args) => console.error(`[ERROR] ${msg}`, ...args),
+  warn: (msg, ...args) => console.warn(`[WARN] ${msg}`, ...args),
+  info: (msg, ...args) => console.info(`[INFO] ${msg}`, ...args),
+  debug: (msg, ...args) => console.debug(`[DEBUG] ${msg}`, ...args),
 
-  static currentLevel = Logger.LEVELS.INFO; // Default to INFO level
-
-  static setLevel(level) {
-    if (typeof level === "number" && level >= 0 && level <= 3) {
-      this.currentLevel = level;
-    }
-  }
-
-  static error(message, ...args) {
-    if (this.currentLevel >= this.LEVELS.ERROR) {
-      console.error(`[ERROR] ${message}`, ...args);
-    }
-  }
-
-  static warn(message, ...args) {
-    if (this.currentLevel >= this.LEVELS.WARN) {
-      console.warn(`[WARN] ${message}`, ...args);
-    }
-  }
-
-  static info(message, ...args) {
-    if (this.currentLevel >= this.LEVELS.INFO) {
-      console.info(`[INFO] ${message}`, ...args);
-    }
-  }
-
-  static debug(message, ...args) {
-    if (this.currentLevel >= this.LEVELS.DEBUG) {
-      console.debug(`[DEBUG] ${message}`, ...args);
-    }
-  }
-
-  // Game-specific logging methods
-  static gameEvent(message, ...args) {
-    this.info(`🎮 ${message}`, ...args);
-  }
-
-  static playerAction(message, ...args) {
-    this.debug(`🐊 ${message}`, ...args);
-  }
-
-  static weaponEvent(message, ...args) {
-    this.debug(`💥 ${message}`, ...args);
-  }
-
-  static physicsEvent(message, ...args) {
-    this.debug(`⚛️ ${message}`, ...args);
-  }
-
-  static uiEvent(message, ...args) {
-    this.debug(`🖥️ ${message}`, ...args);
-  }
-
-  static memoryEvent(message, ...args) {
-    this.debug(`🧠 ${message}`, ...args);
-  }
-}
+  // Game-specific logging shortcuts
+  gameEvent: (msg, ...args) => console.info(`🎮 ${msg}`, ...args),
+  playerAction: (msg, ...args) => console.debug(`🐊 ${msg}`, ...args),
+  weaponEvent: (msg, ...args) => console.debug(`💥 ${msg}`, ...args),
+  physicsEvent: (msg, ...args) => console.debug(`⚛️ ${msg}`, ...args),
+  uiEvent: (msg, ...args) => console.debug(`🖥️ ${msg}`, ...args),
+  memoryEvent: (msg, ...args) => console.debug(`🧠 ${msg}`, ...args),
+};
 
 export default Logger;

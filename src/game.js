@@ -103,74 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// Add some visual feedback when the game loads
-const gameContainer = document.getElementById("game-container");
-const gameCanvas = document.createElement("div");
-gameCanvas.id = "game-loading-placeholder";
-gameCanvas.style.cssText = `
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ffd23f 100%);
-  font-family: Arial, sans-serif;
-`;
-
-gameCanvas.innerHTML = `
-  <div style="text-align: center; color: white; font-size: 24px; margin-bottom: 20px;">
-    🐊 Loading Combat Crocs...
-  </div>
-  <div style="width: 300px; height: 20px; background: rgba(255,255,255,0.3); border-radius: 10px; overflow: hidden;">
-    <div id="loading-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #ff6b35, #ffd23f); border-radius: 10px; transition: width 0.3s;"></div>
-  </div>
-  <div style="margin-top: 20px; color: rgba(255,255,255,0.8); font-size: 14px;">
-    Orlando-themed physics battles await!
-  </div>
-`;
-
-// Replace loading text after game initializes
-setTimeout(() => {
-  const loadingPlaceholder = document.getElementById("game-loading-placeholder");
-  if (loadingPlaceholder) {
-    loadingPlaceholder.remove();
-  }
-
-  // Update the UI indicator
-  const uiIndicator = document.querySelector(".turn-indicator");
-  if (uiIndicator) {
-    uiIndicator.textContent = "Combat Crocs Ready!";
-    setTimeout(() => {
-      uiIndicator.textContent = 'Click "START GAME" to begin';
-    }, 2000);
-  }
-
-  // Animate loading bar
-  const loadingBar = document.getElementById("loading-bar");
-  if (loadingBar) {
-    loadingBar.style.width = "100%";
-    setTimeout(() => {
-      const placeholder = document.getElementById("game-loading-placeholder");
-      if (placeholder) {
-        placeholder.style.opacity = "0";
-        setTimeout(() => placeholder.remove(), 500);
-      }
-    }, 1500);
-  }
-}, 100);
-
-// Error handling for game initialization
+// Simple error handling for game initialization
 window.addEventListener("error", event => {
   Logger.error("Game initialization error:", event.error);
-  const uiIndicator = document.querySelector(".turn-indicator");
-  if (uiIndicator) {
-    uiIndicator.textContent = "Error loading game. Check console for details.";
-    uiIndicator.style.color = "#ff0000";
-  }
-});
-
-// Handle Phaser-specific errors
-window.addEventListener("phaserError", event => {
-  Logger.error("Phaser error:", event.detail);
 });
