@@ -42,45 +42,34 @@ class UIManager {
 
   static updateTimer = (scene, timeLeft) => scene.timerText.setText(`Time: ${Math.ceil(timeLeft)}`);
 
-  // Show game end screen
   static showGameEndScreen(scene, winnerTeam) {
     const { GAME_WIDTH, GAME_HEIGHT } = Config;
-    const returnToMenu = () => {
-      scene.scene.stop();
-      scene.scene.start("MenuScene");
-    };
+    const returnToMenu = () => (scene.scene.stop(), scene.scene.start("MenuScene"));
 
-    // Overlay
-    const overlay = scene.add.graphics();
-    overlay.fillStyle(0x000000, 0.8);
-    overlay.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT), Phaser.Geom.Rectangle.Contains);
-    overlay.on("pointerdown", returnToMenu);
+    const overlay = scene.add.graphics().fillStyle(0x000000, 0.8).fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    overlay
+      .setInteractive(new Phaser.Geom.Rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT), Phaser.Geom.Rectangle.Contains)
+      .on("pointerdown", returnToMenu);
 
-    // Game over text
-    const gameOverText = UITextHelpers.primaryText(
+    UITextHelpers.primaryText(
       scene,
       GAME_WIDTH / 2,
       GAME_HEIGHT / 2,
       `${winnerTeam} Wins!\n\nClick to return to menu`,
       32,
-    );
-    gameOverText.setInteractive().on("pointerdown", returnToMenu);
+    )
+      .setInteractive()
+      .on("pointerdown", returnToMenu);
   }
 
-  // Aiming line - delegated to InputManager
   static updateAimLine = scene => InputManager.updateAimLine(scene);
   static clearAimLine = scene => InputManager.clearAimLine(scene);
-
-  // Weapon menu - delegated to WeaponMenuManager and ModalManager
   static createWeaponSelectIcon = scene => WeaponMenuManager.createWeaponSelectIcon(scene);
   static showWeaponSelectMenu = scene => WeaponMenuManager.showWeaponSelectMenu(scene);
   static hideWeaponSelectMenu = scene => WeaponMenuManager.hideWeaponSelectMenu(scene);
   static createModalOverlay = (scene, callback) => ModalManager.createModalOverlay(scene, callback);
   static clearModalOverlays = scene => ModalManager.clearModalOverlays(scene);
   static isModalOpen = scene => ModalManager.isModalOpen(scene);
-
-  // Weapon display update delegated to TurnManager
   static updateWeaponDisplay = scene => TurnManager.updateWeaponDisplay(scene);
 
   static updateTurnIndicator(scene, currentPlayer) {

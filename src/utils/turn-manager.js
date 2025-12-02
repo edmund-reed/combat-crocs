@@ -14,11 +14,7 @@ class TurnManager {
       currentTurnTimer: null,
       turnInProgress: false,
       weaponByTeam: {},
-      weaponAmmo: {},
-    });
-
-    Object.keys(Config.WEAPON_CONFIGS).forEach(key => {
-      this.weaponAmmo[key] = Config.WEAPON_CONFIGS[key].shotsPerTurn;
+      weaponAmmo: Object.fromEntries(Object.entries(Config.WEAPON_CONFIGS).map(([k, v]) => [k, v.shotsPerTurn])),
     });
   }
 
@@ -31,19 +27,13 @@ class TurnManager {
   startTurn = () => {
     this.currentTurnTimer?.destroy();
     this.currentPlayer = this.getNextPlayerIndex();
-
     Logger.gameEvent(`TURN: Player ${this.currentPlayer}, ${Config.TURN_TIME_LIMIT / 1000}s`);
 
     const currentPlayerObj = this.scene.players[this.currentPlayer];
     currentPlayerObj.canMove = currentPlayerObj.canShoot = true;
+    this.scene.players.forEach((p, i) => i !== this.currentPlayer && (p.canMove = p.canShoot = false));
 
-    this.scene.players.forEach((p, i) => {
-      if (i !== this.currentPlayer) p.canMove = p.canShoot = false;
-    });
-
-    Object.keys(this.weaponAmmo).forEach(key => {
-      this.weaponAmmo[key] = Config.WEAPON_CONFIGS[key]?.shotsPerTurn || 1;
-    });
+    Object.keys(this.weaponAmmo).forEach(key => (this.weaponAmmo[key] = Config.WEAPON_CONFIGS[key]?.shotsPerTurn || 1));
 
     this.weaponLocked = false;
     this.currentTurnTimer = this.scene.time.delayedCall(Config.TURN_TIME_LIMIT, () => {

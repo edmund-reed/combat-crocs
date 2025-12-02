@@ -1,6 +1,3 @@
-// Player Selection Scene for Combat Crocs
-// Allows players to choose number of crocs per team before starting battle
-
 import { Config } from "@config";
 import { UITextHelpers, UIButtonHelpers, UIManager, TeamSelectorManager } from "@ui";
 import { GameStateManager, Maps as MapManager } from "@utils";
@@ -11,28 +8,25 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 
   preload() {
-    // Load crocodile sprites for selection preview
-    this.load.image("croc1", "src/assets/croc1.png");
-    this.load.image("croc2", "src/assets/croc2.png");
-    this.load.image("chameleon1", "src/assets/chameleon1.png");
-    this.load.image("gecko1", "src/assets/gecko1.png");
-
-    // Load audio if available
+    ["croc1", "croc2", "chameleon1", "gecko1"].forEach(sprite => this.load.image(sprite, `src/assets/${sprite}.png`));
     this.load.audio("introMusic", "src/assets/intro.mp3");
   }
 
   create() {
     const { GAME_WIDTH, GAME_HEIGHT } = Config;
 
-    this.teamCount = 2;
-    this.selectedTeamIndex = 0;
-    this.availableColors = [
-      { name: "Red", hex: 0xff0000 },
-      { name: "Yellow", hex: 0xffff00 },
-      { name: "Green", hex: 0x00ff00 },
-      { name: "Blue", hex: 0x0000ff },
-      { name: "Purple", hex: 0x8a2be2 },
-    ];
+    Object.assign(this, {
+      teamCount: 2,
+      selectedTeamIndex: 0,
+      availableColors: [
+        { name: "Red", hex: 0xff0000 },
+        { name: "Yellow", hex: 0xffff00 },
+        { name: "Green", hex: 0x00ff00 },
+        { name: "Blue", hex: 0x0000ff },
+        { name: "Purple", hex: 0x8a2be2 },
+      ],
+    });
+
     this.teams = [
       { id: 1, name: "Team 1", crocCount: 1, color: this.availableColors[0] },
       { id: 2, name: "Team 2", crocCount: 1, color: this.availableColors[1] },
@@ -43,42 +37,28 @@ class PlayerSelectScene extends Phaser.Scene {
       .fillGradientStyle(0xff6b35, 0xf7931e, 0xffd23f, 0xffd23f, 1)
       .fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Get selected map info
-    const selectedMap = MapManager.getCurrentMap();
-    const mapInfo = MapManager.getMapDisplayInfo(selectedMap.id);
+    const mapInfo = MapManager.getMapDisplayInfo(MapManager.getCurrentMap().id);
+    const centerX = GAME_WIDTH / 2;
 
+    this.add.text(centerX, 60, "CHOOSE YOUR CROCODILES", UITextHelpers._getPrimaryTextStyle(32, 4)).setOrigin(0.5);
     this.add
-      .text(GAME_WIDTH / 2, 60, "CHOOSE YOUR CROCODILES", UITextHelpers._getPrimaryTextStyle(32, 4))
-      .setOrigin(0.5);
-
-    const mapBoxY = 110;
-    this.add
-      .text(GAME_WIDTH / 2, mapBoxY, `Map: ${mapInfo.name}`, {
+      .text(centerX, 110, `Map: ${mapInfo.name}`, {
         font: "bold 18px Arial",
         fill: "#000000",
         stroke: "#FFFFFF",
         strokeThickness: 1,
       })
       .setOrigin(0.5);
-
     this.add
-      .text(
-        Config.GAME_WIDTH / 2,
-        mapBoxY + 18,
-        `${mapInfo.platformCount} platforms • ${mapInfo.difficulty} difficulty`,
-        {
-          font: "12px Arial",
-          fill: "#666666",
-        },
-      )
+      .text(centerX, 128, `${mapInfo.platformCount} platforms • ${mapInfo.difficulty} difficulty`, {
+        font: "12px Arial",
+        fill: "#666666",
+      })
       .setOrigin(0.5);
 
-    // Team Count Selection
     UIManager.createTeamCountSelector(this);
-
-    // Subtitle - moved down
     this.add
-      .text(Config.GAME_WIDTH / 2, 300, "Customise your teams", {
+      .text(centerX, 300, "Customise your teams", {
         font: "18px Arial",
         fill: "#FFFFFF",
         stroke: "#FF6B35",
@@ -86,51 +66,45 @@ class PlayerSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Create team selection areas - started lower
     TeamSelectorManager.createTeamSelection(this);
     this.createActionButtons();
 
-    // Start music if available
     if (this.cache.audio.exists("introMusic")) {
-      this.introMusic = this.sound.add("introMusic");
-      this.introMusic.setLoop(true);
-      this.introMusic.setVolume(0.2);
+      this.introMusic = this.sound.add("introMusic").setLoop(true).setVolume(0.2);
       this.introMusic.play();
     }
   }
 
-  _stopIntroMusic() {
-    if (this.introMusic && this.introMusic.isPlaying) {
-      this.introMusic.stop();
-    }
-  }
-
-  clearExistingTeamUI() {
-    TeamSelectorManager.clearExistingTeamUI(this);
-  }
+  _stopIntroMusic = () => this.introMusic?.isPlaying && this.introMusic.stop();
+  clearExistingTeamUI = () => TeamSelectorManager.clearExistingTeamUI(this);
 
   createActionButtons() {
     const { GAME_WIDTH, GAME_HEIGHT } = Config;
     const buttonY = GAME_HEIGHT - 100;
     const buttonStyle = { font: "28px Arial", fill: "#0000FF", stroke: "#FFFFFF", strokeThickness: 3 };
 
-    const startBtn = this.add
-      .text(GAME_WIDTH / 2, buttonY, "START BATTLE", buttonStyle)
-      .setOrigin(0.5)
-      .setInteractive();
-    UIButtonHelpers.addHoverEffect(startBtn, "#0000FF");
-    startBtn.on("pointerdown", () => {
+    const createButton = (y, text, style, action) => {
+      const btn = this.add
+        .text(GAME_WIDTH / 2, y, text, style)
+        .setOrigin(0.5)
+        .setInteractive();
+      UIButtonHelpers.addHoverEffect(btn, "#0000FF");
+      btn.on("pointerdown", action);
+      return btn;
+    };
+
+    createButton(buttonY, "START BATTLE", buttonStyle, () => {
       GameStateManager.storeTeams(this.teams);
       this._stopIntroMusic();
       this.scene.start("GameScene");
     });
 
-    const backBtn = this.add
-      .text(GAME_WIDTH / 2, buttonY + 60, "BACK TO MENU", { ...buttonStyle, font: "20px Arial", strokeThickness: 2 })
-      .setOrigin(0.5)
-      .setInteractive();
-    UIButtonHelpers.addHoverEffect(backBtn, "#0000FF");
-    backBtn.on("pointerdown", () => (this._stopIntroMusic(), this.scene.start("MenuScene")));
+    createButton(
+      buttonY + 60,
+      "BACK TO MENU",
+      { ...buttonStyle, font: "20px Arial", strokeThickness: 2 },
+      () => (this._stopIntroMusic(), this.scene.start("MenuScene")),
+    );
   }
 }
 
