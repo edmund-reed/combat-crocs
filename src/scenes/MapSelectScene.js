@@ -36,7 +36,7 @@ class MapSelectScene extends Phaser.Scene {
 
   createMapSelection() {
     const mapIds = MapManager.getMapIds();
-    const startY = 180;
+    const startY = 200; // Add gap between subtitle and map list
     const mapSpacing = 120;
 
     // Display each available map
@@ -57,7 +57,7 @@ class MapSelectScene extends Phaser.Scene {
       .fillRect(centerX - 250, y - 40, 500, 80);
 
     // Difficulty indicator
-    const difficultyColor = mapInfo.difficulty === 1 ? "#00FF00" : "#FFFF00";
+    const difficultyColor = mapInfo.difficulty === 1 ? "#00FF00" : "#FFFF88"; // Brighter yellow
     UITextHelpers.createStatusText(this, centerX - 230, y - 25, "★".repeat(mapInfo.difficulty), difficultyColor, 16);
 
     // Map name
@@ -98,12 +98,19 @@ class MapSelectScene extends Phaser.Scene {
     const buttonY = Config.GAME_HEIGHT - 120;
 
     // Back to Menu button
-    const backBtn = UIButtonHelpers.addHoverEffect(
-      this.add
-        .text(Config.GAME_WIDTH / 2, buttonY, "BACK TO MENU", UITextHelpers._getPrimaryTextStyle(20, 2))
-        .setOrigin(0.5)
-        .setInteractive(),
-    );
+    const backBtn = this.add
+      .text(Config.GAME_WIDTH / 2, buttonY, "BACK TO MENU", {
+        font: "20px Arial",
+        fill: "#0000FF", // Blue text for better contrast
+        stroke: "#FFFFFF",
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5)
+      .setInteractive();
+
+    // Custom hover effect for blue button
+    backBtn.on("pointerover", () => backBtn.setScale(1.1).setFill("#FFFFFF"));
+    backBtn.on("pointerout", () => backBtn.setScale(1.0).setFill("#0000FF"));
 
     // Back to menu
     backBtn.on("pointerdown", () => {
