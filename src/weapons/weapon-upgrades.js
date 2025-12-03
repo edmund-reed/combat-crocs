@@ -52,23 +52,16 @@ export const awardXP = (player, weaponType, damage, scene = null) => {
   return leveledUp;
 };
 
-// Level-up notification (consolidated from separate file)
+// Level-up notification
 const showLevelUpNotification = (scene, weaponType, level) => {
   if (scene.gameEnded) return;
 
-  // Flash effect
-  const flash = scene.add
-    .graphics()
-    .fillStyle(0xffd700, 0.3)
-    .fillRect(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT)
-    .setDepth(1999);
-  scene.tweens.add({ targets: flash, alpha: 0, duration: 300, onComplete: () => flash.destroy() });
-
-  // Notification popup
   const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
   const x = w / 2,
     y = h / 2;
 
+  // Flash + background
+  const flash = scene.add.graphics().fillStyle(0xffd700, 0.3).fillRect(0, 0, w, h).setDepth(1999);
   const bg = scene.add
     .graphics()
     .fillStyle(0x000000, 0.8)
@@ -78,35 +71,33 @@ const showLevelUpNotification = (scene, weaponType, level) => {
     .setDepth(2000)
     .setAlpha(0);
 
-  const texts = [
+  // Create texts
+  const createText = (yOffset, content, size, scale = 1) =>
     scene.add
-      .text(x, y - 15, "LEVEL UP!", { font: "bold 24px Arial", fill: "#FFD700" })
+      .text(x, y + yOffset, content, { font: `${size > 20 ? "bold " : ""}${size}px Arial`, fill: "#FFD700" })
       .setOrigin(0.5)
       .setDepth(2001)
       .setAlpha(0)
-      .setScale(0.5),
-    scene.add
-      .text(x, y + 10, weaponType, { font: "18px Arial", fill: "#FFD700" })
-      .setOrigin(0.5)
-      .setDepth(2001)
-      .setAlpha(0),
-    scene.add
-      .text(x, y + 30, "⭐".repeat(level), { font: "16px Arial", fill: "#FFD700" })
-      .setOrigin(0.5)
-      .setDepth(2001)
-      .setAlpha(0),
+      .setScale(scale);
+
+  const texts = [
+    createText(-15, "LEVEL UP!", 24, 0.5),
+    createText(10, weaponType, 18),
+    createText(30, "⭐".repeat(level), 16),
   ];
 
+  // Animate
+  scene.tweens.add({ targets: flash, alpha: 0, duration: 300, onComplete: () => flash.destroy() });
   scene.tweens.add({ targets: bg, alpha: 1, duration: 200 });
   scene.tweens.add({ targets: texts[0], alpha: 1, scale: 1, duration: 300, ease: "Back.easeOut" });
-  scene.tweens.add({ targets: [texts[1], texts[2]], alpha: 1, duration: 300, delay: 150 });
+  scene.tweens.add({ targets: texts.slice(1), alpha: 1, duration: 300, delay: 150 });
 
-  scene.time.delayedCall(2000, () => {
+  scene.time.delayedCall(2000, () =>
     scene.tweens.add({
       targets: [bg, ...texts],
       alpha: 0,
       duration: 300,
       onComplete: () => [bg, ...texts].forEach(el => el.destroy()),
-    });
-  });
+    }),
+  );
 };
