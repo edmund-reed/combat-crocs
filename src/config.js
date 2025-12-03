@@ -21,18 +21,35 @@ const Config = {
       radius: 140,
       shotsPerTurn: 1,
       behaviorFlags: ["projectile", "explodesOnImpact"], // Generic behaviors instead of weapon names
+      upgrades: {
+        maxLevel: 3,
+        xpThresholds: [0, 100, 250], // XP required for levels 1, 2, 3
+        damagePerLevel: [50, 65, 80], // Damage at levels 1, 2, 3
+        radiusPerLevel: [140, 165, 190], // Explosion radius at levels 1, 2, 3
+      },
     },
     GRENADE: {
       damage: 50,
       radius: 140,
       shotsPerTurn: 1,
       behaviorFlags: ["projectile", "timerExplosion", "bounces"], // Multiple flags define behavior
+      upgrades: {
+        maxLevel: 3,
+        xpThresholds: [0, 100, 250], // XP required for levels 1, 2, 3
+        damagePerLevel: [50, 65, 80], // Damage at levels 1, 2, 3
+        radiusPerLevel: [140, 165, 190], // Explosion radius at levels 1, 2, 3
+      },
     },
     SHOTGUN: {
       damage: 12,
       radius: 35,
       shotsPerTurn: 2,
       behaviorFlags: ["hitscan", "multiShot"], // Allows second shot without turn ending
+      upgrades: {
+        maxLevel: 3,
+        xpThresholds: [0, 100, 250], // XP required for levels 1, 2, 3
+        damagePerLevel: [12, 16, 20], // Damage at levels 1, 2, 3 (no radius upgrades for hitscan)
+      },
     },
   },
 

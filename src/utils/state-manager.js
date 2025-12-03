@@ -4,6 +4,41 @@
 class StateManager {
   // ==================== GAME STATE MANAGEMENT ====================
 
+  // Store weapon progression data for persistence across scenes
+  static storeWeaponProgression(players) {
+    if (!players || players.length === 0) return;
+
+    const weaponData = {};
+    players.forEach(player => {
+      if (player.weaponStats) {
+        weaponData[player.id] = player.weaponStats;
+      }
+    });
+
+    window.CombatCrocs.gameState.game.weaponProgression = weaponData;
+    console.log("🎯 Weapon progression stored:", weaponData);
+  }
+
+  // Restore weapon progression data to players
+  static restoreWeaponProgression(players) {
+    const weaponData = window.CombatCrocs.gameState.game.weaponProgression;
+
+    if (!weaponData || !players) return;
+
+    players.forEach(player => {
+      if (weaponData[player.id]) {
+        player.weaponStats = weaponData[player.id];
+        console.log(`🎯 Restored weapon stats for Player ${player.id}`);
+      }
+    });
+  }
+
+  // Clear weapon progression (e.g., when starting a new game)
+  static clearWeaponProgression() {
+    window.CombatCrocs.gameState.game.weaponProgression = {};
+    console.log("🎯 Weapon progression cleared");
+  }
+
   // Store player selections for team composition before starting battle
   static storeTeamSettings(teamACount, teamBCount) {
     window.CombatCrocs.gameState.game.teamACount = teamACount;

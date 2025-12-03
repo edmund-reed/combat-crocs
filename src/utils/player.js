@@ -1,6 +1,7 @@
 import { Config } from "@config";
 import { SpawnManager } from "@player";
 import { StateManager, Logger, PhysicsManager } from "@utils";
+import { WeaponUpgradeManager } from "@weapons";
 
 class PlayerManager {
   static getSpriteForPlayer = id => {
@@ -32,6 +33,7 @@ class PlayerManager {
       canMove: false,
       canShoot: false,
       facingLeft: shouldFaceLeft,
+      weaponStats: WeaponUpgradeManager.initializePlayerWeaponStats(), // Initialize weapon upgrade tracking
     };
   };
 

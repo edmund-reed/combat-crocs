@@ -3,15 +3,27 @@
 import { Config } from "@config";
 import PhysicsManager from "@utils/physics-manager.js";
 import { HealthBarManager } from "@ui";
+import { WeaponUpgradeManager } from "@weapons";
 
 class ExplosionSystem {
   // Create explosion effect and apply damage
   static createExplosion(scene, x, y, projectileOwner = null, weaponType = "BAZOOKA") {
-    const { radius, damage: maxDamage } = Config.WEAPON_CONFIGS[weaponType];
+    // Get attacking player to determine upgraded weapon stats
+    const attackingPlayer = projectileOwner ? scene.players.find(p => p.id === projectileOwner) : null;
+
+    // Use upgraded damage and radius if player has upgrades, otherwise use base values
+    const maxDamage = attackingPlayer
+      ? WeaponUpgradeManager.getWeaponDamage(attackingPlayer, weaponType)
+      : Config.WEAPON_CONFIGS[weaponType].damage;
+
+    const radius = attackingPlayer
+      ? WeaponUpgradeManager.getWeaponRadius(attackingPlayer, weaponType)
+      : Config.WEAPON_CONFIGS[weaponType].radius;
+
     console.log(
       `ACTUAL EXPLOSION at (${x.toFixed(1)}, ${y.toFixed(1)}) from ${
         projectileOwner ? `Player ${projectileOwner}` : "timeout"
-      }. Radius: ${radius}`,
+      }. Radius: ${radius}, Damage: ${maxDamage}`,
     );
 
     // Explosion graphics
@@ -26,6 +38,9 @@ class ExplosionSystem {
       duration: 300,
       onComplete: () => explosion.destroy(),
     });
+
+    // Track total damage for XP awarding
+    let totalDamageDealt = 0;
 
     // Damage nearby players (check for terrain protection)
     scene.players.forEach((player, index) => {
@@ -45,6 +60,11 @@ class ExplosionSystem {
           player.health = Math.max(0, player.health - damage);
           HealthBarManager.updateHealthBars(scene);
 
+          // Track damage for XP (but not self-damage)
+          if (projectileOwner && projectileOwner !== player.id && damage > 0) {
+            totalDamageDealt += damage;
+          }
+
           // Check if the game should end after damage
           scene.checkGameEnd?.();
         } else {
@@ -52,6 +72,11 @@ class ExplosionSystem {
         }
       }
     });
+
+    // Award XP to the attacking player
+    if (attackingPlayer && totalDamageDealt > 0) {
+      WeaponUpgradeManager.awardXP(attackingPlayer, weaponType, totalDamageDealt);
+    }
 
     // Screen shake
     scene.cameras.main.shake(200, 0.02);
