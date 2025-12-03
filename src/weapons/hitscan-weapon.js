@@ -44,7 +44,7 @@ class HitscanWeapon {
 
     // Award XP to the attacking player (award actual damage dealt, not potential damage)
     const actualDamage = healthBefore - hitPlayer.health;
-    WeaponUpgradeManager.awardXP(player, "SHOTGUN", actualDamage);
+    WeaponUpgradeManager.awardXP(player, "SHOTGUN", actualDamage, scene);
 
     HealthBarManager.updateHealthBars(scene);
     scene.checkGameEnd?.();

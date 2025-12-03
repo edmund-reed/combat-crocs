@@ -64,6 +64,26 @@ class StateManager {
     console.log(`Teams stored:`, teams);
   }
 
+  // Initialize weapon stats for all teams
+  static initializeTeamWeaponStats(teams) {
+    const { Config } = require("@config");
+
+    teams.forEach(team => {
+      if (!team.weaponStats) {
+        team.weaponStats = {};
+
+        Object.keys(Config.WEAPON_CONFIGS).forEach(weaponType => {
+          team.weaponStats[weaponType] = {
+            level: 1,
+            xp: 0,
+          };
+        });
+
+        console.log(`✅ Initialized weapon stats for Team ${team.id}`);
+      }
+    });
+  }
+
   // Get teams array, fallback to legacy format if needed
   static getTeams() {
     if (window.CombatCrocs.gameState.game.teams) {

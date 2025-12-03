@@ -4,6 +4,7 @@ import { Config } from "@config";
 import { UITextHelpers } from "./ui-helpers.js";
 import { TurnManager } from "@utils";
 import UIManager from "./ui.js";
+import { WeaponUpgradeManager } from "@weapons";
 
 class WeaponMenuManager {
   static createWeaponSelectIcon(scene) {
@@ -37,11 +38,15 @@ class WeaponMenuManager {
     const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
     const menuDepth = 1001;
     const currentWeapon = scene.turnManager.getCurrentWeapon();
+    const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
+    const currentPlayer = scene.players[currentPlayerIndex];
 
-    // Automatically generate weapon list from configs
+    console.log(`🎮 Opening menu - Player Index: ${currentPlayerIndex}, Player ID: ${currentPlayer?.id}`);
+
+    // Generate weapon list - single line per weapon now
     const weapons = Object.keys(Config.WEAPON_CONFIGS).map((weaponKey, index) => {
-      const yPos = h / 2 - 30 + index * 30; // Space out buttons
-      return [weaponKey, weaponKey, yPos]; // Just use weapon key as display name
+      const yPos = h / 2 - 58 + index * 30; // 22px gap below title (title at -80, first item at -58)
+      return [weaponKey, weaponKey, yPos];
     });
 
     const elements = {
@@ -50,32 +55,75 @@ class WeaponMenuManager {
         .graphics()
         .setDepth(menuDepth + 1)
         .fillStyle(0x333333, 0.95)
-        .fillRoundedRect(w / 2 - 100, h / 2 - 75, 200, 150, 10)
+        .fillRoundedRect(w / 2 - 150, h / 2 - 100, 300, 180, 10)
         .lineStyle(3, 0xffd23f)
-        .strokeRoundedRect(w / 2 - 100, h / 2 - 75, 200, 150, 10),
-      title: UITextHelpers.primaryText(scene, w / 2, h / 2 - 55, "Select Weapon", 18).setDepth(menuDepth + 2),
-      ...Object.fromEntries(
-        weapons.map(([label, type, y]) => [
-          `${label.toLowerCase()}Btn`,
-          this.createWeaponButton(scene, w / 2 - 60, y, label, type, currentWeapon === type, menuDepth + 3),
-        ]),
-      ),
+        .strokeRoundedRect(w / 2 - 150, h / 2 - 100, 300, 180, 10),
+      title: UITextHelpers.primaryText(scene, w / 2, h / 2 - 80, "Select Weapon", 18).setDepth(menuDepth + 2),
     };
+
+    // Create weapon buttons with upgrade info
+    // Modal left edge is at w/2 - 150, so with 20px padding, start text at w/2 - 130
+    weapons.forEach(([label, type, y]) => {
+      const buttonElements = this.createWeaponButton(
+        scene,
+        w / 2 - 130, // 20px padding from modal left edge
+        y,
+        label,
+        type,
+        currentWeapon === type,
+        currentPlayer,
+        menuDepth + 3,
+      );
+      elements[`${label.toLowerCase()}Btn`] = buttonElements.button;
+      elements[`${label.toLowerCase()}Info`] = buttonElements.info;
+    });
 
     scene.weaponMenu = elements;
   }
 
-  static createWeaponButton(scene, x, y, label, weaponType, isSelected, depth = 0) {
+  static createWeaponButton(scene, x, y, label, weaponType, isSelected, currentPlayer, depth = 0) {
+    // Get weapon stats for current player - IMPORTANT: Read fresh data each time
+    const stats = currentPlayer?.weaponStats?.[weaponType];
+
+    console.log(`📊 Menu Display - ${weaponType}: Level=${stats?.level}, XP=${stats?.xp}, Player=${currentPlayer?.id}`);
+
+    if (!stats) {
+      console.warn(`⚠️ No weapon stats found for ${weaponType} on player ${currentPlayer?.id}`);
+    }
+
+    const level = stats?.level || 1;
+    const xp = stats?.xp || 0;
+    const config = Config.WEAPON_CONFIGS[weaponType];
+    const isMaxLevel = level >= (config.upgrades?.maxLevel || 3);
+    // Threshold array: [5, 12] means 5 for L2, 12 for L3
+    // At Level 1: nextLevel=2, need xpThresholds[0] = 5
+    // At Level 2: nextLevel=3, need xpThresholds[1] = 12
+    const nextLevelXP = isMaxLevel ? null : config.upgrades?.xpThresholds[level - 1];
+
+    // Create level stars and XP text
+    const stars = "⭐".repeat(level);
+    const xpText = isMaxLevel ? "MAX" : `${Math.floor(xp)}/${nextLevelXP} XP`;
+
+    // Create weapon name and stars (main button) - LEFT-ALIGNED
+    const mainText = `${isSelected ? "▶ " : ""}${label} ${stars}`;
     const button = UITextHelpers.createStatusText(
       scene,
       x,
       y,
-      `${isSelected ? "▶ " : ""}${label}`,
+      mainText,
       isSelected ? "#00FF00" : UITextHelpers.SECONDARY_COLOR,
       14,
+      0, // Left-aligned origin
     );
 
-    return button
+    // Create XP info in grey on the same line - LEFT-ALIGNED
+    // Calculate offset accounting for emojis (stars are ~20px wide each)
+    const textLength = (isSelected ? "▶ " : "").length + label.length + 1; // +1 for space
+    const starWidth = level * 20; // Each star emoji is approximately 20px wide
+    const xpOffset = textLength * 8 + starWidth + 12; // Regular text + star width + 12px gap
+    const info = UITextHelpers.createStatusText(scene, x + xpOffset, y, xpText, "#888888", 14, 0); // Left-aligned origin
+
+    button
       .setInteractive()
       .setDepth(depth)
       .on("pointerdown", (_, __, ___, event) => {
@@ -84,6 +132,10 @@ class WeaponMenuManager {
         TurnManager.updateWeaponDisplay(scene);
         WeaponMenuManager.hideWeaponSelectMenu(scene);
       });
+
+    info.setDepth(depth);
+
+    return { button, info };
   }
 
   static hideWeaponSelectMenu(scene) {

@@ -3,7 +3,7 @@
 import { Config } from "@config";
 import PhysicsManager from "@utils/physics-manager.js";
 import { HealthBarManager } from "@ui";
-import { WeaponUpgradeManager } from "@weapons";
+import { WeaponUpgradeManager, WeaponUpgradeEffects } from "@weapons";
 
 class ExplosionSystem {
   // Create explosion effect and apply damage
@@ -20,24 +20,17 @@ class ExplosionSystem {
       ? WeaponUpgradeManager.getWeaponRadius(attackingPlayer, weaponType)
       : Config.WEAPON_CONFIGS[weaponType].radius;
 
+    // Get weapon level for visual effects
+    const weaponLevel = attackingPlayer?.weaponStats?.[weaponType]?.level || 1;
+
     console.log(
       `ACTUAL EXPLOSION at (${x.toFixed(1)}, ${y.toFixed(1)}) from ${
         projectileOwner ? `Player ${projectileOwner}` : "timeout"
-      }. Radius: ${radius}, Damage: ${maxDamage}`,
+      }. Radius: ${radius}, Damage: ${maxDamage}, Level: ${weaponLevel}`,
     );
 
-    // Explosion graphics
-    const explosion = scene.add.graphics({ x: x, y: y });
-    explosion.fillStyle(0xff4500);
-    explosion.fillCircle(0, 0, radius);
-
-    scene.tweens.add({
-      targets: explosion,
-      scaleX: 0,
-      scaleY: 0,
-      duration: 300,
-      onComplete: () => explosion.destroy(),
-    });
+    // Create enhanced explosion graphics based on weapon level
+    WeaponUpgradeEffects.createEnhancedExplosion(scene, x, y, radius, weaponLevel);
 
     // Track total damage for XP awarding
     let totalDamageDealt = 0;
@@ -74,8 +67,14 @@ class ExplosionSystem {
     });
 
     // Award XP to the attacking player
+    console.log(
+      `🔍 XP Award Check: attackingPlayer=${attackingPlayer?.id}, totalDamage=${totalDamageDealt}, weaponType=${weaponType}`,
+    );
     if (attackingPlayer && totalDamageDealt > 0) {
-      WeaponUpgradeManager.awardXP(attackingPlayer, weaponType, totalDamageDealt);
+      console.log(`✅ Awarding ${totalDamageDealt} XP to Player ${attackingPlayer.id} for ${weaponType}`);
+      WeaponUpgradeManager.awardXP(attackingPlayer, weaponType, totalDamageDealt, scene);
+    } else {
+      console.log(`❌ XP NOT awarded - attackingPlayer: ${!!attackingPlayer}, totalDamage: ${totalDamageDealt}`);
     }
 
     // Screen shake

@@ -9,8 +9,8 @@ class WeaponUpgradeManager {
     return WeaponUpgradeInitializer.initializePlayerWeaponStats();
   }
 
-  static awardXP(player, weaponType, damage) {
-    return WeaponXPTracker.awardXP(player, weaponType, damage);
+  static awardXP(player, weaponType, damage, scene = null) {
+    return WeaponXPTracker.awardXP(player, weaponType, damage, scene);
   }
 
   static checkLevelUp(player, weaponType) {

@@ -1,10 +1,11 @@
 // XP Tracking and Level-Up System for Combat Crocs
 
 import { Config, Logger } from "@config";
+import { WeaponLevelUpNotification } from "@ui";
 
 class WeaponXPTracker {
   // Returns true if this XP gain caused a level up
-  static awardXP(player, weaponType, damage) {
+  static awardXP(player, weaponType, damage, scene = null) {
     if (!player || !weaponType || damage <= 0) {
       return false;
     }
@@ -28,8 +29,14 @@ class WeaponXPTracker {
 
     Logger.weaponEvent(`Player ${player.id} ${weaponType}: +${damage} XP (${oldXP} → ${weaponStat.xp})`);
 
-    // Check for level up
-    return this.checkLevelUp(player, weaponType);
+    // Check for level up and show notification if leveled up
+    const leveledUp = this.checkLevelUp(player, weaponType);
+
+    if (leveledUp && scene) {
+      WeaponLevelUpNotification.show(scene, weaponType, weaponStat.level);
+    }
+
+    return leveledUp;
   }
 
   static checkLevelUp(player, weaponType) {
@@ -45,23 +52,26 @@ class WeaponXPTracker {
     }
 
     const { maxLevel, xpThresholds } = config.upgrades;
-    const currentLevel = weaponStat.level;
+    let leveledUp = false;
 
-    // Already at max level
-    if (currentLevel >= maxLevel) {
-      return false;
+    // Keep checking for level ups until we can't level up anymore
+    // This handles cases where one big XP gain skips multiple levels
+    while (weaponStat.level < maxLevel) {
+      const nextLevel = weaponStat.level + 1;
+      // Threshold array: [5, 12] means 5 XP for Level 2, 12 XP for Level 3
+      // So nextLevel 2 needs xpThresholds[0], nextLevel 3 needs xpThresholds[1]
+      const xpRequired = xpThresholds[nextLevel - 2];
+
+      if (weaponStat.xp >= xpRequired) {
+        weaponStat.level = nextLevel;
+        Logger.gameEvent(`🎉 Player ${player.id} ${weaponType} upgraded to Level ${nextLevel}!`);
+        leveledUp = true;
+      } else {
+        break; // Stop checking if we can't level up
+      }
     }
 
-    const nextLevel = currentLevel + 1;
-    const xpRequired = xpThresholds[nextLevel - 1]; // Array is 0-indexed
-
-    if (weaponStat.xp >= xpRequired) {
-      weaponStat.level = nextLevel;
-      Logger.gameEvent(`🎉 Player ${player.id} ${weaponType} upgraded to Level ${nextLevel}!`);
-      return true;
-    }
-
-    return false;
+    return leveledUp;
   }
 
   // Returns progress percentage (0-100) for UI progress bars
