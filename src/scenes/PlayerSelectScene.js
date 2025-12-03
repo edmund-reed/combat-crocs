@@ -1,6 +1,6 @@
 import { Config } from "@config";
 import { UITextHelpers, UIButtonHelpers, UIManager, TeamSelectorManager } from "@ui";
-import { GameStateManager, Maps as MapManager } from "@utils";
+import { StateManager, Maps as MapManager } from "@utils";
 
 class PlayerSelectScene extends Phaser.Scene {
   constructor() {
@@ -94,7 +94,7 @@ class PlayerSelectScene extends Phaser.Scene {
     };
 
     createButton(buttonY, "START BATTLE", buttonStyle, () => {
-      GameStateManager.storeTeams(this.teams);
+      StateManager.storeTeams(this.teams);
       this._stopIntroMusic();
       this.scene.start("GameScene");
     });

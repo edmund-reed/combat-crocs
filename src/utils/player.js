@@ -1,6 +1,6 @@
 import { Config } from "@config";
 import { SpawnManager } from "@player";
-import { GameStateManager, Logger, PhysicsManager } from "@utils";
+import { StateManager, Logger, PhysicsManager } from "@utils";
 
 class PlayerManager {
   static getSpriteForPlayer = id => {
@@ -72,7 +72,7 @@ class PlayerManager {
   };
 
   static createGamePlayers = scene => {
-    const teams = GameStateManager.getTeams();
+    const teams = StateManager.getTeams();
     scene.players = [];
     scene.playerSprites = {};
     scene.playerBodies = {};

@@ -1,4 +1,4 @@
-import { TurnManager, TerrainManager, PlayerManager, PhysicsManager, InputManager, MemoryManager } from "@utils";
+import { TurnManager, TerrainManager, PlayerManager, PhysicsManager, InputManager, StateManager } from "@utils";
 import { UIManager, HealthBarManager } from "@ui";
 import { MovementManager } from "@player";
 
@@ -38,7 +38,7 @@ class GameScene extends Phaser.Scene {
       loop: true,
     });
 
-    MemoryManager.initialize(this);
+    StateManager.initialize(this);
     console.log("🎮 GameScene initialization complete");
   }
 

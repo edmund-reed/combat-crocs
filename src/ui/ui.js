@@ -4,13 +4,33 @@ import UIComponents from "./ui-components.js";
 import TeamSelectorManager from "./team-selector-manager.js";
 import HealthBarManager from "./health-bar-manager.js";
 import WeaponMenuManager from "./weapon-menu.js";
-import ModalManager from "./modal-manager.js";
-import { InputManager, TurnManager, GameStateManager, PlayerManager } from "@utils";
+import { InputManager, TurnManager, StateManager, PlayerManager } from "@utils";
 
 class UIManager {
   static HealthBar = HealthBarManager;
   static TeamSelector = TeamSelectorManager;
   static Components = UIComponents;
+
+  // Modal management methods (merged from modal-manager.js)
+  static createModalOverlay(scene, closeCallback = null) {
+    const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
+    const overlay = scene.add.graphics().fillStyle(0x000000, 0.7).fillRect(0, 0, w, h).setDepth(1000);
+    if (closeCallback) overlay.setInteractive().on("pointerdown", () => closeCallback());
+    scene.modalOverlayActive = true;
+    if (!scene.modalOverlays) scene.modalOverlays = [];
+    scene.modalOverlays.push(overlay);
+    return overlay;
+  }
+
+  static clearModalOverlays(scene) {
+    scene.modalOverlayActive = false;
+    if (scene.modalOverlays) {
+      scene.modalOverlays.forEach(overlay => overlay.destroy());
+      scene.modalOverlays = [];
+    }
+  }
+
+  static isModalOpen = scene => scene.modalOverlayActive || false;
 
   static createTeamCountSelector = scene => {
     const { GAME_WIDTH } = Config;
@@ -67,9 +87,6 @@ class UIManager {
   static createWeaponSelectIcon = scene => WeaponMenuManager.createWeaponSelectIcon(scene);
   static showWeaponSelectMenu = scene => WeaponMenuManager.showWeaponSelectMenu(scene);
   static hideWeaponSelectMenu = scene => WeaponMenuManager.hideWeaponSelectMenu(scene);
-  static createModalOverlay = (scene, callback) => ModalManager.createModalOverlay(scene, callback);
-  static clearModalOverlays = scene => ModalManager.clearModalOverlays(scene);
-  static isModalOpen = scene => ModalManager.isModalOpen(scene);
   static updateWeaponDisplay = scene => TurnManager.updateWeaponDisplay(scene);
 
   static updateTurnIndicator(scene, currentPlayer) {
@@ -93,7 +110,7 @@ class UIManager {
   }
 
   static checkAndHandleGameEnd(scene) {
-    const teams = GameStateManager.getTeams();
+    const teams = StateManager.getTeams();
     const aliveTeams = teams.filter(team => {
       const teamPlayers = scene.players.filter(p => typeof p.id === "string" && p.id.startsWith(team.id));
       return teamPlayers.some(p => PlayerManager.isPlayerAlive(scene, scene.players.indexOf(p)));

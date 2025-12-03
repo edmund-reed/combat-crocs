@@ -1,6 +1,6 @@
 import { Config } from "@config";
 import { HitscanWeapon, ExplosionSystem } from "@weapons";
-import { InputManager, MemoryManager, Logger, PhysicsManager } from "@utils";
+import { InputManager, StateManager, Logger, PhysicsManager } from "@utils";
 
 class WeaponManager {
   static fireWeapon = (scene, player, targetX, targetY, weaponType) => {
@@ -51,7 +51,7 @@ class WeaponManager {
       () => this.detonateProjectile(scene, projectileBody),
       weaponConfig.delay || 3000,
     );
-    MemoryManager.registerCleanup(scene, projectileBody.timerId, "timeouts");
+    StateManager.registerCleanup(scene, projectileBody.timerId, "timeouts");
   };
 
   static detonateProjectile = (scene, projectileBody) => {
