@@ -66,19 +66,10 @@ class StateManager {
 
   // Initialize weapon stats for all teams
   static initializeTeamWeaponStats(teams) {
-    const { Config } = require("@config");
-
+    const { initWeaponStats } = require("@weapons");
     teams.forEach(team => {
       if (!team.weaponStats) {
-        team.weaponStats = {};
-
-        Object.keys(Config.WEAPON_CONFIGS).forEach(weaponType => {
-          team.weaponStats[weaponType] = {
-            level: 1,
-            xp: 0,
-          };
-        });
-
+        team.weaponStats = initWeaponStats();
         console.log(`✅ Initialized weapon stats for Team ${team.id}`);
       }
     });

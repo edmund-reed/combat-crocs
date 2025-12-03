@@ -3,7 +3,7 @@
 import { Config } from "@config";
 import PhysicsManager from "@utils/physics-manager.js";
 import { HealthBarManager } from "@ui";
-import { WeaponUpgradeManager, WeaponUpgradeEffects } from "@weapons";
+import { getWeaponDamage, getWeaponRadius, getExplosionColor, awardXP } from "@weapons";
 
 class ExplosionSystem {
   // Create explosion effect and apply damage
@@ -13,11 +13,11 @@ class ExplosionSystem {
 
     // Use upgraded damage and radius if player has upgrades, otherwise use base values
     const maxDamage = attackingPlayer
-      ? WeaponUpgradeManager.getWeaponDamage(attackingPlayer, weaponType)
+      ? getWeaponDamage(attackingPlayer, weaponType)
       : Config.WEAPON_CONFIGS[weaponType].damage;
 
     const radius = attackingPlayer
-      ? WeaponUpgradeManager.getWeaponRadius(attackingPlayer, weaponType)
+      ? getWeaponRadius(attackingPlayer, weaponType)
       : Config.WEAPON_CONFIGS[weaponType].radius;
 
     // Get weapon level for visual effects
@@ -29,8 +29,16 @@ class ExplosionSystem {
       }. Radius: ${radius}, Damage: ${maxDamage}, Level: ${weaponLevel}`,
     );
 
-    // Create enhanced explosion graphics based on weapon level
-    WeaponUpgradeEffects.createEnhancedExplosion(scene, x, y, radius, weaponLevel);
+    // Create explosion graphics based on weapon level
+    const color = getExplosionColor(weaponLevel);
+    const explosion = scene.add.graphics({ x, y }).fillStyle(color, 0.8).fillCircle(0, 0, radius);
+    scene.tweens.add({
+      targets: explosion,
+      scaleX: 0,
+      scaleY: 0,
+      duration: 300,
+      onComplete: () => explosion.destroy(),
+    });
 
     // Track total damage for XP awarding
     let totalDamageDealt = 0;
@@ -72,7 +80,7 @@ class ExplosionSystem {
     );
     if (attackingPlayer && totalDamageDealt > 0) {
       console.log(`✅ Awarding ${totalDamageDealt} XP to Player ${attackingPlayer.id} for ${weaponType}`);
-      WeaponUpgradeManager.awardXP(attackingPlayer, weaponType, totalDamageDealt, scene);
+      awardXP(attackingPlayer, weaponType, totalDamageDealt, scene);
     } else {
       console.log(`❌ XP NOT awarded - attackingPlayer: ${!!attackingPlayer}, totalDamage: ${totalDamageDealt}`);
     }

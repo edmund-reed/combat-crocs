@@ -1,7 +1,7 @@
 import { Config } from "@config";
 import { SpawnManager } from "@player";
 import { StateManager, Logger, PhysicsManager } from "@utils";
-import { WeaponUpgradeManager } from "@weapons";
+import { initWeaponStats } from "@weapons";
 
 class PlayerManager {
   static getSpriteForPlayer = id => {
