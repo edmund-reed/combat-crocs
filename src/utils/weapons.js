@@ -10,7 +10,12 @@ class WeaponManager {
       SHOTGUN: () => HitscanWeapon.createShotgunHitscan(scene, player, targetX, targetY),
     };
 
-    return weaponMethods[weaponType]?.() || (Logger.error(`No method for weapon: ${weaponType}`), null);
+    const method = weaponMethods[weaponType];
+    if (!method) {
+      Logger.error(`No method for weapon: ${weaponType}`);
+      return null;
+    }
+    return method();
   };
 
   static createProjectile = (scene, player, targetX, targetY, weaponType = "BAZOOKA") => {

@@ -37,12 +37,13 @@ class WeaponMenuManager {
     const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
     const menuDepth = 1001;
     const currentWeapon = scene.turnManager.getCurrentWeapon();
+    const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
+    const currentPlayer = scene.players[currentPlayerIndex];
 
-    // Automatically generate weapon list from configs
-    const weapons = Object.keys(Config.WEAPON_CONFIGS).map((weaponKey, index) => {
-      const yPos = h / 2 - 30 + index * 30; // Space out buttons
-      return [weaponKey, weaponKey, yPos]; // Just use weapon key as display name
-    });
+    console.log(`🎮 Opening menu - Player Index: ${currentPlayerIndex}, Player ID: ${currentPlayer?.id}`);
+
+    // Generate weapon list with positions
+    const weapons = Object.keys(Config.WEAPON_CONFIGS).map((key, i) => [key, key, h / 2 - 58 + i * 30]);
 
     const elements = {
       overlay: UIManager.createModalOverlay(scene, () => this.hideWeaponSelectMenu(scene)),
@@ -50,32 +51,54 @@ class WeaponMenuManager {
         .graphics()
         .setDepth(menuDepth + 1)
         .fillStyle(0x333333, 0.95)
-        .fillRoundedRect(w / 2 - 100, h / 2 - 75, 200, 150, 10)
+        .fillRoundedRect(w / 2 - 150, h / 2 - 100, 300, 180, 10)
         .lineStyle(3, 0xffd23f)
-        .strokeRoundedRect(w / 2 - 100, h / 2 - 75, 200, 150, 10),
-      title: UITextHelpers.primaryText(scene, w / 2, h / 2 - 55, "Select Weapon", 18).setDepth(menuDepth + 2),
-      ...Object.fromEntries(
-        weapons.map(([label, type, y]) => [
-          `${label.toLowerCase()}Btn`,
-          this.createWeaponButton(scene, w / 2 - 60, y, label, type, currentWeapon === type, menuDepth + 3),
-        ]),
-      ),
+        .strokeRoundedRect(w / 2 - 150, h / 2 - 100, 300, 180, 10),
+      title: UITextHelpers.primaryText(scene, w / 2, h / 2 - 80, "Select Weapon", 18).setDepth(menuDepth + 2),
     };
+
+    // Create weapon buttons with upgrade info
+    // Modal left edge is at w/2 - 150, so with 20px padding, start text at w/2 - 130
+    weapons.forEach(([label, type, y]) => {
+      const buttonElements = this.createWeaponButton(
+        scene,
+        w / 2 - 130, // 20px padding from modal left edge
+        y,
+        label,
+        type,
+        currentWeapon === type,
+        currentPlayer,
+        menuDepth + 3,
+      );
+      elements[`${label.toLowerCase()}Btn`] = buttonElements.button;
+      elements[`${label.toLowerCase()}Info`] = buttonElements.info;
+    });
 
     scene.weaponMenu = elements;
   }
 
-  static createWeaponButton(scene, x, y, label, weaponType, isSelected, depth = 0) {
+  static createWeaponButton(scene, x, y, label, weaponType, isSelected, currentPlayer, depth = 0) {
+    const stats = currentPlayer?.weaponStats?.[weaponType];
+    const level = stats?.level || 1;
+    const xp = stats?.xp || 0;
+    const config = Config.WEAPON_CONFIGS[weaponType];
+    const isMaxLevel = level >= (config.upgrades?.maxLevel || 3);
+    const nextLevelXP = config.upgrades?.xpThresholds[level - 1];
+
+    const stars = "⭐".repeat(level);
+    const mainText = `${isSelected ? "▶ " : ""}${label} ${stars}`;
+    const xpText = isMaxLevel ? "MAX" : `${Math.floor(xp)}/${nextLevelXP} XP`;
+    const xpOffset = ((isSelected ? 2 : 0) + label.length + 1) * 8 + level * 20 + 12;
+
     const button = UITextHelpers.createStatusText(
       scene,
       x,
       y,
-      `${isSelected ? "▶ " : ""}${label}`,
+      mainText,
       isSelected ? "#00FF00" : UITextHelpers.SECONDARY_COLOR,
       14,
-    );
-
-    return button
+      0,
+    )
       .setInteractive()
       .setDepth(depth)
       .on("pointerdown", (_, __, ___, event) => {
@@ -84,6 +107,10 @@ class WeaponMenuManager {
         TurnManager.updateWeaponDisplay(scene);
         WeaponMenuManager.hideWeaponSelectMenu(scene);
       });
+
+    const info = UITextHelpers.createStatusText(scene, x + xpOffset, y, xpText, "#888888", 14, 0).setDepth(depth);
+
+    return { button, info };
   }
 
   static hideWeaponSelectMenu(scene) {

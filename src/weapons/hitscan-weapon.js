@@ -3,6 +3,7 @@
 import { Config } from "@config";
 import WeaponMath from "@weapons/weapon-math.js";
 import { HealthBarManager } from "@ui";
+import { getWeaponDamage, awardXP } from "@weapons";
 
 class HitscanWeapon {
   // Streamlined hitscan with generic utilities
@@ -10,7 +11,11 @@ class HitscanWeapon {
     console.log(`🔍 SHOTGUN: Player ${player.id} shooting at (${targetX}, ${targetY})`);
 
     const weapon = Config.WEAPON_CONFIGS.SHOTGUN;
-    const { damage, behaviorFlags } = weapon;
+    const { behaviorFlags } = weapon;
+
+    // Use upgraded damage if player has upgrades, otherwise use base damage
+    const damage = getWeaponDamage(player, "SHOTGUN");
+
     const targets = scene.players.filter(p => p.id !== player.id && p.health > 0);
     const { player: hitPlayer, distance: hitDist } =
       WeaponMath.hitscanAlongLine(targets, player.x, player.y, targetX, targetY) || {};
@@ -36,6 +41,10 @@ class HitscanWeapon {
 
     console.log(`🔫 HITSCAN DAMAGE: Player ${hitPlayer.id} ${damage} damage (${healthBefore} → ${hitPlayer.health})`);
     console.log(`🔫 Hit distance: ${hitDist?.toFixed(1)}`);
+
+    // Award XP to the attacking player (award actual damage dealt, not potential damage)
+    const actualDamage = healthBefore - hitPlayer.health;
+    awardXP(player, "SHOTGUN", actualDamage, scene);
 
     HealthBarManager.updateHealthBars(scene);
     scene.checkGameEnd?.();

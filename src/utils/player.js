@@ -1,6 +1,7 @@
 import { Config } from "@config";
 import { SpawnManager } from "@player";
 import { StateManager, Logger, PhysicsManager } from "@utils";
+import { initWeaponStats } from "@weapons";
 
 class PlayerManager {
   static getSpriteForPlayer = id => {
@@ -12,7 +13,7 @@ class PlayerManager {
       : "croc2";
   };
 
-  static createPlayer = (scene, id, x, y, color) => {
+  static createPlayer = (scene, id, x, y, color, teamWeaponStats) => {
     const spriteKey = this.getSpriteForPlayer(id);
     const teamId = parseInt(id.charAt(0));
     const shouldFaceLeft = teamId % 2 === 0;
@@ -21,6 +22,7 @@ class PlayerManager {
 
     return {
       id,
+      teamId, // Store team ID for easy team lookup
       graphics: scene.add.sprite(x, y, spriteKey).setScale(0.12).setOrigin(0.5, 0.7).setFlipX(shouldFaceLeft),
       body: PhysicsManager.createPlayerBody(scene, x, y),
       hitAreaMarker: scene.add.graphics().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25).setDepth(-1),
@@ -32,6 +34,7 @@ class PlayerManager {
       canMove: false,
       canShoot: false,
       facingLeft: shouldFaceLeft,
+      weaponStats: teamWeaponStats, // Reference team's weapon stats
     };
   };
 
@@ -64,15 +67,27 @@ class PlayerManager {
 
   static createTeamPlayers = (scene, team, teamIndex, spawnY) => {
     const teamColor = team.color?.hex ?? (teamIndex % 5) + 1;
+    // Pass team's weaponStats reference to all players on the team
     for (let i = 0; i < team.crocCount; i++) {
       scene.players.push(
-        this.createPlayer(scene, `${team.id}${i + 1}`, 100 + teamIndex * 100 + i * 50, spawnY, teamColor),
+        this.createPlayer(
+          scene,
+          `${team.id}${i + 1}`,
+          100 + teamIndex * 100 + i * 50,
+          spawnY,
+          teamColor,
+          team.weaponStats,
+        ),
       );
     }
   };
 
   static createGamePlayers = scene => {
     const teams = StateManager.getTeams();
+
+    // Initialize weapon stats for all teams BEFORE creating players
+    StateManager.initializeTeamWeaponStats(teams);
+
     scene.players = [];
     scene.playerSprites = {};
     scene.playerBodies = {};
