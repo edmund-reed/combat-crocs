@@ -48,6 +48,12 @@ class TurnManager {
     UIManager.updatePlayerHighlighting(this.scene, this.currentPlayer);
     UIManager.updateWeaponDisplay(this.scene);
     UIManager.clearAimLine(this.scene);
+
+    // Update weapon sprite visibility for current player
+    const currentWeapon = this.getCurrentWeapon();
+    this.scene.players.forEach((p, i) => {
+      p.weaponSprite?.setVisible(i === this.currentPlayer && currentWeapon === "GRENADE");
+    });
   };
 
   findNextLivingPlayerInTeam = team => {

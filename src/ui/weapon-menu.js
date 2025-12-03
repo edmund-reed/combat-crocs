@@ -105,6 +105,13 @@ class WeaponMenuManager {
         event.stopPropagation();
         scene.turnManager.setCurrentWeapon(weaponType);
         TurnManager.updateWeaponDisplay(scene);
+
+        // Update weapon sprite visibility
+        const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
+        scene.players.forEach((p, i) => {
+          p.weaponSprite?.setVisible(i === currentPlayerIndex && weaponType === "GRENADE");
+        });
+
         WeaponMenuManager.hideWeaponSelectMenu(scene);
       });
 

@@ -29,14 +29,24 @@ class WeaponManager {
       weaponType,
     );
 
-    const projectile = scene.add
-      .graphics({ x: body.position.x, y: body.position.y })
-      .fillStyle(0xff0000)
-      .fillCircle(0, 0, 5);
+    const projectile =
+      weaponType === "GRENADE"
+        ? scene.add.sprite(body.position.x, body.position.y, "grenade-l1").setScale(0.05)
+        : scene.add.graphics({ x: body.position.x, y: body.position.y }).fillStyle(0xff0000).fillCircle(0, 0, 5);
+
+    // Hide held weapon sprite after throwing grenade
+    if (weaponType === "GRENADE") {
+      player.weaponSprite?.setVisible(false);
+    }
 
     Object.assign(body, { projectileOwner: player.id, projectileGraphics: projectile });
 
     PhysicsManager.applyProjectileVelocity(scene, body, angle, 25);
+
+    // Mark as grenade for physics-based rotation
+    if (weaponType === "GRENADE") {
+      body.isGrenade = true;
+    }
     InputManager.addProjectileTrail(scene, body);
 
     const { behaviorFlags } = Config.WEAPON_CONFIGS[weaponType];

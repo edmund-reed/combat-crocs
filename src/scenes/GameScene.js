@@ -20,6 +20,7 @@ class GameScene extends Phaser.Scene {
 
   preload() {
     ["croc1", "croc2", "chameleon1", "gecko1"].forEach(sprite => this.load.image(sprite, `src/assets/${sprite}.png`));
+    this.load.image("grenade-l1", "src/assets/weapons/orange-grenade/orange-grenade-level-1.png");
   }
 
   create() {
@@ -57,6 +58,12 @@ class GameScene extends Phaser.Scene {
     this.players.forEach(player => {
       PlayerManager.updatePlayerPhysics(this, player);
       PlayerManager.updateHitAreaMarker(player);
+
+      // Update held weapon position and visibility
+      if (player.weaponSprite) {
+        player.weaponSprite.setPosition(player.x + (player.facingLeft ? -15 : 15), player.y - 20);
+        player.weaponSprite.setFlipX(player.facingLeft);
+      }
     });
 
     const currentPlayerIndex = this.turnManager.getCurrentPlayerIndex();
@@ -80,6 +87,16 @@ class GameScene extends Phaser.Scene {
     this.matter.world.getAllBodies().forEach(body => {
       if (body.projectileGraphics && !body.destroyed) {
         body.projectileGraphics.setPosition(body.position.x, body.position.y);
+
+        // Physics-based rotation for grenades
+        if (body.isGrenade) {
+          const speed = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
+          const rotationSpeed = speed * 0.01; // Scale factor for natural rotation
+          body.projectileGraphics.rotation += rotationSpeed * (body.velocity.x < 0 ? -1 : 1);
+        } else {
+          body.projectileGraphics.setRotation(body.angle);
+        }
+
         body.debugOutline?.setPosition(body.position.x, body.position.y);
       }
     });

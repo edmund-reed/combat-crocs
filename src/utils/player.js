@@ -20,12 +20,15 @@ class PlayerManager {
 
     Logger.playerAction(`Creating Player ${id} with sprite: ${spriteKey}`);
 
+    const weaponSprite = scene.add.sprite(x, y, "grenade-l1").setScale(0.04).setVisible(false).setDepth(100);
+
     return {
       id,
       teamId, // Store team ID for easy team lookup
       graphics: scene.add.sprite(x, y, spriteKey).setScale(0.12).setOrigin(0.5, 0.7).setFlipX(shouldFaceLeft),
       body: PhysicsManager.createPlayerBody(scene, x, y),
       hitAreaMarker: scene.add.graphics().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25).setDepth(-1),
+      weaponSprite,
       x,
       y,
       health: 100,
