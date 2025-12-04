@@ -28,90 +28,84 @@ class MapManager {
     };
   }
 
-  // Register all available maps (rides)
-  registerMaps() {
-    this.maps.magnificentBulk = this.createMagnificentBulkMap();
-    this.maps.dinocoaster = this.createDinocoasterMap();
-    this.maps.hotelOfHorror = this.createHotelOfHorrorMap();
-    this.maps.heavyMetalCoaster = this.createHeavyMetalCoasterMap();
-  }
-
-  // Movie Studios - The Magnificent Bulk (repurposed classic map)
-  createMagnificentBulkMap() {
-    return {
+  // Map definitions - data-driven configuration
+  static MAP_CONFIGS = {
+    magnificentBulk: {
       id: "magnificentBulk",
       name: "The Magnificent Bulk",
       description: "Smash through floating platforms in this superhero-themed arena",
-      terrain: {
-        platforms: [
-          { x: 400, y: "GAME_HEIGHT - 125", width: 200, height: 50 },
-          { x: 700, y: "GAME_HEIGHT - 175", width: 150, height: 50 },
-          { x: 950, y: "GAME_HEIGHT - 225", width: 100, height: 50 },
-        ],
-        groundVariation: true,
-      },
       backgroundColor: "#87CEEB",
       difficulty: 1,
-    };
-  }
-
-  // Movie Studios - Dinocoaster (repurposed mountain map)
-  createDinocoasterMap() {
-    return {
+      platforms: [
+        { x: 400, y: "GAME_HEIGHT - 125", width: 200, height: 50 },
+        { x: 700, y: "GAME_HEIGHT - 175", width: 150, height: 50 },
+        { x: 950, y: "GAME_HEIGHT - 225", width: 100, height: 50 },
+      ],
+      groundVariation: true,
+    },
+    dinocoaster: {
       id: "dinocoaster",
       name: "Dinocoaster",
       description: "Navigate treacherous prehistoric terrain with strategic positions",
-      terrain: {
-        platforms: [
-          { x: 300, y: "GAME_HEIGHT - 150", width: 100, height: 60 },
-          { x: 600, y: "GAME_HEIGHT - 200", width: 80, height: 50 },
-          { x: 900, y: "GAME_HEIGHT - 250", width: 150, height: 70 },
-          { x: 500, y: "GAME_HEIGHT - 300", width: 120, height: 55 },
-          { x: 850, y: "GAME_HEIGHT - 375", width: 80, height: 45 },
-        ],
-        groundVariation: false,
-      },
       backgroundColor: "#4682B4",
       difficulty: 2,
-    };
-  }
-
-  // Magical Land - Hotel of Horror
-  createHotelOfHorrorMap() {
-    return {
+      platforms: [
+        { x: 300, y: "GAME_HEIGHT - 150", width: 100, height: 60 },
+        { x: 600, y: "GAME_HEIGHT - 200", width: 80, height: 50 },
+        { x: 900, y: "GAME_HEIGHT - 250", width: 150, height: 70 },
+        { x: 500, y: "GAME_HEIGHT - 300", width: 120, height: 55 },
+        { x: 850, y: "GAME_HEIGHT - 375", width: 80, height: 45 },
+      ],
+      groundVariation: false,
+    },
+    hotelOfHorror: {
       id: "hotelOfHorror",
       name: "Hotel of Horror",
       description: "Spooky platforms suspended in a haunted atmosphere",
-      terrain: {
-        platforms: [
-          { x: 350, y: "GAME_HEIGHT - 140", width: 180, height: 55 },
-          { x: 650, y: "GAME_HEIGHT - 190", width: 160, height: 50 },
-          { x: 900, y: "GAME_HEIGHT - 160", width: 140, height: 60 },
-        ],
-        groundVariation: true,
-      },
       backgroundColor: "#4B0082",
       difficulty: 1,
-    };
-  }
-
-  // Magical Land - Heavy-Metal Coaster
-  createHeavyMetalCoasterMap() {
-    return {
+      platforms: [
+        { x: 350, y: "GAME_HEIGHT - 140", width: 180, height: 55 },
+        { x: 650, y: "GAME_HEIGHT - 190", width: 160, height: 50 },
+        { x: 900, y: "GAME_HEIGHT - 160", width: 140, height: 60 },
+      ],
+      groundVariation: true,
+    },
+    heavyMetalCoaster: {
       id: "heavyMetalCoaster",
       name: "Heavy-Metal Coaster",
       description: "Rock out on this intense roller coaster with challenging platforms",
-      terrain: {
-        platforms: [
-          { x: 250, y: "GAME_HEIGHT - 180", width: 120, height: 50 },
-          { x: 500, y: "GAME_HEIGHT - 240", width: 100, height: 55 },
-          { x: 750, y: "GAME_HEIGHT - 200", width: 130, height: 50 },
-          { x: 950, y: "GAME_HEIGHT - 280", width: 110, height: 60 },
-        ],
-        groundVariation: false,
-      },
       backgroundColor: "#8B008B",
       difficulty: 2,
+      platforms: [
+        { x: 250, y: "GAME_HEIGHT - 180", width: 120, height: 50 },
+        { x: 500, y: "GAME_HEIGHT - 240", width: 100, height: 55 },
+        { x: 750, y: "GAME_HEIGHT - 200", width: 130, height: 50 },
+        { x: 950, y: "GAME_HEIGHT - 280", width: 110, height: 60 },
+      ],
+      groundVariation: false,
+    },
+  };
+
+  // Register all available maps (rides) from config
+  registerMaps() {
+    Object.keys(MapManager.MAP_CONFIGS).forEach(mapId => {
+      this.maps[mapId] = this.createMapFromConfig(MapManager.MAP_CONFIGS[mapId]);
+    });
+  }
+
+  // Factory method to create map from configuration
+  createMapFromConfig(config) {
+    return {
+      id: config.id,
+      name: config.name,
+      description: config.description,
+      terrain: {
+        platforms: config.platforms,
+        groundVariation: config.groundVariation,
+      },
+      backgroundColor: config.backgroundColor,
+      difficulty: config.difficulty,
     };
   }
 

@@ -1,5 +1,5 @@
 import { Config } from "@config";
-import { UITextHelpers, UIButtonHelpers } from "@ui";
+import { UITextHelpers, UIButtonHelpers, UISceneHelpers } from "@ui";
 
 class MenuScene extends Phaser.Scene {
   constructor() {
@@ -13,66 +13,30 @@ class MenuScene extends Phaser.Scene {
   }
 
   create() {
-    const { GAME_WIDTH, GAME_HEIGHT } = Config;
-    const centerX = GAME_WIDTH / 2;
+    const layout = UISceneHelpers.getSceneLayout(Config);
 
-    const bgImage = this.add.image(centerX, GAME_HEIGHT, "map-bg");
-    bgImage.setScale(Math.max(GAME_WIDTH / bgImage.width, GAME_HEIGHT / bgImage.height)).setOrigin(0.5, 1);
+    const bgImage = this.add.image(layout.centerX, layout.height, "map-bg");
+    bgImage.setScale(Math.max(layout.width / bgImage.width, layout.height / bgImage.height)).setOrigin(0.5, 1);
 
     if (this.cache.audio?.get("introMusic")) {
       this.introMusic = this.sound.add("introMusic", { loop: true, volume: 0.3 });
       this.introMusic.play();
     }
 
-    const centerY = GAME_HEIGHT / 2;
+    // Logo - 70% bigger
+    const logo = this.add.image(layout.centerX, layout.centerY - 180, "logo");
+    if (logo.width > 680) logo.setScale(680 / logo.width);
 
-    // Add logo image - 70% bigger
-    const logo = this.add.image(centerX, centerY - 180, "logo");
-    const maxLogoWidth = 680; // 400 * 1.7
-    if (logo.width > maxLogoWidth) {
-      logo.setScale(maxLogoWidth / logo.width);
-    }
+    // Subtitle
+    UISceneHelpers.createStyledText(this, layout.centerX, layout.centerY - 92, "Orlando vs. Crocodiles!", 24, 4);
 
-    // Subtitle with white text and black stroke
-    const subtitle = this.add
-      .text(centerX, centerY - 92, "Orlando vs. Crocodiles!", {
-        font: "bold 24px Arial",
-        fill: "#FFFFFF",
-        stroke: "#000000",
-        strokeThickness: 4,
-      })
-      .setOrigin(0.5);
-
-    // Start button with white text and black stroke - vertically centered
-    const startButton = this.add
-      .text(centerX, centerY, "START GAME", {
-        font: "bold 32px Arial",
-        fill: "#FFFFFF",
-        stroke: "#000000",
-        strokeThickness: 5,
-      })
-      .setOrigin(0.5)
-      .setInteractive();
-
-    // Hover effect: yellow text with darker orange stroke and scale up
-    startButton.on("pointerover", () => {
-      startButton.setStyle({
-        font: "bold 36px Arial", // Bigger on hover
-        fill: "#FFED4E", // Lighter yellow
-        stroke: "#804000", // Darker orange
-        strokeThickness: 6,
-      });
-    });
-    startButton.on("pointerout", () => {
-      startButton.setStyle({
-        font: "bold 32px Arial", // Back to normal size
-        fill: "#FFFFFF", // White
-        stroke: "#000000", // Black
-        strokeThickness: 5,
-      });
-    });
-    startButton.on(
-      "pointerdown",
+    // Start button
+    UIButtonHelpers.createStyledButton(
+      this,
+      layout.centerX,
+      layout.centerY,
+      "START GAME",
+      { default: 32, hover: 36 },
       () => (this.introMusic?.stop(), this.introMusic?.destroy(), this.scene.start("ThemeParkSelectScene")),
     );
   }
