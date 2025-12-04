@@ -36,16 +36,27 @@ class InputManager {
 
     if (!player.canShoot || scene.turnManager.isTurnInProgress()) return;
 
-    console.log(`Player ${player.id} shooting ${currentWeapon} at (${pointer.worldX}, ${pointer.worldY})`);
+    // Calculate target position from aim angle (supports both mouse and keyboard aiming)
+    const shootDistance = 500;
+    const targetX = player.x + Math.cos(player.aimAngle) * shootDistance;
+    const targetY = player.y + Math.sin(player.aimAngle) * shootDistance;
+
+    console.log(`Player ${player.id} shooting ${currentWeapon} at angle ${player.aimAngle.toFixed(2)}`);
 
     scene.turnManager.weaponAmmo[currentWeapon]--;
     console.log(`Ammo for ${currentWeapon}: ${scene.turnManager.weaponAmmo[currentWeapon]} remaining`);
     scene.turnManager.weaponLocked = true;
 
-    WeaponManager.fireWeapon(scene, player, pointer.worldX, pointer.worldY, currentWeapon);
+    WeaponManager.fireWeapon(scene, player, targetX, targetY, currentWeapon);
 
     const { behaviorFlags } = Config.WEAPON_CONFIGS[currentWeapon];
-    if (!behaviorFlags.includes("timerExplosion") && scene.turnManager.weaponAmmo[currentWeapon] <= 0) {
+
+    // Cancel turn timer for delayed explosion weapons to prevent race condition
+    if (behaviorFlags.includes("timerExplosion")) {
+      scene.turnManager.currentTurnTimer?.destroy();
+      scene.turnManager.currentTurnTimer = null;
+      console.log("🕐 Turn timer cancelled - waiting for delayed explosion");
+    } else if (scene.turnManager.weaponAmmo[currentWeapon] <= 0) {
       scene.turnManager.endCurrentTurn();
     }
 
@@ -62,8 +73,7 @@ class InputManager {
     if (!player.canShoot) return;
 
     const { x, y } = player;
-    const { worldX, worldY } = scene.input.activePointer;
-    const angle = Phaser.Math.Angle.Between(x, y, worldX, worldY);
+    const angle = player.aimAngle; // Use player's aim angle (set by mouse or keyboard)
     const lineLength = Math.max(150, 300 - Math.abs(player.body.velocity.y) * 5);
     const endX = x + Math.cos(angle) * lineLength;
     const endY = y + Math.sin(angle) * lineLength;
