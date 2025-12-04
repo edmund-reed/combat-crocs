@@ -106,11 +106,17 @@ class WeaponMenuManager {
         scene.turnManager.setCurrentWeapon(weaponType);
         TurnManager.updateWeaponDisplay(scene);
 
-        // Update weapon sprite visibility
+        // Update weapon sprite texture, scale, and visibility
         const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
         const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
         scene.players.forEach((p, i) => {
-          p.weaponSprite?.setVisible(i === currentPlayerIndex && weaponConfig?.hasHeldSprite);
+          if (p.weaponSprite && weaponConfig?.hasHeldSprite) {
+            p.weaponSprite.setTexture(weaponConfig.heldSpriteKey);
+            p.weaponSprite.setScale(weaponConfig.heldSpriteScale);
+            p.weaponSprite.setVisible(i === currentPlayerIndex);
+          } else {
+            p.weaponSprite?.setVisible(false);
+          }
         });
 
         WeaponMenuManager.hideWeaponSelectMenu(scene);

@@ -33,10 +33,11 @@ jobs:
 
       - name: Build
         run: |
+          npm run build
           mkdir dist
           cp index.html dist/
-          cp -r src dist/
-          cp node_modules/phaser/dist/phaser.min.js dist/
+          cp bundle.js dist/
+          cp phaser.min.js dist/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

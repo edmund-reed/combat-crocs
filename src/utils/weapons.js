@@ -33,8 +33,8 @@ class WeaponManager {
         ? scene.add.sprite(body.position.x, body.position.y, config.spriteKey).setScale(config.spriteScale)
         : scene.add.graphics({ x: body.position.x, y: body.position.y }).fillStyle(0xff0000).fillCircle(0, 0, 5);
 
-    // Hide held weapon sprite if applicable
-    if (config.hasHeldSprite) {
+    // Hide held weapon sprite only for thrown weapons (grenade)
+    if (config.hasHeldSprite && config.projectileUsesHeldSprite) {
       player.weaponSprite?.setVisible(false);
     }
 

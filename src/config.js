@@ -23,7 +23,10 @@ const Config = {
       behaviorFlags: ["projectile", "explodesOnImpact"],
       renderType: "graphics",
       hasPhysicsRotation: false,
-      hasHeldSprite: false,
+      hasHeldSprite: true,
+      heldSpriteKey: "bazooka-l1",
+      heldSpriteScale: 0.08,
+      projectileUsesHeldSprite: false,
       upgrades: {
         maxLevel: 3,
         xpThresholds: [30, 80],
@@ -41,6 +44,9 @@ const Config = {
       spriteScale: 0.05,
       hasPhysicsRotation: true,
       hasHeldSprite: true,
+      heldSpriteKey: "grenade-l1",
+      heldSpriteScale: 0.04,
+      projectileUsesHeldSprite: true,
       upgrades: {
         maxLevel: 3,
         xpThresholds: [30, 80],
@@ -55,7 +61,10 @@ const Config = {
       behaviorFlags: ["hitscan", "multiShot"],
       renderType: "none",
       hasPhysicsRotation: false,
-      hasHeldSprite: false,
+      hasHeldSprite: true,
+      heldSpriteKey: "shotgun-l1",
+      heldSpriteScale: 0.08,
+      projectileUsesHeldSprite: false,
       upgrades: {
         maxLevel: 3,
         xpThresholds: [30, 80],

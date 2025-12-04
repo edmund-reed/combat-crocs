@@ -1,6 +1,4 @@
-// Hitscan weapon system for Combat Crocs - High-Level Pipeline Architecture
-
-import { Config } from "@config";
+import { Config, Logger } from "@config";
 import WeaponMath from "@weapons/weapon-math.js";
 import { HealthBarManager } from "@ui";
 import { getWeaponDamage, awardXP } from "@weapons";

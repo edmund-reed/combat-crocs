@@ -21,7 +21,7 @@ class UIComponents {
     return scene.spriteArrays[teamIndex];
   };
 
-  static getTeamSpriteKey = teamId => ["croc1", "croc2", "chameleon1", "gecko1"][(teamId - 1) % 4];
+  static getTeamSpriteKey = teamId => ["croc-1", "croc-2", "chameleon-1", "gecko-1"][(teamId - 1) % 4];
 
   static createWeaponDisplay = scene => {
     scene.weaponText = UITextHelpers.primaryText(

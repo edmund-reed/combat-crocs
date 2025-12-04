@@ -49,11 +49,17 @@ class TurnManager {
     UIManager.updateWeaponDisplay(this.scene);
     UIManager.clearAimLine(this.scene);
 
-    // Update weapon sprite visibility for current player
+    // Update weapon sprite texture, scale, and visibility for current player
     const currentWeapon = this.getCurrentWeapon();
     const weaponConfig = Config.WEAPON_CONFIGS[currentWeapon];
     this.scene.players.forEach((p, i) => {
-      p.weaponSprite?.setVisible(i === this.currentPlayer && weaponConfig?.hasHeldSprite);
+      if (p.weaponSprite && weaponConfig?.hasHeldSprite) {
+        p.weaponSprite.setTexture(weaponConfig.heldSpriteKey);
+        p.weaponSprite.setScale(weaponConfig.heldSpriteScale);
+        p.weaponSprite.setVisible(i === this.currentPlayer);
+      } else {
+        p.weaponSprite?.setVisible(false);
+      }
     });
   };
 

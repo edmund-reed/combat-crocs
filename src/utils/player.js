@@ -5,12 +5,12 @@ import { initWeaponStats } from "@weapons";
 
 class PlayerManager {
   static getSpriteForPlayer = id => {
-    const sprites = ["croc1", "croc2", "chameleon1", "gecko1"];
+    const sprites = ["croc-1", "croc-2", "chameleon-1", "gecko-1"];
     return typeof id === "string" && id.length >= 2
       ? sprites[(parseInt(id.charAt(0)) - 1) % sprites.length]
       : id === 1
-      ? "croc1"
-      : "croc2";
+      ? "croc-1"
+      : "croc-2";
   };
 
   static createPlayer = (scene, id, x, y, color, teamWeaponStats) => {
@@ -20,7 +20,13 @@ class PlayerManager {
 
     Logger.playerAction(`Creating Player ${id} with sprite: ${spriteKey}`);
 
-    const weaponSprite = scene.add.sprite(x, y, "grenade-l1").setScale(0.04).setVisible(false).setDepth(100);
+    // Create held weapon sprite (texture will be set when weapon is selected)
+    const defaultWeapon = Config.WEAPON_CONFIGS.BAZOOKA;
+    const weaponSprite = scene.add
+      .sprite(x, y, defaultWeapon.heldSpriteKey || "grenade-l1")
+      .setScale(0.04)
+      .setVisible(false)
+      .setDepth(100);
 
     return {
       id,

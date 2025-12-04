@@ -19,8 +19,16 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    ["croc1", "croc2", "chameleon1", "gecko1"].forEach(sprite => this.load.image(sprite, `src/assets/${sprite}.png`));
+    // Load player sprites from new location
+    this.load.image("croc-1", "src/assets/players/croc-1.png");
+    this.load.image("croc-2", "src/assets/players/croc-2.png");
+    this.load.image("chameleon-1", "src/assets/players/chameleon-1.png");
+    this.load.image("gecko-1", "src/assets/players/gecko-1.png");
+
+    // Load weapon sprites
     this.load.image("grenade-l1", "src/assets/weapons/orange-grenade/orange-grenade-level-1.png");
+    this.load.image("bazooka-l1", "src/assets/weapons/bazooka/bazooka-level-1.png");
+    this.load.image("shotgun-l1", "src/assets/weapons/shotgun/shotgun-level-1.png");
   }
 
   create() {
@@ -61,7 +69,7 @@ class GameScene extends Phaser.Scene {
 
       // Update held weapon position and visibility
       if (player.weaponSprite) {
-        player.weaponSprite.setPosition(player.x + (player.facingLeft ? -15 : 15), player.y - 20);
+        player.weaponSprite.setPosition(player.x + (player.facingLeft ? -28 : 28), player.y - 10);
         player.weaponSprite.setFlipX(player.facingLeft);
       }
     });
