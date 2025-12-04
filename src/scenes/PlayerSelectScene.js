@@ -8,7 +8,11 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 
   preload() {
-    ["croc1", "croc2", "chameleon1", "gecko1"].forEach(sprite => this.load.image(sprite, `src/assets/${sprite}.png`));
+    // Load player sprites from new location
+    this.load.image("croc-1", "src/assets/players/croc-1.png");
+    this.load.image("croc-2", "src/assets/players/croc-2.png");
+    this.load.image("chameleon-1", "src/assets/players/chameleon-1.png");
+    this.load.image("gecko-1", "src/assets/players/gecko-1.png");
     this.load.audio("introMusic", "src/assets/intro.mp3");
   }
 

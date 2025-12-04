@@ -1,57 +1,143 @@
-// Map Manager for Combat Crocs - handles multiple game maps/levels
+// Map Manager for Combat Crocs - handles theme parks and rides (maps/levels)
 // Provides clean abstraction for map definitions and terrain generation
 
 class MapManager {
   constructor() {
+    this.themeParks = {};
     this.maps = {};
     this.currentMap = null;
+    this.selectedThemePark = null;
+    this.registerThemeParks();
     this.registerMaps();
   }
 
-  // Register all available maps
-  registerMaps() {
-    this.maps.classic = this.createClassicMap();
-    this.maps.mountain = this.createMountainMap();
+  // Register all theme parks
+  registerThemeParks() {
+    this.themeParks.movieStudios = {
+      id: "movieStudios",
+      name: "Movie Studios Adventure",
+      description: "Action-packed rides inspired by blockbuster movies",
+      maps: ["magnificentBulk", "dinocoaster"],
+    };
+
+    this.themeParks.magicalLand = {
+      id: "magicalLand",
+      name: "Magical Land",
+      description: "Enchanted attractions full of wonder and mystery",
+      maps: ["hotelOfHorror", "heavyMetalCoaster"],
+    };
   }
 
-  // Create the classic arena map (original terrain)
-  createClassicMap() {
-    return {
-      id: "classic",
-      name: "Classic Arena",
-      description: "The original battlefield with floating platforms and smooth terrain",
-      terrain: {
-        platforms: [
-          { x: 400, y: "GAME_HEIGHT - 125", width: 200, height: 50 },
-          { x: 700, y: "GAME_HEIGHT - 175", width: 150, height: 50 },
-          { x: 950, y: "GAME_HEIGHT - 225", width: 100, height: 50 },
-        ],
-        groundVariation: true, // Uses procedural ground height variation
-      },
+  // Map definitions - data-driven configuration
+  static MAP_CONFIGS = {
+    magnificentBulk: {
+      id: "magnificentBulk",
+      name: "The Magnificent Bulk",
+      description: "Smash through floating platforms in this superhero-themed arena",
       backgroundColor: "#87CEEB",
       difficulty: 1,
+      platforms: [
+        { x: 400, y: "GAME_HEIGHT - 125", width: 200, height: 50 },
+        { x: 700, y: "GAME_HEIGHT - 175", width: 150, height: 50 },
+        { x: 950, y: "GAME_HEIGHT - 225", width: 100, height: 50 },
+      ],
+      groundVariation: true,
+    },
+    dinocoaster: {
+      id: "dinocoaster",
+      name: "Dinocoaster",
+      description: "Navigate treacherous prehistoric terrain with strategic positions",
+      backgroundColor: "#4682B4",
+      difficulty: 2,
+      platforms: [
+        { x: 300, y: "GAME_HEIGHT - 150", width: 100, height: 60 },
+        { x: 600, y: "GAME_HEIGHT - 200", width: 80, height: 50 },
+        { x: 900, y: "GAME_HEIGHT - 250", width: 150, height: 70 },
+        { x: 500, y: "GAME_HEIGHT - 300", width: 120, height: 55 },
+        { x: 850, y: "GAME_HEIGHT - 375", width: 80, height: 45 },
+      ],
+      groundVariation: false,
+    },
+    hotelOfHorror: {
+      id: "hotelOfHorror",
+      name: "Hotel of Horror",
+      description: "Spooky platforms suspended in a haunted atmosphere",
+      backgroundColor: "#4B0082",
+      difficulty: 1,
+      platforms: [
+        { x: 350, y: "GAME_HEIGHT - 140", width: 180, height: 55 },
+        { x: 650, y: "GAME_HEIGHT - 190", width: 160, height: 50 },
+        { x: 900, y: "GAME_HEIGHT - 160", width: 140, height: 60 },
+      ],
+      groundVariation: true,
+    },
+    heavyMetalCoaster: {
+      id: "heavyMetalCoaster",
+      name: "Heavy-Metal Coaster",
+      description: "Rock out on this intense roller coaster with challenging platforms",
+      backgroundColor: "#8B008B",
+      difficulty: 2,
+      platforms: [
+        { x: 250, y: "GAME_HEIGHT - 180", width: 120, height: 50 },
+        { x: 500, y: "GAME_HEIGHT - 240", width: 100, height: 55 },
+        { x: 750, y: "GAME_HEIGHT - 200", width: 130, height: 50 },
+        { x: 950, y: "GAME_HEIGHT - 280", width: 110, height: 60 },
+      ],
+      groundVariation: false,
+    },
+  };
+
+  // Register all available maps (rides) from config
+  registerMaps() {
+    Object.keys(MapManager.MAP_CONFIGS).forEach(mapId => {
+      this.maps[mapId] = this.createMapFromConfig(MapManager.MAP_CONFIGS[mapId]);
+    });
+  }
+
+  // Factory method to create map from configuration
+  createMapFromConfig(config) {
+    return {
+      id: config.id,
+      name: config.name,
+      description: config.description,
+      terrain: {
+        platforms: config.platforms,
+        groundVariation: config.groundVariation,
+      },
+      backgroundColor: config.backgroundColor,
+      difficulty: config.difficulty,
     };
   }
 
-  // Create mountain warfare map with different terrain
-  createMountainMap() {
-    return {
-      id: "mountain",
-      name: "Mountain Warfare",
-      description: "Rugged mountain terrain with strategic high ground positions",
-      terrain: {
-        platforms: [
-          { x: 300, y: "GAME_HEIGHT - 150", width: 100, height: 60 },
-          { x: 600, y: "GAME_HEIGHT - 200", width: 80, height: 50 },
-          { x: 900, y: "GAME_HEIGHT - 250", width: 150, height: 70 },
-          { x: 500, y: "GAME_HEIGHT - 300", width: 120, height: 55 },
-          { x: 850, y: "GAME_HEIGHT - 375", width: 80, height: 45 },
-        ],
-        groundVariation: false, // Flat ground for mountain base
-      },
-      backgroundColor: "#4682B4",
-      difficulty: 2,
-    };
+  // Get all theme park IDs
+  getThemeParkIds() {
+    return Object.keys(this.themeParks);
+  }
+
+  // Get theme park by ID
+  getThemePark(themeParkId) {
+    return this.themeParks[themeParkId];
+  }
+
+  // Get all theme parks
+  getThemeParks() {
+    return this.themeParks;
+  }
+
+  // Set selected theme park
+  setSelectedThemePark(themeParkId) {
+    this.selectedThemePark = themeParkId;
+  }
+
+  // Get selected theme park
+  getSelectedThemePark() {
+    return this.selectedThemePark;
+  }
+
+  // Get maps for a specific theme park
+  getMapsForThemePark(themeParkId) {
+    const themePark = this.themeParks[themeParkId];
+    return themePark ? themePark.maps : [];
   }
 
   // Get all available map IDs

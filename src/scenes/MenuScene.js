@@ -1,5 +1,5 @@
 import { Config } from "@config";
-import { UITextHelpers, UIButtonHelpers } from "@ui";
+import { UITextHelpers, UIButtonHelpers, UISceneHelpers } from "@ui";
 
 class MenuScene extends Phaser.Scene {
   constructor() {
@@ -8,30 +8,36 @@ class MenuScene extends Phaser.Scene {
 
   preload() {
     this.load.image("map-bg", "src/assets/map-bg.png");
+    this.load.image("logo", "src/assets/logo.png");
     this.load.audio("introMusic", "src/assets/intro.mp3");
   }
 
   create() {
-    const { GAME_WIDTH, GAME_HEIGHT } = Config;
-    const centerX = GAME_WIDTH / 2;
+    const layout = UISceneHelpers.getSceneLayout(Config);
 
-    const bgImage = this.add.image(centerX, GAME_HEIGHT, "map-bg");
-    bgImage.setScale(Math.max(GAME_WIDTH / bgImage.width, GAME_HEIGHT / bgImage.height)).setOrigin(0.5, 1);
+    const bgImage = this.add.image(layout.centerX, layout.height, "map-bg");
+    bgImage.setScale(Math.max(layout.width / bgImage.width, layout.height / bgImage.height)).setOrigin(0.5, 1);
 
     if (this.cache.audio?.get("introMusic")) {
       this.introMusic = this.sound.add("introMusic", { loop: true, volume: 0.3 });
       this.introMusic.play();
     }
 
-    UITextHelpers.createTitleText(this, centerX, 100, "COMBAT CROCS");
-    UITextHelpers.primaryText(this, centerX, 160, "Orlando vs. Crocodiles!", 24);
+    // Logo - 70% bigger
+    const logo = this.add.image(layout.centerX, layout.centerY - 180, "logo");
+    if (logo.width > 680) logo.setScale(680 / logo.width);
 
-    const startButton = UIButtonHelpers.addHoverEffect(
-      UITextHelpers.primaryText(this, centerX, 250, "START GAME", 32).setInteractive(),
-    );
-    startButton.on(
-      "pointerdown",
-      () => (this.introMusic?.stop(), this.introMusic?.destroy(), this.scene.start("MapSelectScene")),
+    // Subtitle
+    UISceneHelpers.createStyledText(this, layout.centerX, layout.centerY - 92, "Orlando vs. Crocodiles!", 24, 4);
+
+    // Start button
+    UIButtonHelpers.createStyledButton(
+      this,
+      layout.centerX,
+      layout.centerY,
+      "START GAME",
+      { default: 32, hover: 36 },
+      () => (this.introMusic?.stop(), this.introMusic?.destroy(), this.scene.start("ThemeParkSelectScene")),
     );
   }
 

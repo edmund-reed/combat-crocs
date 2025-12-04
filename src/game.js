@@ -1,5 +1,6 @@
 import { Config, PhaserConfig, Logger } from "./config.js";
 import MenuScene from "./scenes/MenuScene.js";
+import ThemeParkSelectScene from "./scenes/ThemeParkSelectScene.js";
 import MapSelectScene from "./scenes/MapSelectScene.js";
 import PlayerSelectScene from "./scenes/PlayerSelectScene.js";
 import GameScene from "./scenes/GameScene.js";
@@ -8,7 +9,7 @@ class CombatCrocsGame {
   constructor() {
     this.game = new Phaser.Game({
       ...PhaserConfig,
-      scene: [MenuScene, MapSelectScene, PlayerSelectScene, GameScene],
+      scene: [MenuScene, ThemeParkSelectScene, MapSelectScene, PlayerSelectScene, GameScene],
     });
 
     window.CombatCrocs = {
