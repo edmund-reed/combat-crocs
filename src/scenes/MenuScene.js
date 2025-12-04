@@ -8,6 +8,7 @@ class MenuScene extends Phaser.Scene {
 
   preload() {
     this.load.image("map-bg", "src/assets/map-bg.png");
+    this.load.image("logo", "src/assets/logo.png");
     this.load.audio("introMusic", "src/assets/intro.mp3");
   }
 
@@ -23,15 +24,56 @@ class MenuScene extends Phaser.Scene {
       this.introMusic.play();
     }
 
-    UITextHelpers.createTitleText(this, centerX, 100, "COMBAT CROCS");
-    UITextHelpers.primaryText(this, centerX, 160, "Orlando vs. Crocodiles!", 24);
+    const centerY = GAME_HEIGHT / 2;
 
-    const startButton = UIButtonHelpers.addHoverEffect(
-      UITextHelpers.primaryText(this, centerX, 250, "START GAME", 32).setInteractive(),
-    );
+    // Add logo image - 70% bigger
+    const logo = this.add.image(centerX, centerY - 180, "logo");
+    const maxLogoWidth = 680; // 400 * 1.7
+    if (logo.width > maxLogoWidth) {
+      logo.setScale(maxLogoWidth / logo.width);
+    }
+
+    // Subtitle with white text and black stroke
+    const subtitle = this.add
+      .text(centerX, centerY - 92, "Orlando vs. Crocodiles!", {
+        font: "bold 24px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5);
+
+    // Start button with white text and black stroke - vertically centered
+    const startButton = this.add
+      .text(centerX, centerY, "START GAME", {
+        font: "bold 32px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 5,
+      })
+      .setOrigin(0.5)
+      .setInteractive();
+
+    // Hover effect: yellow text with darker orange stroke and scale up
+    startButton.on("pointerover", () => {
+      startButton.setStyle({
+        font: "bold 36px Arial", // Bigger on hover
+        fill: "#FFED4E", // Lighter yellow
+        stroke: "#804000", // Darker orange
+        strokeThickness: 6,
+      });
+    });
+    startButton.on("pointerout", () => {
+      startButton.setStyle({
+        font: "bold 32px Arial", // Back to normal size
+        fill: "#FFFFFF", // White
+        stroke: "#000000", // Black
+        strokeThickness: 5,
+      });
+    });
     startButton.on(
       "pointerdown",
-      () => (this.introMusic?.stop(), this.introMusic?.destroy(), this.scene.start("MapSelectScene")),
+      () => (this.introMusic?.stop(), this.introMusic?.destroy(), this.scene.start("ThemeParkSelectScene")),
     );
   }
 
