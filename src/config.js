@@ -20,22 +20,30 @@ const Config = {
       damage: 50,
       radius: 140,
       shotsPerTurn: 1,
-      behaviorFlags: ["projectile", "explodesOnImpact"], // Generic behaviors instead of weapon names
+      behaviorFlags: ["projectile", "explodesOnImpact"],
+      renderType: "graphics",
+      hasPhysicsRotation: false,
+      hasHeldSprite: false,
       upgrades: {
         maxLevel: 3,
-        xpThresholds: [30, 80], // XP needed: 30 for L2, 80 for L3 (balanced for gameplay)
-        damagePerLevel: [50, 65, 80], // +30% then +60% total
-        radiusPerLevel: [140, 165, 190], // +18% then +36% total
+        xpThresholds: [30, 80],
+        damagePerLevel: [50, 65, 80],
+        radiusPerLevel: [140, 165, 190],
       },
     },
     GRENADE: {
       damage: 50,
       radius: 140,
       shotsPerTurn: 1,
-      behaviorFlags: ["projectile", "timerExplosion", "bounces"], // Multiple flags define behavior
+      behaviorFlags: ["projectile", "timerExplosion", "bounces"],
+      renderType: "sprite",
+      spriteKey: "grenade-l1",
+      spriteScale: 0.05,
+      hasPhysicsRotation: true,
+      hasHeldSprite: true,
       upgrades: {
         maxLevel: 3,
-        xpThresholds: [30, 80], // Balanced for gameplay
+        xpThresholds: [30, 80],
         damagePerLevel: [50, 65, 80],
         radiusPerLevel: [140, 165, 190],
       },
@@ -44,11 +52,14 @@ const Config = {
       damage: 12,
       radius: 35,
       shotsPerTurn: 2,
-      behaviorFlags: ["hitscan", "multiShot"], // Allows second shot without turn ending
+      behaviorFlags: ["hitscan", "multiShot"],
+      renderType: "none",
+      hasPhysicsRotation: false,
+      hasHeldSprite: false,
       upgrades: {
         maxLevel: 3,
-        xpThresholds: [30, 80], // Balanced for gameplay
-        damagePerLevel: [12, 16, 20], // +33% then +67% total
+        xpThresholds: [30, 80],
+        damagePerLevel: [12, 16, 20],
       },
     },
   },

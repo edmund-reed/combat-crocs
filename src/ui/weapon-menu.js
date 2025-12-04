@@ -108,8 +108,9 @@ class WeaponMenuManager {
 
         // Update weapon sprite visibility
         const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
+        const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
         scene.players.forEach((p, i) => {
-          p.weaponSprite?.setVisible(i === currentPlayerIndex && weaponType === "GRENADE");
+          p.weaponSprite?.setVisible(i === currentPlayerIndex && weaponConfig?.hasHeldSprite);
         });
 
         WeaponMenuManager.hideWeaponSelectMenu(scene);

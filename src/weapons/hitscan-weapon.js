@@ -8,9 +8,10 @@ import { getWeaponDamage, awardXP } from "@weapons";
 class HitscanWeapon {
   // Streamlined hitscan with generic utilities
   static createShotgunHitscan = (scene, player, targetX, targetY) => {
-    console.log(`🔍 SHOTGUN: Player ${player.id} shooting at (${targetX}, ${targetY})`);
+    const weaponType = "SHOTGUN"; // Default for hitscan weapons
+    Logger.weaponEvent(`Player ${player.id} firing hitscan at (${targetX}, ${targetY})`);
 
-    const weapon = Config.WEAPON_CONFIGS.SHOTGUN;
+    const weapon = Config.WEAPON_CONFIGS[weaponType];
     const { behaviorFlags } = weapon;
 
     // Use upgraded damage if player has upgrades, otherwise use base damage

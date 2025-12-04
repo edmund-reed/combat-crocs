@@ -51,8 +51,9 @@ class TurnManager {
 
     // Update weapon sprite visibility for current player
     const currentWeapon = this.getCurrentWeapon();
+    const weaponConfig = Config.WEAPON_CONFIGS[currentWeapon];
     this.scene.players.forEach((p, i) => {
-      p.weaponSprite?.setVisible(i === this.currentPlayer && currentWeapon === "GRENADE");
+      p.weaponSprite?.setVisible(i === this.currentPlayer && weaponConfig?.hasHeldSprite);
     });
   };
 

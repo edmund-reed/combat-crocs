@@ -88,10 +88,10 @@ class GameScene extends Phaser.Scene {
       if (body.projectileGraphics && !body.destroyed) {
         body.projectileGraphics.setPosition(body.position.x, body.position.y);
 
-        // Physics-based rotation for grenades
-        if (body.isGrenade) {
+        // Property-based rotation
+        if (body.weaponConfig?.hasPhysicsRotation) {
           const speed = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
-          const rotationSpeed = speed * 0.01; // Scale factor for natural rotation
+          const rotationSpeed = speed * 0.01;
           body.projectileGraphics.rotation += rotationSpeed * (body.velocity.x < 0 ? -1 : 1);
         } else {
           body.projectileGraphics.setRotation(body.angle);

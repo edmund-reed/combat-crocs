@@ -4,21 +4,19 @@ import { InputManager, StateManager, Logger, PhysicsManager } from "@utils";
 
 class WeaponManager {
   static fireWeapon = (scene, player, targetX, targetY, weaponType) => {
-    const weaponMethods = {
-      BAZOOKA: () => this.createProjectile(scene, player, targetX, targetY, weaponType),
-      GRENADE: () => this.createProjectile(scene, player, targetX, targetY, weaponType),
-      SHOTGUN: () => HitscanWeapon.createShotgunHitscan(scene, player, targetX, targetY),
-    };
-
-    const method = weaponMethods[weaponType];
-    if (!method) {
-      Logger.error(`No method for weapon: ${weaponType}`);
+    const config = Config.WEAPON_CONFIGS[weaponType];
+    if (!config) {
+      Logger.error(`Unknown weapon type: ${weaponType}`);
       return null;
     }
-    return method();
+
+    return config.behaviorFlags.includes("hitscan")
+      ? HitscanWeapon.createShotgunHitscan(scene, player, targetX, targetY)
+      : this.createProjectile(scene, player, targetX, targetY, weaponType);
   };
 
   static createProjectile = (scene, player, targetX, targetY, weaponType = "BAZOOKA") => {
+    const config = Config.WEAPON_CONFIGS[weaponType];
     const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
     const spawnDistance = 8;
 
@@ -29,24 +27,20 @@ class WeaponManager {
       weaponType,
     );
 
+    // Property-based rendering
     const projectile =
-      weaponType === "GRENADE"
-        ? scene.add.sprite(body.position.x, body.position.y, "grenade-l1").setScale(0.05)
+      config.renderType === "sprite"
+        ? scene.add.sprite(body.position.x, body.position.y, config.spriteKey).setScale(config.spriteScale)
         : scene.add.graphics({ x: body.position.x, y: body.position.y }).fillStyle(0xff0000).fillCircle(0, 0, 5);
 
-    // Hide held weapon sprite after throwing grenade
-    if (weaponType === "GRENADE") {
+    // Hide held weapon sprite if applicable
+    if (config.hasHeldSprite) {
       player.weaponSprite?.setVisible(false);
     }
 
-    Object.assign(body, { projectileOwner: player.id, projectileGraphics: projectile });
+    Object.assign(body, { projectileOwner: player.id, projectileGraphics: projectile, weaponConfig: config });
 
     PhysicsManager.applyProjectileVelocity(scene, body, angle, 25);
-
-    // Mark as grenade for physics-based rotation
-    if (weaponType === "GRENADE") {
-      body.isGrenade = true;
-    }
     InputManager.addProjectileTrail(scene, body);
 
     const { behaviorFlags } = Config.WEAPON_CONFIGS[weaponType];
@@ -77,7 +71,7 @@ class WeaponManager {
       projectileBody.position.x,
       projectileBody.position.y,
       projectileBody.projectileOwner,
-      projectileBody.weaponType || "GRENADE",
+      projectileBody.weaponType,
     );
     this._cleanupProjectile(scene, projectileBody);
     scene.endProjectileTurn();
