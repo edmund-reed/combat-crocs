@@ -11,6 +11,7 @@ class TeamSelectorManager {
         name: `Team ${newTeamId}`,
         crocCount: 1,
         color: scene.availableColors[(newTeamId - 1) % scene.availableColors.length],
+        players: [{ characterType: "CROCODILE" }], // Default first player as crocodile
       });
     }
     while (scene.teams.length > scene.teamCount) scene.teams.pop();
@@ -27,37 +28,118 @@ class TeamSelectorManager {
           ? Config.GAME_WIDTH / 2
           : Config.GAME_WIDTH / 2 - availableWidth / 2 + i * (availableWidth / (scene.teamCount - 1));
 
-      this.createDynamicTeamSelector(scene, xPos, 340, team, i);
+      this.createDynamicTeamSelector(scene, xPos, 280, team, i); // Moved up by additional 20px (300 - 20 = 280)
     }
   }
 
   static createDynamicTeamSelector(scene, x, y, team, teamIndex) {
     if (!scene.teamUIElements) scene.teamUIElements = [];
 
-    const countY = y + 60;
-    scene.teamUIElements.push(UITextHelpers.primaryText(scene, x, y, team.name, 24));
+    // Create team container with transparent black background
+    const teamContainer = scene.add.container(x, y + 100); // Center the container vertically
 
-    const minusBtn = UITextHelpers.primaryText(scene, x - 60, countY, "-", 36).setInteractive();
-    const countText = UITextHelpers.primaryText(scene, x, countY, team.crocCount.toString(), 48);
-    const plusBtn = UITextHelpers.primaryText(scene, x + 60, countY, "+", 36).setInteractive();
+    // Add background rectangle with rounded corners
+    const bgRect = scene.add.graphics();
+    bgRect.fillStyle(0x000000, 0.6); // Increased opacity from 0.5 to 0.6
+    bgRect.fillRoundedRect(-120, -80, 240, 220, 15); // Width 240, height 220, corner radius 15
+    teamContainer.add(bgRect);
 
-    scene.teamUIElements.push(minusBtn, countText, plusBtn);
+    const teamNameText = scene.add
+      .text(0, -80, team.name, {
+        font: "bold 24px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5);
+    teamContainer.add(teamNameText);
 
-    UIButtonHelpers.addHoverEffect(minusBtn, "#FF6B35");
-    UIButtonHelpers.addHoverEffect(plusBtn, "#FF6B35");
+    // Create container for minus button with background
+    const minusContainer = scene.add.container(-100, 80); // Moved 5px to the right (from -105 to -100)
+    const minusBg = scene.add.graphics();
+    minusBg.fillStyle(0x000000, 0.6); // Transparent black background
+    minusBg.fillRoundedRect(-16, -16, 32, 32, 6); // Smaller: 32x32 background with rounded corners
+    minusBg.setInteractive(new Phaser.Geom.Rectangle(-16, -16, 32, 32), Phaser.Geom.Rectangle.Contains); // Make background clickable
+    minusContainer.add(minusBg);
+
+    const minusBtn = scene.add
+      .text(0, 0, "-", {
+        font: "28px Arial", // Smaller font
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 2, // Reduced stroke
+      })
+      .setOrigin(0.5);
+    minusContainer.add(minusBtn);
+    teamContainer.add(minusContainer);
+
+    // Keep countText for functionality but make it invisible since sprite count is visual
+    const countText = scene.add
+      .text(0, -20, team.crocCount.toString(), {
+        font: "48px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setAlpha(0); // Invisible since sprite count shows the number
+    teamContainer.add(countText);
+
+    // Create container for plus button with background
+    const plusContainer = scene.add.container(100, 80); // Moved 5px to the left (from 105 to 100)
+    const plusBg = scene.add.graphics();
+    plusBg.fillStyle(0x000000, 0.6); // Transparent black background
+    plusBg.fillRoundedRect(-16, -16, 32, 32, 6); // Smaller: 32x32 background with rounded corners
+    plusBg.setInteractive(new Phaser.Geom.Rectangle(-16, -16, 32, 32), Phaser.Geom.Rectangle.Contains); // Make background clickable
+    plusContainer.add(plusBg);
+
+    const plusBtn = scene.add
+      .text(0, 0, "+", {
+        font: "28px Arial", // Smaller font
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 2, // Reduced stroke
+      })
+      .setOrigin(0.5);
+    plusContainer.add(plusBtn);
+    teamContainer.add(plusContainer);
+
+    // Add hover effects
+    minusBtn.on("pointerover", () => minusBtn.setScale(1.2));
+    minusBtn.on("pointerout", () => minusBtn.setScale(1.0));
+    plusBtn.on("pointerover", () => plusBtn.setScale(1.2));
+    plusBtn.on("pointerout", () => plusBtn.setScale(1.0));
+
+    // Add container to UI elements for cleanup
+    scene.teamUIElements.push(teamContainer);
 
     const updateCount = (delta, condition) => {
       if (condition()) {
         team.crocCount += delta;
+
+        // Update players array to match new count
+        if (delta > 0) {
+          // Adding a player - add default character type
+          team.players.push({ characterType: "CROCODILE" });
+        } else {
+          // Removing a player - remove last player
+          team.players.pop();
+        }
+
         countText.setText(team.crocCount);
         UIComponents.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
       }
     };
 
     minusBtn.on("pointerdown", () => updateCount(-1, () => team.crocCount > 1));
-    plusBtn.on("pointerdown", () => updateCount(1, () => team.crocCount < 3));
+    minusBg.on("pointerdown", () => updateCount(-1, () => team.crocCount > 1)); // Make background clickable
+    plusBtn.on("pointerdown", () => updateCount(1, () => team.crocCount < 5));
+    plusBg.on("pointerdown", () => updateCount(1, () => team.crocCount < 5)); // Make background clickable
 
-    UIComponents.createColorSelector(scene, x, y + 110, team, scene.availableColors);
+    // Add color selector to team container (position relative to team container)
+    const colorContainer = UIComponents.createColorSelector(scene, -10, 10, team, scene.availableColors);
+    teamContainer.add(colorContainer);
+
     UIComponents.updateCrocPreview(scene, x, y + 180, team.crocCount, teamIndex);
   }
 

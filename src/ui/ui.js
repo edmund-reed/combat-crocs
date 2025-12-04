@@ -34,18 +34,79 @@ class UIManager {
 
   static createTeamCountSelector = scene => {
     const { GAME_WIDTH } = Config;
-    const selectorY = 170,
+    const selectorY = 155, // Moved up by additional 5px (160 - 5 = 155)
       centerX = GAME_WIDTH / 2;
 
-    UITextHelpers.primaryText(scene, centerX, selectorY, "Number of Teams", 18);
+    scene.add
+      .text(centerX, selectorY, "Number of Teams", {
+        font: "18px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 3, // Increased from 2 to 3
+      })
+      .setOrigin(0.5);
 
-    const minusBtn = UIButtonHelpers.addHoverEffect(
-      UITextHelpers.createInteractiveText(scene, centerX - 80, selectorY + 50, "-", "primary", 36),
-    );
-    scene.teamCountText = UITextHelpers.primaryText(scene, centerX, selectorY + 50, scene.teamCount.toString(), 48);
-    const plusBtn = UIButtonHelpers.addHoverEffect(
-      UITextHelpers.createInteractiveText(scene, centerX + 80, selectorY + 50, "+", "primary", 36),
-    );
+    // Create container for minus button with background
+    const minusContainer = scene.add.container(centerX - 80, selectorY + 35); // Moved up by 15px (50 - 15 = 35)
+    const minusBg = scene.add.graphics();
+    minusBg.fillStyle(0x000000, 0.6); // Increased opacity from 0.5 to 0.6
+    minusBg.fillRoundedRect(-20, -20, 40, 40, 8);
+    minusContainer.add(minusBg);
+
+    const minusBtn = scene.add
+      .text(0, 0, "-", {
+        font: "36px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setInteractive();
+    minusContainer.add(minusBtn);
+
+    // Add hover effect that makes text bigger
+    minusBtn.on("pointerover", () => {
+      minusBtn.setScale(1.2);
+    });
+    minusBtn.on("pointerout", () => {
+      minusBtn.setScale(1.0);
+    });
+
+    scene.teamCountText = scene.add
+      .text(centerX, selectorY + 35, scene.teamCount.toString(), {
+        // Moved up by 15px (50 - 15 = 35)
+        font: "48px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5);
+
+    // Create container for plus button with background
+    const plusContainer = scene.add.container(centerX + 80, selectorY + 35); // Moved up by 15px (50 - 15 = 35)
+    const plusBg = scene.add.graphics();
+    plusBg.fillStyle(0x000000, 0.6); // Increased opacity from 0.5 to 0.6
+    plusBg.fillRoundedRect(-20, -20, 40, 40, 8);
+    plusContainer.add(plusBg);
+
+    const plusBtn = scene.add
+      .text(0, 0, "+", {
+        font: "36px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setInteractive();
+    plusContainer.add(plusBtn);
+
+    // Add hover effect that makes text bigger
+    plusBtn.on("pointerover", () => {
+      plusBtn.setScale(1.2);
+    });
+    plusBtn.on("pointerout", () => {
+      plusBtn.setScale(1.0);
+    });
 
     const updateCount = (modifier, condition) => {
       if (condition()) {

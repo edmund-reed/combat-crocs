@@ -54,18 +54,24 @@ class UIButtonHelpers {
   };
 
   static addHoverEffect(btn, originalColor = "#FFD23F", scale = 1.2) {
-    btn.on("pointerover", () => btn.setScale(scale).setFill("#FFFFFF"));
-    btn.on("pointerout", () => btn.setScale(1.0).setFill(originalColor));
+    btn.on("pointerover", () => btn.setScale(scale));
+    btn.on("pointerout", () => btn.setScale(1.0));
     return btn;
   }
 
   static _applyHoverEvents(btn, sizes) {
-    btn.on("pointerover", () =>
-      btn.setStyle({ font: `bold ${sizes.hover}px Arial`, ...this.STYLES.buttonHover, strokeThickness: 5 }),
-    );
-    btn.on("pointerout", () =>
-      btn.setStyle({ font: `bold ${sizes.default}px Arial`, ...this.STYLES.button, strokeThickness: 4 }),
-    );
+    btn.on("pointerover", () => {
+      btn.setStyle({ font: `bold ${sizes.hover}px Arial`, strokeThickness: 4 });
+      if (btn.getData("hoverText")) {
+        btn.setText(btn.getData("hoverText"));
+      }
+    });
+    btn.on("pointerout", () => {
+      btn.setStyle({ font: `bold ${sizes.default}px Arial`, strokeThickness: 4 });
+      if (btn.getData("originalText")) {
+        btn.setText(btn.getData("originalText"));
+      }
+    });
   }
 
   static createStyledButton(scene, x, y, text, sizes = { default: 20, hover: 22 }, callback) {
@@ -73,6 +79,11 @@ class UIButtonHelpers {
       .text(x, y, text, { font: `bold ${sizes.default}px Arial`, ...this.STYLES.button, strokeThickness: 4 })
       .setOrigin(0.5)
       .setInteractive();
+
+    // Store original text for hover effects
+    btn.setData("originalText", text);
+    btn.setData("hoverText", text === "START GAME" ? "▶ START GAME ◀" : text);
+
     this._applyHoverEvents(btn, sizes);
     if (callback) btn.on("pointerdown", callback);
     return btn;
@@ -83,17 +94,13 @@ class UIButtonHelpers {
     const scale = maxSize / Math.max(image.width, image.height);
     if (scale < 1) image.setScale(scale);
 
-    const tint = config.initialTint || 0xcccccc;
     const hoverScale = config.hoverScale || 1.05;
-    image.setTint(tint);
 
     image.on("pointerover", () => {
       image.setScale(image.scaleX * hoverScale);
-      image.clearTint();
     });
     image.on("pointerout", () => {
       image.setScale(image.scaleX / hoverScale);
-      image.setTint(tint);
     });
 
     if (config.onClick) image.on("pointerdown", config.onClick);

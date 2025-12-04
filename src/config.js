@@ -92,6 +92,45 @@ const Config = {
     CROCODILE_GREEN: 0x2d5a3d,
     WATER_BLUE: 0x7cb9e8,
   },
+
+  // Character types for players (each will have special abilities later)
+  CHARACTER_TYPES: {
+    CHAMELEON: {
+      name: "chameleon",
+      baseName: "chameleon",
+      description: "Stealth specialist",
+    },
+    CROCODILE: {
+      name: "crocodile",
+      baseName: "croc",
+      description: "Tank with high durability",
+    },
+    DINOSAUR: {
+      name: "dinosaur",
+      baseName: "dino",
+      description: "Power attacker",
+    },
+    GECKO: {
+      name: "gecko",
+      baseName: "gecko",
+      description: "Agile climber",
+    },
+  },
+
+  // Color name mappings for sprite keys
+  COLOR_NAMES: {
+    0xff0000: "red", // Red
+    0xffff00: "yellow", // Yellow
+    0x00ff00: "green", // Green
+    0x0000ff: "blue", // Blue
+    0x8a2be2: "purple", // Purple
+  },
+
+  // Standard sprite display sizes
+  SPRITE_SIZES: {
+    UI_CHARACTER: { width: 52, height: 65 }, // Team selection UI - 65px tall
+    GAME_CHARACTER: { width: 48, height: 60 }, // In-game characters
+  },
 };
 
 // Phaser Game Configuration

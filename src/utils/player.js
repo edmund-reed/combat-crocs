@@ -4,21 +4,26 @@ import { StateManager, Logger, PhysicsManager } from "@utils";
 import { initWeaponStats } from "@weapons";
 
 class PlayerManager {
-  static getSpriteForPlayer = id => {
-    const sprites = ["croc-1", "croc-2", "chameleon-1", "gecko-1"];
-    return typeof id === "string" && id.length >= 2
-      ? sprites[(parseInt(id.charAt(0)) - 1) % sprites.length]
-      : id === 1
-      ? "croc-1"
-      : "croc-2";
+  static getSpriteForPlayer = (characterType, colorHex = null) => {
+    if (!characterType || !Config.CHARACTER_TYPES[characterType]) {
+      return "croc-red"; // Default fallback
+    }
+
+    const charData = Config.CHARACTER_TYPES[characterType];
+    const colorName = colorHex ? Config.COLOR_NAMES[colorHex] || "red" : "red";
+
+    // Return the combined sprite key: baseName-colorName
+    return `${charData.baseName}-${colorName}`;
   };
 
-  static createPlayer = (scene, id, x, y, color, teamWeaponStats) => {
-    const spriteKey = this.getSpriteForPlayer(id);
+  static createPlayer = (scene, id, x, y, color, teamWeaponStats, characterType = "CROCODILE") => {
+    const spriteKey = this.getSpriteForPlayer(characterType, color);
     const teamId = parseInt(id.charAt(0));
     const shouldFaceLeft = teamId % 2 === 0;
 
-    Logger.playerAction(`Creating Player ${id} with sprite: ${spriteKey}`);
+    Logger.playerAction(
+      `Creating Player ${id} with character type: ${characterType}, color: ${color}, sprite: ${spriteKey}`,
+    );
 
     // Create held weapon sprite (texture will be set when weapon is selected)
     const defaultWeapon = Config.WEAPON_CONFIGS.BAZOOKA;
@@ -28,10 +33,28 @@ class PlayerManager {
       .setVisible(false)
       .setDepth(100);
 
+    const graphics = scene.add.sprite(x, y, spriteKey);
+    // Set to standard game character size with character-specific scaling
+    const baseWidth = Config.SPRITE_SIZES.GAME_CHARACTER.width;
+    const baseHeight = Config.SPRITE_SIZES.GAME_CHARACTER.height;
+
+    // Apply character-specific scale adjustments
+    let scaleFactor = 1.0;
+    if (characterType === "DINOSAUR") {
+      scaleFactor = 1.2; // Make dinosaurs bigger
+    } else if (characterType === "CHAMELEON") {
+      scaleFactor = 0.9; // Make chameleons smaller
+    }
+
+    graphics
+      .setDisplaySize(baseWidth * scaleFactor, baseHeight * scaleFactor)
+      .setOrigin(0.5, 0.7)
+      .setFlipX(shouldFaceLeft);
+
     return {
       id,
       teamId, // Store team ID for easy team lookup
-      graphics: scene.add.sprite(x, y, spriteKey).setScale(0.12).setOrigin(0.5, 0.7).setFlipX(shouldFaceLeft),
+      graphics,
       body: PhysicsManager.createPlayerBody(scene, x, y),
       hitAreaMarker: scene.add.graphics().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25).setDepth(-1),
       weaponSprite,
@@ -78,6 +101,7 @@ class PlayerManager {
     const teamColor = team.color?.hex ?? (teamIndex % 5) + 1;
     // Pass team's weaponStats reference to all players on the team
     for (let i = 0; i < team.crocCount; i++) {
+      const characterType = team.players?.[i]?.characterType || "CROCODILE";
       scene.players.push(
         this.createPlayer(
           scene,
@@ -86,6 +110,7 @@ class PlayerManager {
           spawnY,
           teamColor,
           team.weaponStats,
+          characterType,
         ),
       );
     }
