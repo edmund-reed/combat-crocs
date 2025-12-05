@@ -1,144 +1,97 @@
-// Weapon Menu Manager for Combat Crocs
-
 import { Config } from "@config";
-import { UITextHelpers } from "./ui-helpers.js";
-import { TurnManager } from "@utils";
+import { WeaponUpgradeGrid } from "./weapon-upgrade-grid.js";
 import UIManager from "./ui.js";
 
 class WeaponMenuManager {
   static createWeaponSelectIcon(scene) {
-    const iconX = Config.GAME_WIDTH - 100; // Moved way right for definite gap
-    const iconY = 18; // Moved up to center with weapon text
+    const x = Config.GAME_WIDTH - 100,
+      y = 18;
     const icon = scene.add.graphics().fillStyle(0xffd23f);
-
-    // Burger menu: 3 horizontal lines stacked vertically
-    icon.fillRect(iconX, iconY, 18, 3); // Top line
-    icon.fillRect(iconX, iconY + 6, 18, 3); // Middle line
-    icon.fillRect(iconX, iconY + 12, 18, 3); // Bottom line
-
     icon
-      .setInteractive(new Phaser.Geom.Rectangle(iconX - 5, iconY - 5, 28, 23), Phaser.Geom.Rectangle.Contains)
-      .on("pointerdown", (_, __, ___, event) => {
-        event.stopPropagation();
-        // Prevent weapon switching after firing
-        if (scene.turnManager.weaponLocked) {
-          console.log("⚠️ Weapon locked - cannot change after firing");
-          return;
-        }
-        this.showWeaponSelectMenu(scene);
+      .fillRect(x, y, 18, 3)
+      .fillRect(x, y + 6, 18, 3)
+      .fillRect(x, y + 12, 18, 3);
+    icon
+      .setInteractive(new Phaser.Geom.Rectangle(x - 5, y - 5, 28, 23), Phaser.Geom.Rectangle.Contains)
+      .on("pointerdown", (_, __, ___, e) => {
+        e.stopPropagation();
+        if (!scene.turnManager.weaponLocked) this.showWeaponSelectMenu(scene);
       });
-
     scene.weaponSelectIcon = icon;
   }
 
   static showWeaponSelectMenu(scene) {
     if (scene.gameEnded || scene.weaponMenu) return;
-
     const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
-    const menuDepth = 1001;
+    const depth = 1001;
+    const player = scene.players[scene.turnManager.getCurrentPlayerIndex()];
     const currentWeapon = scene.turnManager.getCurrentWeapon();
-    const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
-    const currentPlayer = scene.players[currentPlayerIndex];
 
-    console.log(`🎮 Opening menu - Player Index: ${currentPlayerIndex}, Player ID: ${currentPlayer?.id}`);
-
-    // Generate weapon list with positions
-    const weapons = Object.keys(Config.WEAPON_CONFIGS).map((key, i) => [key, key, h / 2 - 58 + i * 30]);
-
-    const elements = {
-      overlay: UIManager.createModalOverlay(scene, () => this.hideWeaponSelectMenu(scene)),
-      menuBg: scene.add
-        .graphics()
-        .setDepth(menuDepth + 1)
-        .fillStyle(0x333333, 0.95)
-        .fillRoundedRect(w / 2 - 150, h / 2 - 100, 300, 180, 10)
-        .lineStyle(3, 0xffd23f)
-        .strokeRoundedRect(w / 2 - 150, h / 2 - 100, 300, 180, 10),
-      title: UITextHelpers.primaryText(scene, w / 2, h / 2 - 80, "Select Weapon", 18).setDepth(menuDepth + 2),
-    };
-
-    // Create weapon buttons with upgrade info
-    // Modal left edge is at w/2 - 150, so with 20px padding, start text at w/2 - 130
-    weapons.forEach(([label, type, y]) => {
-      const buttonElements = this.createWeaponButton(
-        scene,
-        w / 2 - 130, // 20px padding from modal left edge
-        y,
-        label,
-        type,
-        currentWeapon === type,
-        currentPlayer,
-        menuDepth + 3,
-      );
-      elements[`${label.toLowerCase()}Btn`] = buttonElements.button;
-      elements[`${label.toLowerCase()}Info`] = buttonElements.info;
+    const weapons = Object.keys(Config.WEAPON_CONFIGS).map(type => {
+      const s = player?.weaponStats?.[type],
+        c = Config.WEAPON_CONFIGS[type];
+      return {
+        weaponType: type,
+        currentLevel: s?.level || 1,
+        currentXP: s?.xp || 0,
+        xpThresholds: c.upgrades?.xpThresholds || [30, 80],
+        maxLevel: c.upgrades?.maxLevel || 3,
+      };
     });
 
-    scene.weaponMenu = elements;
-  }
+    const tile = 100,
+      gap = 5,
+      labelW = 60;
+    const gridW = (tile + gap) * 3 - gap,
+      gridH = weapons.length * (tile + 12);
+    const totalW = gridW + labelW;
+    const gx = w / 2 - totalW / 2 + labelW,
+      gy = h / 2 - gridH / 2 + 20;
 
-  static createWeaponButton(scene, x, y, label, weaponType, isSelected, currentPlayer, depth = 0) {
-    const stats = currentPlayer?.weaponStats?.[weaponType];
-    const level = stats?.level || 1;
-    const xp = stats?.xp || 0;
-    const config = Config.WEAPON_CONFIGS[weaponType];
-    const isMaxLevel = level >= (config.upgrades?.maxLevel || 3);
-    const nextLevelXP = config.upgrades?.xpThresholds[level - 1];
-
-    const stars = "⭐".repeat(level);
-    const mainText = `${isSelected ? "▶ " : ""}${label} ${stars}`;
-    const xpText = isMaxLevel ? "MAX" : `${Math.floor(xp)}/${nextLevelXP} XP`;
-    const xpOffset = ((isSelected ? 2 : 0) + label.length + 1) * 8 + level * 20 + 12;
-
-    const button = UITextHelpers.createStatusText(
-      scene,
-      x,
-      y,
-      mainText,
-      isSelected ? "#00FF00" : UITextHelpers.SECONDARY_COLOR,
-      14,
-      0,
-    )
-      .setInteractive()
-      .setDepth(depth)
-      .on("pointerdown", (_, __, ___, event) => {
-        event.stopPropagation();
-        scene.turnManager.setCurrentWeapon(weaponType);
-        TurnManager.updateWeaponDisplay(scene);
-
-        // Update weapon sprite texture, scale, and visibility
-        const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
-        const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
-        scene.players.forEach((p, i) => {
-          if (p.weaponSprite && weaponConfig?.hasHeldSprite) {
-            p.weaponSprite.setTexture(weaponConfig.heldSpriteKey);
-            p.weaponSprite.setScale(weaponConfig.heldSpriteScale);
-            p.weaponSprite.setVisible(i === currentPlayerIndex);
-          } else {
-            p.weaponSprite?.setVisible(false);
-          }
-        });
-
-        WeaponMenuManager.hideWeaponSelectMenu(scene);
-      });
-
-    const info = UITextHelpers.createStatusText(scene, x + xpOffset, y, xpText, "#888888", 14, 0).setDepth(depth);
-
-    return { button, info };
+    const els = {
+      overlay: UIManager.createModalOverlay(scene, () => this.hideWeaponSelectMenu(scene)),
+      bg: scene.add
+        .graphics()
+        .setDepth(depth + 1)
+        .fillStyle(0x333333, 0.95)
+        .fillRoundedRect(w / 2 - totalW / 2 - 20, h / 2 - gridH / 2 - 40, totalW + 40, gridH + 80, 10)
+        .lineStyle(3, 0xffd23f)
+        .strokeRoundedRect(w / 2 - totalW / 2 - 20, h / 2 - gridH / 2 - 40, totalW + 40, gridH + 80, 10),
+      title: scene.add
+        .text(w / 2, h / 2 - gridH / 2 - 15, "Weapons Menu", {
+          font: "18px Arial",
+          fill: "#FFFFFF",
+          stroke: "#000000",
+          strokeThickness: 2,
+        })
+        .setOrigin(0.5)
+        .setDepth(depth + 2),
+      grid: WeaponUpgradeGrid.createGrid(scene, weapons, gx, gy, tile, gap, depth + 3, currentWeapon),
+      labels: weapons.map((d, i) =>
+        scene.add
+          .text(gx - 30, gy + i * (tile + 12) + tile / 2, d.weaponType.toUpperCase(), {
+            font: "16px Arial",
+            fill: d.weaponType === currentWeapon ? "#00FF00" : "#FFFFFF",
+            stroke: "#000000",
+            strokeThickness: 2,
+          })
+          .setOrigin(0.5)
+          .setAngle(-90)
+          .setDepth(depth + 4),
+      ),
+    };
+    scene.weaponMenu = els;
   }
 
   static hideWeaponSelectMenu(scene) {
     if (!scene.weaponMenu) return;
-
     UIManager.clearModalOverlays(scene);
-
     if (scene.inputManagerBackup) {
       scene.input.on("pointermove", scene.inputManagerBackup.aimingHandler);
       scene.input.on("pointerdown", scene.inputManagerBackup.shootingHandler);
       scene.inputManagerBackup = null;
     }
-
-    Object.values(scene.weaponMenu).forEach(el => el?.destroy?.());
+    Object.values(scene.weaponMenu).forEach(el => UIManager.destroyElement(el));
     scene.weaponMenu = null;
   }
 }

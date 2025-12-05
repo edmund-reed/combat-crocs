@@ -2,23 +2,17 @@ import { Config } from "@config";
 import { SpawnManager } from "@player";
 import { StateManager, Logger, PhysicsManager } from "@utils";
 import { initWeaponStats } from "@weapons";
+import { CharacterHelper } from "./character-helper";
 
 class PlayerManager {
-  static getSpriteForPlayer = id => {
-    const sprites = ["croc-1", "croc-2", "chameleon-1", "gecko-1"];
-    return typeof id === "string" && id.length >= 2
-      ? sprites[(parseInt(id.charAt(0)) - 1) % sprites.length]
-      : id === 1
-      ? "croc-1"
-      : "croc-2";
-  };
-
-  static createPlayer = (scene, id, x, y, color, teamWeaponStats) => {
-    const spriteKey = this.getSpriteForPlayer(id);
+  static createPlayer = (scene, id, x, y, color, teamWeaponStats, characterType = "CROCODILE") => {
+    const spriteKey = CharacterHelper.getSpriteKey(characterType, color);
     const teamId = parseInt(id.charAt(0));
     const shouldFaceLeft = teamId % 2 === 0;
 
-    Logger.playerAction(`Creating Player ${id} with sprite: ${spriteKey}`);
+    Logger.playerAction(
+      `Creating Player ${id} with character type: ${characterType}, color: ${color}, sprite: ${spriteKey}`,
+    );
 
     // Create held weapon sprite (texture will be set when weapon is selected)
     const defaultWeapon = Config.WEAPON_CONFIGS.BAZOOKA;
@@ -28,10 +22,20 @@ class PlayerManager {
       .setVisible(false)
       .setDepth(100);
 
+    const graphics = scene.add.sprite(x, y, spriteKey);
+    const baseWidth = Config.SPRITE_SIZES.GAME_CHARACTER.width;
+    const baseHeight = Config.SPRITE_SIZES.GAME_CHARACTER.height;
+    const scaleFactor = Config.CHARACTER_TYPES[characterType]?.scale || 1.0;
+
+    graphics
+      .setDisplaySize(baseWidth * scaleFactor, baseHeight * scaleFactor)
+      .setOrigin(0.5, 0.7)
+      .setFlipX(shouldFaceLeft);
+
     return {
       id,
       teamId, // Store team ID for easy team lookup
-      graphics: scene.add.sprite(x, y, spriteKey).setScale(0.12).setOrigin(0.5, 0.7).setFlipX(shouldFaceLeft),
+      graphics,
       body: PhysicsManager.createPlayerBody(scene, x, y),
       hitAreaMarker: scene.add.graphics().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25).setDepth(-1),
       weaponSprite,
@@ -78,6 +82,7 @@ class PlayerManager {
     const teamColor = team.color?.hex ?? (teamIndex % 5) + 1;
     // Pass team's weaponStats reference to all players on the team
     for (let i = 0; i < team.crocCount; i++) {
+      const characterType = team.players?.[i]?.characterType || "CROCODILE";
       scene.players.push(
         this.createPlayer(
           scene,
@@ -86,6 +91,7 @@ class PlayerManager {
           spawnY,
           teamColor,
           team.weaponStats,
+          characterType,
         ),
       );
     }

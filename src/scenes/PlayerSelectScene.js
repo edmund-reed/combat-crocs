@@ -8,11 +8,16 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 
   preload() {
-    // Load player sprites from new location
-    this.load.image("croc-1", "src/assets/players/croc-1.png");
-    this.load.image("croc-2", "src/assets/players/croc-2.png");
-    this.load.image("chameleon-1", "src/assets/players/chameleon-1.png");
-    this.load.image("gecko-1", "src/assets/players/gecko-1.png");
+    // Load background and player sprites
+    this.load.image("mapBg", "src/assets/map-bg.png");
+
+    // Load all colored character sprites
+    Object.values(Config.CHARACTER_TYPES).forEach(({ baseName }) =>
+      ["red", "yellow", "green", "blue", "purple"].forEach(color =>
+        this.load.image(`${baseName}-${color}`, `src/assets/characters/${baseName}/${baseName}-${color}.png`),
+      ),
+    );
+
     this.load.audio("introMusic", "src/assets/intro.mp3");
   }
 
@@ -31,45 +36,49 @@ class PlayerSelectScene extends Phaser.Scene {
       ],
     });
 
+    // Initialize teams with character types for each player
     this.teams = [
-      { id: 1, name: "Team 1", crocCount: 1, color: this.availableColors[0] },
-      { id: 2, name: "Team 2", crocCount: 1, color: this.availableColors[1] },
+      {
+        id: 1,
+        name: "Team 1",
+        crocCount: 1,
+        color: this.availableColors[0],
+        players: [{ characterType: "CROCODILE" }],
+      },
+      {
+        id: 2,
+        name: "Team 2",
+        crocCount: 1,
+        color: this.availableColors[1],
+        players: [{ characterType: "CROCODILE" }],
+      },
     ];
 
-    this.add
-      .graphics()
-      .fillGradientStyle(0xff6b35, 0xf7931e, 0xffd23f, 0xffd23f, 1)
-      .fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    // Map background image (positioned like main menu)
+    const bgImage = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT, "mapBg");
+    bgImage.setScale(Math.max(GAME_WIDTH / bgImage.width, GAME_HEIGHT / bgImage.height)).setOrigin(0.5, 1);
 
     const mapInfo = MapManager.getMapDisplayInfo(MapManager.getCurrentMap().id);
     const centerX = GAME_WIDTH / 2;
 
-    this.add.text(centerX, 60, "CHOOSE YOUR CROCODILES", UITextHelpers._getPrimaryTextStyle(32, 4)).setOrigin(0.5);
     this.add
-      .text(centerX, 110, `Map: ${mapInfo.name}`, {
-        font: "bold 18px Arial",
-        fill: "#000000",
-        stroke: "#FFFFFF",
-        strokeThickness: 1,
+      .text(centerX, 60, "CHOOSE YOUR CROCODILES", {
+        font: "bold 32px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 4,
       })
       .setOrigin(0.5);
     this.add
-      .text(centerX, 128, `${mapInfo.platformCount} platforms • ${mapInfo.difficulty} difficulty`, {
-        font: "12px Arial",
-        fill: "#666666",
+      .text(centerX, 98, `Map: ${mapInfo.name}`, {
+        font: "bold 18px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 3,
       })
       .setOrigin(0.5);
 
     UIManager.createTeamCountSelector(this);
-    this.add
-      .text(centerX, 300, "Customise your teams", {
-        font: "18px Arial",
-        fill: "#FFFFFF",
-        stroke: "#FF6B35",
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5);
-
     TeamSelectorManager.createTeamSelection(this);
     this.createActionButtons();
 
@@ -85,14 +94,22 @@ class PlayerSelectScene extends Phaser.Scene {
   createActionButtons() {
     const { GAME_WIDTH, GAME_HEIGHT } = Config;
     const buttonY = GAME_HEIGHT - 100;
-    const buttonStyle = { font: "28px Arial", fill: "#0000FF", stroke: "#FFFFFF", strokeThickness: 3 };
+    const buttonStyle = { font: "bold 28px Arial", fill: "#FFFFFF", stroke: "#000000", strokeThickness: 4 };
 
     const createButton = (y, text, style, action) => {
       const btn = this.add
         .text(GAME_WIDTH / 2, y, text, style)
         .setOrigin(0.5)
         .setInteractive();
-      UIButtonHelpers.addHoverEffect(btn, "#0000FF");
+
+      // Add hover effect that makes text bigger
+      btn.on("pointerover", () => {
+        btn.setScale(1.2);
+      });
+      btn.on("pointerout", () => {
+        btn.setScale(1.0);
+      });
+
       btn.on("pointerdown", action);
       return btn;
     };
@@ -105,9 +122,9 @@ class PlayerSelectScene extends Phaser.Scene {
 
     createButton(
       buttonY + 60,
-      "BACK TO MENU",
-      { ...buttonStyle, font: "20px Arial", strokeThickness: 2 },
-      () => (this._stopIntroMusic(), this.scene.start("MenuScene")),
+      "Back",
+      { ...buttonStyle, font: "bold 24px Arial" },
+      () => (this._stopIntroMusic(), this.scene.start("MapSelectScene")),
     );
   }
 }

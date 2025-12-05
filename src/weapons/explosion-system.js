@@ -26,8 +26,9 @@ class ExplosionSystem {
       onComplete: () => explosion.destroy(),
     });
 
-    // Apply damage and track XP
     let totalDamage = 0;
+    const attackerTeamId = attackingPlayer ? attackingPlayer.teamId : null;
+
     scene.players.forEach(player => {
       const distance = Phaser.Math.Distance.Between(x, y, player.x, player.y);
       if (
@@ -36,7 +37,11 @@ class ExplosionSystem {
       ) {
         const damage = Math.max(0, maxDamage * (1 - (distance / radius) * 0.75));
         player.health = Math.max(0, player.health - damage);
-        if (projectileOwner !== player.id) totalDamage += damage;
+
+        if (attackerTeamId !== null && player.teamId !== attackerTeamId) {
+          totalDamage += damage;
+        }
+
         scene.checkGameEnd?.();
       }
     });

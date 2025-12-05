@@ -41,9 +41,11 @@ class HitscanWeapon {
     console.log(`🔫 HITSCAN DAMAGE: Player ${hitPlayer.id} ${damage} damage (${healthBefore} → ${hitPlayer.health})`);
     console.log(`🔫 Hit distance: ${hitDist?.toFixed(1)}`);
 
-    // Award XP to the attacking player (award actual damage dealt, not potential damage)
+    // Award XP to the attacking player (only for damage to opponents)
     const actualDamage = healthBefore - hitPlayer.health;
-    awardXP(player, "SHOTGUN", actualDamage, scene);
+    if (player.teamId !== hitPlayer.teamId) {
+      awardXP(player, "SHOTGUN", actualDamage, scene);
+    }
 
     HealthBarManager.updateHealthBars(scene);
     scene.checkGameEnd?.();

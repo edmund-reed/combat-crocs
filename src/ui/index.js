@@ -5,3 +5,4 @@ export { default as UIComponents } from "./ui-components.js";
 export { UITextHelpers, UIButtonHelpers, UISceneHelpers } from "./ui-helpers.js";
 export { default as UIManager } from "./ui.js";
 export { default as WeaponMenuManager } from "./weapon-menu.js";
+export { WeaponUpgradeGrid } from "./weapon-upgrade-grid.js";

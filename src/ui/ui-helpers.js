@@ -1,79 +1,54 @@
-// Global UI Helper Functions for Combat Crocs
-// Reusable patterns across all UI components
+import { Config } from "@config";
+
+const COLORS = { PRIMARY: "#FFD23F", WHITE: "#FFFFFF", ACCENT: "#FF6B35", MUTED: "#DDDDDD" };
 
 class UITextHelpers {
-  static PRIMARY_COLOR = "#FFD23F";
-  static SECONDARY_COLOR = "#FFFFFF";
-  static ACCENT_COLOR = "#FF6B35";
-  static FONT_FAMILY = "Arial";
-
-  static _createText = (scene, x, y, text, styleObject, origin = 0.5) =>
-    scene.add.text(x, y, text, styleObject).setOrigin(origin);
-
-  static _getPrimaryStyle = size => ({
-    font: `bold ${size}px ${this.FONT_FAMILY}`,
-    fill: this.PRIMARY_COLOR,
-    stroke: this.ACCENT_COLOR,
-    strokeThickness: Math.max(1, Math.floor(size / 8)),
-  });
-
-  static _getSecondaryStyle = size => ({ font: `${size}px ${this.FONT_FAMILY}`, fill: this.SECONDARY_COLOR });
-
-  static _getPrimaryTextStyle = (fontSize, strokeThickness = 2, addStroke = true) => ({
-    font: `${addStroke ? "bold " : ""}${fontSize}px ${this.FONT_FAMILY}`,
-    fill: this.PRIMARY_COLOR,
-    ...(addStroke && { stroke: this.ACCENT_COLOR, strokeThickness }),
-  });
-
-  static primaryText = (scene, x, y, text, size = 16, origin = 0.5) =>
-    this._createText(scene, x, y, text, this._getPrimaryStyle(size), origin);
-
-  static secondaryText = (scene, x, y, text, size = 14, origin = 0.5) =>
-    this._createText(scene, x, y, text, this._getSecondaryStyle(size), origin);
-
-  static createInteractiveText = (scene, x, y, text, style = "primary", size = 16, origin = 0.5) => {
-    const styles = style === "primary" ? this._getPrimaryStyle(size) : this._getSecondaryStyle(size);
-    return this._createText(scene, x, y, text, styles, origin).setInteractive();
+  static _text = (scene, x, y, txt, font, fill, stroke = null, strokeW = 0, origin = 0.5) => {
+    const style = { font, fill };
+    if (stroke) Object.assign(style, { stroke, strokeThickness: strokeW });
+    return scene.add.text(x, y, txt, style).setOrigin(origin);
   };
 
-  static createStatusText = (scene, x, y, text, color = this.SECONDARY_COLOR, size = 16, origin = 0.5) =>
-    this._createText(scene, x, y, text, { font: `${size}px ${this.FONT_FAMILY}`, fill: color }, origin);
+  static primaryText = (scene, x, y, txt, size = 16, origin = 0.5) =>
+    this._text(scene, x, y, txt, `bold ${size}px Arial`, COLORS.PRIMARY, COLORS.ACCENT, Math.floor(size / 8), origin);
 
-  static createMutedText = (scene, x, y, text, size = 12, origin = 0.5) =>
-    this._createText(scene, x, y, text, this._getMutedStyle(size), origin);
+  static secondaryText = (scene, x, y, txt, size = 14, origin = 0.5) =>
+    this._text(scene, x, y, txt, `${size}px Arial`, COLORS.WHITE, null, 0, origin);
 
-  static _getMutedStyle = size => ({ font: `${size}px ${this.FONT_FAMILY}`, fill: this.MUTED_COLOR });
+  static createMutedText = (scene, x, y, txt, size = 12, origin = 0.5) =>
+    this._text(scene, x, y, txt, `${size}px Arial`, COLORS.MUTED, null, 0, origin);
 
-  static MUTED_COLOR = "#DDDDDD";
+  static createStatusText = (scene, x, y, txt, color = COLORS.WHITE, size = 16, origin = 0.5) =>
+    this._text(scene, x, y, txt, `${size}px Arial`, color, null, 0, origin);
 }
 
 class UIButtonHelpers {
-  static STYLES = {
-    button: { fill: "#FFFFFF", stroke: "#000000" },
-    buttonHover: { fill: "#FFED4E", stroke: "#804000" },
-  };
-
-  static addHoverEffect(btn, originalColor = "#FFD23F", scale = 1.2) {
-    btn.on("pointerover", () => btn.setScale(scale).setFill("#FFFFFF"));
-    btn.on("pointerout", () => btn.setScale(1.0).setFill(originalColor));
+  static addHoverEffect(btn, scale = 1.2) {
+    btn.on("pointerover", () => btn.setScale(scale));
+    btn.on("pointerout", () => btn.setScale(1.0));
     return btn;
-  }
-
-  static _applyHoverEvents(btn, sizes) {
-    btn.on("pointerover", () =>
-      btn.setStyle({ font: `bold ${sizes.hover}px Arial`, ...this.STYLES.buttonHover, strokeThickness: 5 }),
-    );
-    btn.on("pointerout", () =>
-      btn.setStyle({ font: `bold ${sizes.default}px Arial`, ...this.STYLES.button, strokeThickness: 4 }),
-    );
   }
 
   static createStyledButton(scene, x, y, text, sizes = { default: 20, hover: 22 }, callback) {
     const btn = scene.add
-      .text(x, y, text, { font: `bold ${sizes.default}px Arial`, ...this.STYLES.button, strokeThickness: 4 })
+      .text(x, y, text, {
+        font: `bold ${sizes.default}px Arial`,
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 4,
+      })
       .setOrigin(0.5)
       .setInteractive();
-    this._applyHoverEvents(btn, sizes);
+    btn.setData("originalText", text);
+    btn.setData("hoverText", text === "START GAME" ? "▶ START GAME ◀" : text);
+    btn.on("pointerover", () => {
+      btn.setStyle({ font: `bold ${sizes.hover}px Arial` });
+      btn.setText(btn.getData("hoverText"));
+    });
+    btn.on("pointerout", () => {
+      btn.setStyle({ font: `bold ${sizes.default}px Arial` });
+      btn.setText(btn.getData("originalText"));
+    });
     if (callback) btn.on("pointerdown", callback);
     return btn;
   }
@@ -82,20 +57,9 @@ class UIButtonHelpers {
     const image = scene.add.image(x, y, key).setInteractive();
     const scale = maxSize / Math.max(image.width, image.height);
     if (scale < 1) image.setScale(scale);
-
-    const tint = config.initialTint || 0xcccccc;
-    const hoverScale = config.hoverScale || 1.05;
-    image.setTint(tint);
-
-    image.on("pointerover", () => {
-      image.setScale(image.scaleX * hoverScale);
-      image.clearTint();
-    });
-    image.on("pointerout", () => {
-      image.setScale(image.scaleX / hoverScale);
-      image.setTint(tint);
-    });
-
+    const hs = config.hoverScale || 1.05;
+    image.on("pointerover", () => image.setScale(image.scaleX * hs));
+    image.on("pointerout", () => image.setScale(image.scaleX / hs));
     if (config.onClick) image.on("pointerdown", config.onClick);
     return image;
   }
@@ -106,39 +70,33 @@ class UIButtonHelpers {
 }
 
 class UISceneHelpers {
-  static getSceneLayout(config) {
-    return {
-      width: config.GAME_WIDTH,
-      height: config.GAME_HEIGHT,
-      centerX: config.GAME_WIDTH / 2,
-      centerY: config.GAME_HEIGHT / 2,
-    };
-  }
+  static getSceneLayout = config => ({
+    width: config.GAME_WIDTH,
+    height: config.GAME_HEIGHT,
+    centerX: config.GAME_WIDTH / 2,
+    centerY: config.GAME_HEIGHT / 2,
+  });
 
   static createBackground(scene, config, layout) {
-    if (config.type === "image") {
-      const bg = scene.add.image(
-        layout.centerX + (config.offsetX || 0),
-        layout.centerY + (config.offsetY || 0),
-        config.key,
-      );
-      bg.setOrigin(0.5, 0.5);
-      if (config.scale) bg.setScale(config.scale);
-      return bg;
-    }
-    if (config.type === "gradient") {
-      const gfx = scene.add.graphics();
-      gfx.fillGradientStyle(...config.colors, 1);
-      gfx.fillRect(0, 0, layout.width, layout.height);
-      return gfx;
-    }
+    const bg = scene.add.image(
+      layout.centerX + (config.offsetX || 0),
+      layout.centerY + (config.offsetY || 0),
+      config.key,
+    );
+    bg.setOrigin(0.5);
+    if (config.scale) bg.setScale(config.scale);
+    return bg;
   }
 
-  static createStyledText(scene, x, y, text, fontSize = 18, strokeThickness = 4) {
-    return scene.add
-      .text(x, y, text, { font: `bold ${fontSize}px Arial`, fill: "#FFFFFF", stroke: "#000000", strokeThickness })
+  static createStyledText = (scene, x, y, text, fontSize = 18, strokeW = 4) =>
+    scene.add
+      .text(x, y, text, {
+        font: `bold ${fontSize}px Arial`,
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: strokeW,
+      })
       .setOrigin(0.5);
-  }
 }
 
 export { UITextHelpers, UIButtonHelpers, UISceneHelpers };

@@ -8,6 +8,7 @@ class MapSelectScene extends Phaser.Scene {
   }
 
   preload() {
+    this.load.image("mapBg", "src/assets/map-bg.png");
     this.load.image("magnificentBulk", "src/assets/rides/magnificent-bulk.png");
     this.load.image("dinocoaster", "src/assets/rides/dinocoaster.png");
     this.load.image("hotelOfHorror", "src/assets/rides/hotel-of-horror.png");
@@ -17,17 +18,26 @@ class MapSelectScene extends Phaser.Scene {
   create() {
     const layout = UISceneHelpers.getSceneLayout(Config);
 
-    // Gradient background
-    UISceneHelpers.createBackground(
-      this,
-      { type: "gradient", colors: [0xff6b35, 0xf7931e, 0xffd23f, 0xffd23f] },
-      layout,
-    );
+    // Map background image (positioned like main menu)
+    const bgImage = this.add.image(layout.centerX, layout.height, "mapBg");
+    bgImage.setScale(Math.max(layout.width / bgImage.width, layout.height / bgImage.height)).setOrigin(0.5, 1);
 
     // Title and subtitle
-    this.add.text(layout.centerX, 80, "CHOOSE YOUR RIDE", UITextHelpers._getPrimaryTextStyle(36, 4)).setOrigin(0.5);
     this.add
-      .text(layout.centerX, 130, "Select a ride to battle on", UITextHelpers._getPrimaryTextStyle(18, 2))
+      .text(layout.centerX, 80, "CHOOSE YOUR RIDE", {
+        font: "bold 36px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5);
+    this.add
+      .text(layout.centerX, 130, "Select a ride to battle on", {
+        font: "bold 18px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 2,
+      })
       .setOrigin(0.5);
 
     // Get maps for selected theme park
@@ -39,7 +49,7 @@ class MapSelectScene extends Phaser.Scene {
     const startX = layout.centerX - (spacing * (mapIds.length - 1)) / 2;
 
     mapIds.forEach((mapId, index) => {
-      UIButtonHelpers.createInteractiveImage(this, startX + index * spacing, 250, mapId, 250, {
+      UIButtonHelpers.createInteractiveImage(this, startX + index * spacing, 300, mapId, 250, {
         initialTint: 0xdddddd,
         onClick: () => {
           MapManager.setCurrentMap(mapId);
