@@ -16,7 +16,8 @@ jobs:
       - run: npm run build
       - run: |
           cp index.html phaser.min.js dist/
-          cp -r src/assets dist/
+          mkdir -p dist/src
+          cp -r src/assets dist/src/
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
