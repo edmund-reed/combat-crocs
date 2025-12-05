@@ -1,179 +1,96 @@
-// Weapon Upgrade Grid - RPG Inventory Style Interface
-// Displays weapons as a grid of upgradeable tiles
-
 import { Config } from "@config";
 import UIManager from "./ui.js";
 
 export class WeaponUpgradeGrid {
-  static createGrid(scene, weapons, startX, startY, tileSize = 60, spacing = 2, depth = 0, currentWeapon = null) {
-    const tileContainers = [];
-    let currentY = startY;
+  static createGrid(scene, weapons, x, y, tileSize = 60, spacing = 2, depth = 0, currentWeapon = null) {
+    return weapons.map((data, i) => {
+      const isSelected = currentWeapon === data.weaponType;
+      const row = scene.add
+        .container(x, y + i * (tileSize + spacing + 8))
+        .setDepth(depth)
+        .setAlpha(isSelected ? 1 : 0.5);
 
-    weapons.forEach(weaponData => {
-      const rowContainer = this.createWeaponRow(
-        scene,
-        weaponData,
-        startX,
-        currentY,
-        tileSize,
-        spacing,
-        depth,
-        currentWeapon,
-      );
-      tileContainers.push(rowContainer);
-      currentY += tileSize + spacing + 8; // Tile height + progress bar space + padding
+      for (let lvl = 1; lvl <= data.maxLevel; lvl++) {
+        row.add(this._tile(scene, data, lvl, (lvl - 1) * (tileSize + spacing), tileSize, isSelected, row));
+      }
+      return row;
     });
-
-    return tileContainers;
   }
 
-  static createWeaponRow(scene, weaponData, startX, rowY, tileSize, spacing, depth, currentWeapon = null) {
-    const { weaponType, currentLevel, currentXP, xpThresholds, maxLevel } = weaponData;
+  static _tile(scene, data, level, x, size, isSelected, row) {
+    const { weaponType, currentLevel, currentXP, xpThresholds } = data;
     const config = Config.WEAPON_CONFIGS[weaponType];
-    const isSelected = currentWeapon === weaponType;
+    const isCurrent = level === currentLevel;
+    const locked = level > currentLevel;
+    const tile = scene.add.container(0, 0).setAlpha(locked ? 0.6 : 1);
 
-    // Create row container to group all tiles for this weapon
-    const rowContainer = scene.add
-      .container(startX, rowY)
-      .setDepth(depth)
-      .setAlpha(isSelected ? 1.0 : 0.5);
-
-    // Create tiles for each level and add them to the row container
-    for (let level = 1; level <= maxLevel; level++) {
-      const x = (level - 1) * (tileSize + spacing);
-      const tileContainer = this.createUpgradeTile(
-        scene,
-        weaponType,
-        level,
-        currentLevel,
-        currentXP,
-        xpThresholds,
-        x,
-        0,
-        tileSize,
-        0,
-        isSelected,
-        rowContainer,
-      );
-      rowContainer.add(tileContainer);
-    }
-
-    return rowContainer;
-  }
-
-  static createUpgradeTile(
-    scene,
-    weaponType,
-    level,
-    currentLevel,
-    currentXP,
-    xpThresholds,
-    x,
-    y,
-    size,
-    depth,
-    isSelected = true,
-    rowContainer = null,
-  ) {
-    const config = Config.WEAPON_CONFIGS[weaponType];
-    const isCurrentLevel = level === currentLevel;
-    const isUnlocked = level <= currentLevel;
-    const isLocked = level > currentLevel;
-    const finalOpacity = isLocked ? 0.6 : 1.0;
-
-    const tileContainer = scene.add.container(0, 0).setDepth(depth).setAlpha(finalOpacity);
-
-    const tileBg = scene.add.graphics().fillStyle(0x333333).fillRoundedRect(x, y, size, size, 4);
-
-    const borderColor = isCurrentLevel && isSelected ? 0x00ff00 : 0xffffff;
-    const borderAlpha = isLocked ? 0.3 : 1;
-    tileBg.lineStyle(2, borderColor, borderAlpha).strokeRoundedRect(x, y, size, size, 4);
-
-    tileContainer.add(tileBg);
-
-    const TARGET_ICON_WIDTH = 52;
-    const icon = scene.add.image(x + size / 2, y + size / 2 - 8, config.heldSpriteKey);
-    const scale = TARGET_ICON_WIDTH / icon.width;
-    icon.setScale(scale);
-    if (isLocked) icon.setTint(0x666666);
-
-    tileContainer.add(icon);
-
-    const starText = "⭐".repeat(level);
-    const stars = scene.add
-      .text(x + size / 2, y + size - 17, starText, {
-        font: "12px Arial",
-        fill: isLocked ? "#666666" : "#FFD700",
-      })
-      .setOrigin(0.5);
-
-    tileContainer.add(stars);
-
-    if (isCurrentLevel && level < config.upgrades?.maxLevel) {
-      const progress = this.calculateProgress(currentXP, xpThresholds[level - 1]);
-      const progressHeight = 6;
-      const progressBarElements = this.createProgressBar(
-        scene,
-        x,
-        y + size - progressHeight,
-        size,
-        progressHeight,
-        progress,
-        0, // No separate depth - container handles layering
-        1.0, // No separate alpha - container handles transparency
-        isSelected,
-      );
-      progressBarElements.forEach(el => tileContainer.add(el));
-    }
-
-    const hitArea = scene.add
+    // Background + border (single graphics)
+    const gfx = scene.add
       .graphics()
-      .fillStyle(0x000000, 0)
-      .fillRect(x, y, size, size)
-      .setInteractive(new Phaser.Geom.Rectangle(x, y, size, size), Phaser.Geom.Rectangle.Contains)
-      .on("pointerdown", (pointer, localX, localY, event) => {
-        event.stopPropagation();
-        this.handleTileClick(scene, weaponType);
-      });
+      .fillStyle(0x333333)
+      .fillRoundedRect(x, 0, size, size, 4)
+      .lineStyle(2, isCurrent && isSelected ? 0x00ff00 : 0xffffff, locked ? 0.3 : 1)
+      .strokeRoundedRect(x, 0, size, size, 4);
 
-    if (rowContainer) {
-      const originalAlpha = rowContainer.alpha;
-      hitArea.on("pointerover", () => rowContainer.setAlpha(1.0));
-      hitArea.on("pointerout", () => rowContainer.setAlpha(originalAlpha));
+    // Progress bar (on current level only)
+    if (isCurrent && level < config.upgrades?.maxLevel) {
+      const prog = Math.min(currentXP / xpThresholds[level - 1], 1);
+      const h = 6,
+        py = size - h;
+      gfx
+        .fillStyle(isSelected ? 0x006400 : 0x666666)
+        .fillRect(x, py, size, h)
+        .fillStyle(isSelected ? 0x00ff00 : 0x999999)
+        .fillRect(x, py, size * prog, h)
+        .lineStyle(1, 0xffffff)
+        .strokeRect(x, py, size, h);
     }
+    tile.add(gfx);
 
-    tileContainer.add(hitArea);
-    return tileContainer;
+    // Icon (scale to 52px width)
+    const icon = scene.add.image(x + size / 2, size / 2 - 8, config.heldSpriteKey);
+    icon.setScale(52 / icon.width);
+    if (locked) icon.setTint(0x666666);
+    tile.add(icon);
+
+    // Stars
+    tile.add(
+      scene.add
+        .text(x + size / 2, size - 17, "⭐".repeat(level), { font: "12px Arial", fill: locked ? "#666" : "#FFD700" })
+        .setOrigin(0.5),
+    );
+
+    // Hit area
+    const hit = scene.add
+      .graphics()
+      .fillStyle(0, 0)
+      .fillRect(x, 0, size, size)
+      .setInteractive(new Phaser.Geom.Rectangle(x, 0, size, size), Phaser.Geom.Rectangle.Contains);
+    hit.on("pointerdown", (ptr, lx, ly, event) => {
+      event.stopPropagation();
+      this._select(scene, weaponType);
+    });
+    hit.on("pointerover", () => row.setAlpha(1));
+    hit.on("pointerout", () => row.setAlpha(isSelected ? 1 : 0.5));
+    tile.add(hit);
+
+    return tile;
   }
 
-  static calculateProgress(currentXP, requiredXP) {
-    return Math.min(currentXP / requiredXP, 1.0);
-  }
-
-  static createProgressBar(scene, x, y, width, height, progress, depth, finalOpacity = 1.0, isSelected = true) {
-    const bgColor = isSelected ? 0x006400 : 0x666666;
-    const fillColor = isSelected ? 0x00ff00 : 0x999999;
-
-    const bg = scene.add.graphics().fillStyle(bgColor).fillRect(x, y, width, height);
-    const fillWidth = width * progress;
-    const fill = scene.add.graphics().fillStyle(fillColor).fillRect(x, y, fillWidth, height);
-    const border = scene.add.graphics().lineStyle(1, 0xffffff).strokeRect(x, y, width, height);
-
-    return [bg, fill, border];
-  }
-
-  static handleTileClick(scene, weaponType) {
+  static _select(scene, weaponType) {
     scene.turnManager.setCurrentWeapon(weaponType);
+    const idx = scene.turnManager.getCurrentPlayerIndex();
+    const cfg = Config.WEAPON_CONFIGS[weaponType];
 
-    const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
-    const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
     scene.players.forEach((p, i) => {
-      if (p.weaponSprite && weaponConfig?.hasHeldSprite) {
-        p.weaponSprite.setTexture(weaponConfig.heldSpriteKey);
-        p.weaponSprite.setScale(weaponConfig.heldSpriteScale);
-        p.weaponSprite.setVisible(i === currentPlayerIndex);
+      if (!p.weaponSprite) return;
+      if (cfg?.hasHeldSprite) {
+        p.weaponSprite
+          .setTexture(cfg.heldSpriteKey)
+          .setScale(cfg.heldSpriteScale)
+          .setVisible(i === idx);
       } else {
-        p.weaponSprite?.setVisible(false);
+        p.weaponSprite.setVisible(false);
       }
     });
 
