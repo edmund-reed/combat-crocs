@@ -156,6 +156,11 @@ const PhaserConfig = {
     target: 60,
     forceSetTimeOut: true,
   },
+
+  // Loader settings for GitHub Pages deployment
+  loader: {
+    baseURL: process.env.NODE_ENV === "production" ? "/combat-crocs" : "",
+  },
 };
 
 // Logging Utility (merged from logger.js)
