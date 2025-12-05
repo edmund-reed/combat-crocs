@@ -5,7 +5,7 @@
   "main": "src/game.js",
   "scripts": {
     "prepare": "cp node_modules/phaser/dist/phaser.min.js .",
-    "build": "webpack --mode=production",
+    "build": "NODE_ENV=production webpack --mode=production",
     "build:dev": "webpack --mode=development",
     "start": "webpack serve --mode=development",
     "dev": "npm run build:dev && npm start",
