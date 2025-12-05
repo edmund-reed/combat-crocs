@@ -56,7 +56,10 @@ export class WeaponUpgradeGrid {
     // Stars
     tile.add(
       scene.add
-        .text(x + size / 2, size - 17, "⭐".repeat(level), { font: "12px Arial", fill: locked ? "#666" : "#FFD700" })
+        .text(x + size / 2, size - 17, "⭐".repeat(level), {
+          font: "12px Arial",
+          fill: locked ? "#666" : "#FFD700",
+        })
         .setOrigin(0.5),
     );
 

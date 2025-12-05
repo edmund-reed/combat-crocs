@@ -34,7 +34,9 @@ class TeamSelectorManager {
     const w = Math.min(scene.teamCount * 200, 1000);
     for (let i = 0; i < scene.teamCount; i++) {
       const x =
-        scene.teamCount === 1 ? Config.GAME_WIDTH / 2 : Config.GAME_WIDTH / 2 - w / 2 + i * (w / (scene.teamCount - 1));
+        scene.teamCount === 1
+          ? Config.GAME_WIDTH / 2
+          : Config.GAME_WIDTH / 2 - w / 2 + i * (w / (scene.teamCount - 1));
       this._createTeamPanel(scene, x, 280, scene.teams[i], i);
     }
   }
@@ -45,7 +47,12 @@ class TeamSelectorManager {
     c.add(scene.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(-120, -80, 240, 220, 15));
     c.add(
       scene.add
-        .text(0, -80, team.name, { font: "bold 24px Arial", fill: "#FFFFFF", stroke: "#000000", strokeThickness: 3 })
+        .text(0, -80, team.name, {
+          font: "bold 24px Arial",
+          fill: "#FFFFFF",
+          stroke: "#000000",
+          strokeThickness: 3,
+        })
         .setOrigin(0.5),
     );
 

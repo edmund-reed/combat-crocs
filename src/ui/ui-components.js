@@ -27,7 +27,13 @@ class UIComponents {
     scene.timerText = UITextHelpers.secondaryText(scene, Config.GAME_WIDTH - 200, 50, "Time: 30", 16);
   };
   static createTurnIndicator = scene => {
-    scene.playerIndicator = UITextHelpers.primaryText(scene, Config.GAME_WIDTH / 2, 20, "Player 1's Turn", 20);
+    scene.playerIndicator = UITextHelpers.primaryText(
+      scene,
+      Config.GAME_WIDTH / 2,
+      20,
+      "Player 1's Turn",
+      20,
+    );
   };
   static createInstructions = scene =>
     UITextHelpers.secondaryText(
@@ -73,7 +79,8 @@ class UIComponents {
         .setInteractive();
 
       sprite.on("pointerdown", () => {
-        const next = types[(types.indexOf(team.players?.[i]?.characterType || "CROCODILE") + 1) % types.length];
+        const next =
+          types[(types.indexOf(team.players?.[i]?.characterType || "CROCODILE") + 1) % types.length];
         (team.players ||= [])[i] = { ...(team.players[i] || {}), characterType: next };
         sprite
           .setTexture(CharacterHelper.getSpriteKey(next, team.color?.hex))

@@ -10,7 +10,17 @@ class UITextHelpers {
   };
 
   static primaryText = (scene, x, y, txt, size = 16, origin = 0.5) =>
-    this._text(scene, x, y, txt, `bold ${size}px Arial`, COLORS.PRIMARY, COLORS.ACCENT, Math.floor(size / 8), origin);
+    this._text(
+      scene,
+      x,
+      y,
+      txt,
+      `bold ${size}px Arial`,
+      COLORS.PRIMARY,
+      COLORS.ACCENT,
+      Math.floor(size / 8),
+      origin,
+    );
 
   static secondaryText = (scene, x, y, txt, size = 14, origin = 0.5) =>
     this._text(scene, x, y, txt, `${size}px Arial`, COLORS.WHITE, null, 0, origin);
@@ -65,7 +75,9 @@ class UIButtonHelpers {
   }
 
   static createBackButton(scene, targetScene, x, y, text = "BACK TO MENU") {
-    return this.createStyledButton(scene, x, y, text, { default: 20, hover: 22 }, () => scene.scene.start(targetScene));
+    return this.createStyledButton(scene, x, y, text, { default: 20, hover: 22 }, () =>
+      scene.scene.start(targetScene),
+    );
   }
 }
 

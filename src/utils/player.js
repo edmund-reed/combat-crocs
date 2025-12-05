@@ -59,7 +59,11 @@ class PlayerManager {
   };
 
   static updateHitAreaMarker = player =>
-    player.hitAreaMarker?.setPosition(player.x, player.y).clear().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25);
+    player.hitAreaMarker
+      ?.setPosition(player.x, player.y)
+      .clear()
+      .lineStyle(2, 0x00ff00, 0.7)
+      .strokeCircle(0, 0, 25);
 
   static updatePlayerPhysics = (scene, player) => {
     this.updatePositionSync(player);
@@ -73,7 +77,8 @@ class PlayerManager {
 
   static resetForTurn = player => Object.assign(player, { canMove: false, canShoot: false });
   static activateForTurn = player => Object.assign(player, { canMove: true, canShoot: true });
-  static assignRandomSpawnPositions = (scene, players) => SpawnManager.assignRandomSpawnPositions(scene, players);
+  static assignRandomSpawnPositions = (scene, players) =>
+    SpawnManager.assignRandomSpawnPositions(scene, players);
   static isPlayerAlive = (scene, playerIndex) =>
     playerIndex >= 0 && playerIndex < scene.players.length && scene.players[playerIndex].health > 0;
   static getPlayerIndexById = (scene, playerId) => scene.players.findIndex(p => p.id === playerId);
@@ -118,7 +123,9 @@ class PlayerManager {
     });
 
     Logger.gameEvent(
-      `Created ${scene.players.length} players: ${teams.map(t => `Team ${t.id} (${t.crocCount})`).join(", ")}`,
+      `Created ${scene.players.length} players: ${teams
+        .map(t => `Team ${t.id} (${t.crocCount})`)
+        .join(", ")}`,
     );
   };
 }

@@ -51,7 +51,12 @@ class UIManager {
     const cx = Config.GAME_WIDTH / 2,
       y = 155;
     scene.add
-      .text(cx, y, "Number of Teams", { font: "18px Arial", fill: "#FFFFFF", stroke: "#000000", strokeThickness: 3 })
+      .text(cx, y, "Number of Teams", {
+        font: "18px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
       .setOrigin(0.5);
     scene.teamCountText = scene.add
       .text(cx, y + 35, scene.teamCount.toString(), {
@@ -98,7 +103,8 @@ class UIManager {
   static createWeaponSelectIcon = scene => WeaponMenuManager.createWeaponSelectIcon(scene);
   static showWeaponSelectMenu = scene => WeaponMenuManager.showWeaponSelectMenu(scene);
   static hideWeaponSelectMenu = scene => WeaponMenuManager.hideWeaponSelectMenu(scene);
-  static updateWeaponDisplay = scene => scene.weaponText?.setText(`Weapon: ${scene.turnManager.getCurrentWeapon()}`);
+  static updateWeaponDisplay = scene =>
+    scene.weaponText?.setText(`Weapon: ${scene.turnManager.getCurrentWeapon()}`);
 
   static updateTurnIndicator(scene, currentPlayer) {
     scene.playerIndicator.setText(`Player ${currentPlayer.id}'s Turn`);
