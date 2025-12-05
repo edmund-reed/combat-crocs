@@ -2,22 +2,11 @@ import { Config } from "@config";
 import { SpawnManager } from "@player";
 import { StateManager, Logger, PhysicsManager } from "@utils";
 import { initWeaponStats } from "@weapons";
+import { CharacterHelper } from "./character-helper";
 
 class PlayerManager {
-  static getSpriteForPlayer = (characterType, colorHex = null) => {
-    if (!characterType || !Config.CHARACTER_TYPES[characterType]) {
-      return "croc-red"; // Default fallback
-    }
-
-    const charData = Config.CHARACTER_TYPES[characterType];
-    const colorName = colorHex ? Config.COLOR_NAMES[colorHex] || "red" : "red";
-
-    // Return the combined sprite key: baseName-colorName
-    return `${charData.baseName}-${colorName}`;
-  };
-
   static createPlayer = (scene, id, x, y, color, teamWeaponStats, characterType = "CROCODILE") => {
-    const spriteKey = this.getSpriteForPlayer(characterType, color);
+    const spriteKey = CharacterHelper.getSpriteKey(characterType, color);
     const teamId = parseInt(id.charAt(0));
     const shouldFaceLeft = teamId % 2 === 0;
 
@@ -34,17 +23,9 @@ class PlayerManager {
       .setDepth(100);
 
     const graphics = scene.add.sprite(x, y, spriteKey);
-    // Set to standard game character size with character-specific scaling
     const baseWidth = Config.SPRITE_SIZES.GAME_CHARACTER.width;
     const baseHeight = Config.SPRITE_SIZES.GAME_CHARACTER.height;
-
-    // Apply character-specific scale adjustments
-    let scaleFactor = 1.0;
-    if (characterType === "DINOSAUR") {
-      scaleFactor = 1.2; // Make dinosaurs bigger
-    } else if (characterType === "CHAMELEON") {
-      scaleFactor = 0.9; // Make chameleons smaller
-    }
+    const scaleFactor = Config.CHARACTER_TYPES[characterType]?.scale || 1.0;
 
     graphics
       .setDisplaySize(baseWidth * scaleFactor, baseHeight * scaleFactor)

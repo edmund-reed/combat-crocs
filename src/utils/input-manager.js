@@ -34,7 +34,8 @@ class InputManager {
     const player = scene.players[currentPlayerIndex];
     const currentWeapon = scene.turnManager.getCurrentWeapon();
 
-    if (!player.canShoot || scene.turnManager.isTurnInProgress()) return;
+    if (!player.canShoot || scene.turnManager.isTurnInProgress() || scene.turnManager.weaponAmmo[currentWeapon] <= 0)
+      return;
 
     // Calculate target position from aim angle (supports both mouse and keyboard aiming)
     const shootDistance = 500;

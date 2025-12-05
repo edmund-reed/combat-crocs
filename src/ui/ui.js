@@ -7,6 +7,14 @@ import WeaponMenuManager from "./weapon-menu.js";
 import { InputManager, TurnManager, StateManager, PlayerManager } from "@utils";
 
 class UIManager {
+  static destroyElement(el) {
+    if (Array.isArray(el)) {
+      el.forEach(subEl => this.destroyElement(subEl));
+    } else {
+      el?.destroy?.();
+    }
+  }
+
   static HealthBar = HealthBarManager;
   static TeamSelector = TeamSelectorManager;
   static Components = UIComponents;

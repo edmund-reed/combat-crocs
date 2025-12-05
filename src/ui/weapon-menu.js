@@ -152,16 +152,7 @@ class WeaponMenuManager {
       scene.inputManagerBackup = null;
     }
 
-    // Recursively destroy all elements, including nested arrays
-    function destroyElement(el) {
-      if (Array.isArray(el)) {
-        el.forEach(subEl => destroyElement(subEl));
-      } else {
-        el?.destroy?.();
-      }
-    }
-
-    Object.values(scene.weaponMenu).forEach(destroyElement);
+    Object.values(scene.weaponMenu).forEach(el => UIManager.destroyElement(el));
     scene.weaponMenu = null;
   }
 }

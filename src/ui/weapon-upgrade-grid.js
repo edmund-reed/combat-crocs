@@ -40,7 +40,7 @@ export class WeaponUpgradeGrid {
 
     // Create tiles for each level and add them to the row container
     for (let level = 1; level <= maxLevel; level++) {
-      const x = (level - 1) * (tileSize + spacing); // Relative to row container
+      const x = (level - 1) * (tileSize + spacing);
       const tileContainer = this.createUpgradeTile(
         scene,
         weaponType,
@@ -48,12 +48,12 @@ export class WeaponUpgradeGrid {
         currentLevel,
         currentXP,
         xpThresholds,
-        x, // Use relative positioning within row container
-        0, // Relative to row container
+        x,
+        0,
         tileSize,
-        0, // Depth handled by row container
+        0,
         isSelected,
-        rowContainer, // Pass row container for hover effects
+        rowContainer,
       );
       rowContainer.add(tileContainer);
     }
@@ -79,48 +79,26 @@ export class WeaponUpgradeGrid {
     const isCurrentLevel = level === currentLevel;
     const isUnlocked = level <= currentLevel;
     const isLocked = level > currentLevel;
+    const finalOpacity = isLocked ? 0.6 : 1.0;
 
-    // Calculate final opacity based on new rules:
-    // - Locked tiles: always 60% opacity (0.6) regardless of selection
-    // - All unlocked tiles: 100% opacity (1.0 - fully visible) regardless of current level
-    let finalOpacity = 0.6; // Base 60% opacity
-
-    if (!isLocked) {
-      // All unlocked tiles have full opacity regardless of current level
-      finalOpacity = 1.0;
-    }
-
-    // Create container to group all tile elements and apply alpha to entire tile
     const tileContainer = scene.add.container(0, 0).setDepth(depth).setAlpha(finalOpacity);
 
-    // Tile background - always gray
-    const tileBg = scene.add
-      .graphics()
-      .fillStyle(0x333333) // No alpha here - container handles it
-      .fillRoundedRect(x, y, size, size, 4);
+    const tileBg = scene.add.graphics().fillStyle(0x333333).fillRoundedRect(x, y, size, size, 4);
 
-    // Border - green for current level only when weapon is selected, white otherwise
     const borderColor = isCurrentLevel && isSelected ? 0x00ff00 : 0xffffff;
-    const borderAlpha = isLocked ? 0.3 : 1; // Local alpha for locked state only
+    const borderAlpha = isLocked ? 0.3 : 1;
     tileBg.lineStyle(2, borderColor, borderAlpha).strokeRoundedRect(x, y, size, size, 4);
 
     tileContainer.add(tileBg);
 
-    // Weapon icon - consistent absolute sizing regardless of source image dimensions
     const TARGET_ICON_WIDTH = 52;
     const icon = scene.add.image(x + size / 2, y + size / 2 - 8, config.heldSpriteKey);
-
-    // Calculate scale to reach target width
     const scale = TARGET_ICON_WIDTH / icon.width;
     icon.setScale(scale);
-
-    if (isLocked) {
-      icon.setTint(0x666666); // Gray out locked icons
-    }
+    if (isLocked) icon.setTint(0x666666);
 
     tileContainer.add(icon);
 
-    // Star rating
     const starText = "⭐".repeat(level);
     const stars = scene.add
       .text(x + size / 2, y + size - 17, starText, {
@@ -131,7 +109,6 @@ export class WeaponUpgradeGrid {
 
     tileContainer.add(stars);
 
-    // Progress bar (only for current level) - inside tile, flush with bottom
     if (isCurrentLevel && level < config.upgrades?.maxLevel) {
       const progress = this.calculateProgress(currentXP, xpThresholds[level - 1]);
       const progressHeight = 6;
@@ -144,38 +121,28 @@ export class WeaponUpgradeGrid {
         progress,
         0, // No separate depth - container handles layering
         1.0, // No separate alpha - container handles transparency
-        isSelected, // Pass selected state for color logic
+        isSelected,
       );
-      // Add progress bar elements to container
       progressBarElements.forEach(el => tileContainer.add(el));
     }
 
-    // Make tile interactive - add hit area to container
     const hitArea = scene.add
       .graphics()
-      .fillStyle(0x000000, 0) // Invisible
+      .fillStyle(0x000000, 0)
       .fillRect(x, y, size, size)
       .setInteractive(new Phaser.Geom.Rectangle(x, y, size, size), Phaser.Geom.Rectangle.Contains)
       .on("pointerdown", (pointer, localX, localY, event) => {
-        event.stopPropagation(); // Prevent event bubbling to avoid accidental shooting
+        event.stopPropagation();
         this.handleTileClick(scene, weaponType);
       });
 
-    // Add hover effects for row transparency removal
     if (rowContainer) {
       const originalAlpha = rowContainer.alpha;
-      hitArea.on("pointerover", () => {
-        rowContainer.setAlpha(1.0); // Remove transparency on hover
-      });
-      hitArea.on("pointerout", () => {
-        rowContainer.setAlpha(originalAlpha); // Restore original transparency
-      });
+      hitArea.on("pointerover", () => rowContainer.setAlpha(1.0));
+      hitArea.on("pointerout", () => rowContainer.setAlpha(originalAlpha));
     }
 
-    // Add hit area to container for proper z-index management
     tileContainer.add(hitArea);
-
-    // Return single container per tile
     return tileContainer;
   }
 
@@ -184,30 +151,20 @@ export class WeaponUpgradeGrid {
   }
 
   static createProgressBar(scene, x, y, width, height, progress, depth, finalOpacity = 1.0, isSelected = true) {
-    // When in a container, depth and alpha are handled by the container
-    // Colors depend on weapon selection status
-    const bgColor = isSelected ? 0x006400 : 0x666666; // Dark green for selected, grey for unselected
-    const fillColor = isSelected ? 0x00ff00 : 0x999999; // Bright green for selected, light grey for unselected
+    const bgColor = isSelected ? 0x006400 : 0x666666;
+    const fillColor = isSelected ? 0x00ff00 : 0x999999;
 
-    // Background
     const bg = scene.add.graphics().fillStyle(bgColor).fillRect(x, y, width, height);
-
-    // Fill
     const fillWidth = width * progress;
     const fill = scene.add.graphics().fillStyle(fillColor).fillRect(x, y, fillWidth, height);
-
-    // Border
     const border = scene.add.graphics().lineStyle(1, 0xffffff).strokeRect(x, y, width, height);
 
-    // Return as array for adding to container
     return [bg, fill, border];
   }
 
   static handleTileClick(scene, weaponType) {
-    // Update weapon selection (reuse existing logic)
     scene.turnManager.setCurrentWeapon(weaponType);
 
-    // Update weapon sprites (reuse existing logic)
     const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
     const weaponConfig = Config.WEAPON_CONFIGS[weaponType];
     scene.players.forEach((p, i) => {
@@ -220,19 +177,9 @@ export class WeaponUpgradeGrid {
       }
     });
 
-    // Close menu using proper cleanup (handles nested arrays)
     if (scene.weaponMenu) {
-      // Recursively destroy all elements, including nested arrays
-      function destroyElement(el) {
-        if (Array.isArray(el)) {
-          el.forEach(subEl => destroyElement(subEl));
-        } else {
-          el?.destroy?.();
-        }
-      }
-
       UIManager.clearModalOverlays(scene);
-      Object.values(scene.weaponMenu).forEach(destroyElement);
+      Object.values(scene.weaponMenu).forEach(el => UIManager.destroyElement(el));
       scene.weaponMenu = null;
     }
   }

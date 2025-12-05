@@ -95,35 +95,19 @@ const Config = {
 
   // Character types for players (each will have special abilities later)
   CHARACTER_TYPES: {
-    CHAMELEON: {
-      name: "chameleon",
-      baseName: "chameleon",
-      description: "Stealth specialist",
-    },
-    CROCODILE: {
-      name: "crocodile",
-      baseName: "croc",
-      description: "Tank with high durability",
-    },
-    DINOSAUR: {
-      name: "dinosaur",
-      baseName: "dino",
-      description: "Power attacker",
-    },
-    GECKO: {
-      name: "gecko",
-      baseName: "gecko",
-      description: "Agile climber",
-    },
+    CHAMELEON: { baseName: "chameleon", desc: "Stealth specialist", scale: 0.9 },
+    CROCODILE: { baseName: "croc", desc: "Tank with high durability", scale: 1.0 },
+    DINOSAUR: { baseName: "dino", desc: "Power attacker", scale: 1.2 },
+    GECKO: { baseName: "gecko", desc: "Agile climber", scale: 1.0 },
   },
 
   // Color name mappings for sprite keys
   COLOR_NAMES: {
-    0xff0000: "red", // Red
-    0xffff00: "yellow", // Yellow
-    0x00ff00: "green", // Green
-    0x0000ff: "blue", // Blue
-    0x8a2be2: "purple", // Purple
+    0xff0000: "red",
+    0xffff00: "yellow",
+    0x00ff00: "green",
+    0x0000ff: "blue",
+    0x8a2be2: "purple",
   },
 
   // Standard sprite display sizes

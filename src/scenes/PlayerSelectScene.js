@@ -12,17 +12,11 @@ class PlayerSelectScene extends Phaser.Scene {
     this.load.image("mapBg", "src/assets/map-bg.png");
 
     // Load all colored character sprites
-    const { Config } = require("@config");
-    const characterTypes = Object.values(Config.CHARACTER_TYPES);
-    const colors = ["red", "yellow", "green", "blue", "purple"];
-
-    characterTypes.forEach(charType => {
-      colors.forEach(color => {
-        const spriteKey = `${charType.baseName}-${color}`;
-        const spritePath = `src/assets/characters/${charType.baseName}/${spriteKey}.png`;
-        this.load.image(spriteKey, spritePath);
-      });
-    });
+    Object.values(Config.CHARACTER_TYPES).forEach(({ baseName }) =>
+      ["red", "yellow", "green", "blue", "purple"].forEach(color =>
+        this.load.image(`${baseName}-${color}`, `src/assets/characters/${baseName}/${baseName}-${color}.png`),
+      ),
+    );
 
     this.load.audio("introMusic", "src/assets/intro.mp3");
   }
@@ -49,14 +43,14 @@ class PlayerSelectScene extends Phaser.Scene {
         name: "Team 1",
         crocCount: 1,
         color: this.availableColors[0],
-        players: [{ characterType: "CROCODILE" }], // Default first player as crocodile
+        players: [{ characterType: "CROCODILE" }],
       },
       {
         id: 2,
         name: "Team 2",
         crocCount: 1,
         color: this.availableColors[1],
-        players: [{ characterType: "CROCODILE" }], // Default first player as crocodile
+        players: [{ characterType: "CROCODILE" }],
       },
     ];
 
