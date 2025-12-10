@@ -80,6 +80,7 @@ class PlayerSelectScene extends Phaser.Scene {
 
     UIManager.createTeamCountSelector(this);
     TeamSelectorManager.createTeamSelection(this);
+    this.createAbilitiesDisplay();
     this.createActionButtons();
 
     if (this.cache.audio.exists("introMusic")) {
@@ -90,6 +91,68 @@ class PlayerSelectScene extends Phaser.Scene {
 
   _stopIntroMusic = () => this.introMusic?.isPlaying && this.introMusic.stop();
   clearExistingTeamUI = () => TeamSelectorManager.clearExistingTeamUI(this);
+
+  createAbilitiesDisplay() {
+    const { GAME_WIDTH } = Config;
+    const centerX = GAME_WIDTH / 2;
+    const yPosition = 470;
+
+    // Abilities heading
+    this.add
+      .text(centerX, yPosition, "ABILITIES", {
+        font: "bold 20px Arial",
+        fill: "#FFFFFF",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5);
+
+    // Helper function to shuffle array (Fisher-Yates algorithm)
+    const shuffleArray = array => {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    };
+
+    // Character types with randomized unique colors (no duplicates)
+    const availableColors = ["red", "yellow", "green", "blue", "purple"];
+    const shuffledColors = shuffleArray(availableColors);
+    const characters = [
+      { type: "CROCODILE", color: shuffledColors[0] },
+      { type: "DINOSAUR", color: shuffledColors[1] },
+      { type: "GECKO", color: shuffledColors[2] },
+      { type: "CHAMELEON", color: shuffledColors[3] },
+    ];
+
+    const totalWidth = 600; // Reduced width for tighter spacing
+    const spacing = totalWidth / (characters.length - 1);
+    const startX = centerX - totalWidth / 2;
+
+    characters.forEach((char, index) => {
+      const x = startX + index * spacing;
+      const charConfig = Config.CHARACTER_TYPES[char.type];
+      const spriteKey = `${charConfig.baseName}-${char.color}`;
+
+      // Character sprite (smaller size)
+      const sprite = this.add
+        .sprite(x - 60, yPosition + 50, spriteKey)
+        .setDisplaySize(32, 40)
+        .setOrigin(0.5);
+
+      // Ability name (positioned to the right of sprite)
+      this.add
+        .text(x - 25, yPosition + 50, charConfig.ability.name, {
+          font: "bold 16px Arial",
+          fill: "#FFFFFF",
+          stroke: "#000000",
+          strokeThickness: 2,
+        })
+        .setOrigin(0, 0.5); // Left-aligned for better positioning
+    });
+  }
 
   createActionButtons() {
     const { GAME_WIDTH, GAME_HEIGHT } = Config;

@@ -35,8 +35,53 @@ class ExplosionSystem {
         distance < radius &&
         !PhysicsManager.isExplosionBlocked(x, y, player.x, player.y, scene.currentMapPlatforms)
       ) {
-        const damage = Math.max(0, maxDamage * (1 - (distance / radius) * 0.75));
-        player.health = Math.max(0, player.health - damage);
+        let damage = Math.max(0, maxDamage * (1 - (distance / radius) * 0.75));
+
+        // Apply CROCODILE damage multiplier
+        if (attackingPlayer?.ability?.damageMultiplier) {
+          damage *= attackingPlayer.ability.damageMultiplier;
+        }
+
+        // Handle GECKO Last Stand ability
+        if (
+          player.health - damage <= 0 &&
+          player.ability?.reviveHealthPercent !== undefined &&
+          !player.lastStandUsed &&
+          !player.inLastStand
+        ) {
+          // Check if player has living teammates who could revive them
+          const livingTeammates = scene.players.filter(
+            p => p.teamId === player.teamId && p.id !== player.id && p.health > 0 && !p.inLastStand,
+          );
+
+          console.log(
+            `🔍 Last Stand Check for ${player.id}: Health=${player.health}, Damage=${damage}, reviveHealthPercent=${player.ability?.reviveHealthPercent}, lastStandUsed=${player.lastStandUsed}, livingTeammates=${livingTeammates.length}`,
+          );
+
+          if (livingTeammates.length > 0) {
+            // Has teammates - enter Last Stand
+            player.health = 0.1; // Keep barely alive
+            player.inLastStand = true;
+            player.lastStandUsed = true;
+            // Record the team turn when entering Last Stand
+            player.lastStandTeamTurn = scene.turnManager.teamTurnCounters[player.teamId] || 0;
+            console.log(
+              `🦎 Player ${player.id} entered Last Stand at team turn ${player.lastStandTeamTurn}! (${livingTeammates.length} teammates can revive)`,
+            );
+          } else {
+            // No teammates - die immediately
+            player.health = 0;
+            console.log(`💀 Player ${player.id} died (no teammates to revive)`);
+          }
+        } else {
+          player.health = Math.max(0, player.health - damage);
+          // Debug when Last Stand condition fails
+          if (player.health - damage <= 0) {
+            console.log(
+              `❌ Last Stand BLOCKED for ${player.id}: reviveHealthPercent=${player.ability?.reviveHealthPercent}, lastStandUsed=${player.lastStandUsed}, inLastStand=${player.inLastStand}`,
+            );
+          }
+        }
 
         if (attackerTeamId !== null && player.teamId !== attackerTeamId) {
           totalDamage += damage;
@@ -49,6 +94,13 @@ class ExplosionSystem {
     HealthBarManager.updateHealthBars(scene);
     if (attackingPlayer && totalDamage > 0) awardXP(attackingPlayer, weaponType, totalDamage, scene);
     scene.cameras.main.shake(200, 0.02);
+
+    // Mark that player has attacked this turn and disable further actions
+    if (attackingPlayer) {
+      scene.hasAttackedThisTurn = true;
+      scene.canReviveThisTurn = false;
+      attackingPlayer.canMove = false;
+    }
 
     return projectileOwner;
   }

@@ -7,8 +7,8 @@ class MenuScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("map-bg", "src/assets/map-bg.png");
-    this.load.image("logo", "src/assets/logo.png");
+    this.load.image("map-bg", "./src/assets/map-bg.png");
+    this.load.image("logo", "./src/assets/logo.png");
     this.load.audio("introMusic", "src/assets/intro.mp3");
   }
 
@@ -16,7 +16,9 @@ class MenuScene extends Phaser.Scene {
     const layout = UISceneHelpers.getSceneLayout(Config);
 
     const bgImage = this.add.image(layout.centerX, layout.height, "map-bg");
-    bgImage.setScale(Math.max(layout.width / bgImage.width, layout.height / bgImage.height)).setOrigin(0.5, 1);
+    bgImage
+      .setScale(Math.max(layout.width / bgImage.width, layout.height / bgImage.height))
+      .setOrigin(0.5, 1);
 
     if (this.cache.audio?.get("introMusic")) {
       this.introMusic = this.sound.add("introMusic", { loop: true, volume: 0.3 });
@@ -28,7 +30,14 @@ class MenuScene extends Phaser.Scene {
     if (logo.width > 680) logo.setScale(680 / logo.width);
 
     // Subtitle
-    UISceneHelpers.createStyledText(this, layout.centerX, layout.centerY - 92, "Orlando vs. Crocodiles!", 24, 4);
+    UISceneHelpers.createStyledText(
+      this,
+      layout.centerX,
+      layout.centerY - 92,
+      "Orlando vs. Crocodiles!",
+      24,
+      4,
+    );
 
     // Start button
     UIButtonHelpers.createStyledButton(

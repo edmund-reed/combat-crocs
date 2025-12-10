@@ -14,7 +14,11 @@ class TurnManager {
       currentTurnTimer: null,
       turnInProgress: false,
       weaponByTeam: {},
-      weaponAmmo: Object.fromEntries(Object.entries(Config.WEAPON_CONFIGS).map(([k, v]) => [k, v.shotsPerTurn])),
+      weaponAmmo: Object.fromEntries(
+        Object.entries(Config.WEAPON_CONFIGS).map(([k, v]) => [k, v.shotsPerTurn]),
+      ),
+      turnCount: 0,
+      teamTurnCounters: {}, // Track turn number for each team
     });
   }
 
@@ -26,14 +30,48 @@ class TurnManager {
 
   startTurn = () => {
     this.currentTurnTimer?.destroy();
+    this.turnCount++; // Increment global turn counter
+
+    // Reset flags for new turn
+    this.scene.hasAttackedThisTurn = false;
+    this.scene.canReviveThisTurn = true;
+
     this.currentPlayer = this.getNextPlayerIndex();
-    Logger.gameEvent(`TURN: Player ${this.currentPlayer}, ${Config.TURN_TIME_LIMIT / 1000}s`);
+    const currentTeamId = this.getCurrentTeam();
+
+    // Check for expired Last Stand players for ALL teams when ANY turn starts
+    this.scene.players.forEach(player => {
+      if (player.inLastStand && player.lastStandTeamTurn !== undefined) {
+        const playerTeamTurn = this.teamTurnCounters[player.teamId] || 0;
+        // If this player's team's turn counter is >= when they entered Last Stand + 1, they expire
+        // This gives teams their next turn to attempt revival, and if they choose to attack instead, player dies at start of following turn
+        // Example: Enter at turn 3 → Can revive at turn 4 → Die at start of turn 5 (if not revived)
+        if (playerTeamTurn >= player.lastStandTeamTurn + 1) {
+          // Player has been in Last Stand for too long - kill them
+          player.health = 0;
+          player.inLastStand = false;
+          player.graphics.setAlpha(0.3);
+          console.log(
+            `💀 Player ${player.id} died (Last Stand expired - no revival by team turn ${playerTeamTurn})`,
+          );
+        }
+      }
+    });
+
+    // Increment team turn counter for the team that's about to play
+    this.teamTurnCounters[currentTeamId] = (this.teamTurnCounters[currentTeamId] || 0) + 1;
+
+    Logger.gameEvent(
+      `TURN: Player ${this.currentPlayer}, Team ${currentTeamId} Turn #${this.teamTurnCounters[currentTeamId]}`,
+    );
 
     const currentPlayerObj = this.scene.players[this.currentPlayer];
     currentPlayerObj.canMove = currentPlayerObj.canShoot = true;
     this.scene.players.forEach((p, i) => i !== this.currentPlayer && (p.canMove = p.canShoot = false));
 
-    Object.keys(this.weaponAmmo).forEach(key => (this.weaponAmmo[key] = Config.WEAPON_CONFIGS[key]?.shotsPerTurn || 1));
+    Object.keys(this.weaponAmmo).forEach(
+      key => (this.weaponAmmo[key] = Config.WEAPON_CONFIGS[key]?.shotsPerTurn || 1),
+    );
 
     this.weaponLocked = false;
     this.currentTurnTimer = this.scene.time.delayedCall(Config.TURN_TIME_LIMIT, () => {
@@ -69,8 +107,10 @@ class TurnManager {
     for (let offset = 0; offset < team.crocCount; offset++) {
       const playerNum = ((this.playerIndices[teamIndex] + offset) % team.crocCount) + 1;
       const playerIndex = PlayerManager.getPlayerIndexById(this.scene, `${team.id}${playerNum}`);
+      const player = this.scene.players[playerIndex];
 
-      if (PlayerManager.isPlayerAlive(this.scene, playerIndex)) {
+      // Player must be alive AND not in Last Stand to take a turn
+      if (PlayerManager.isPlayerAlive(this.scene, playerIndex) && !player?.inLastStand) {
         this.playerIndices[teamIndex] = (this.playerIndices[teamIndex] + offset + 1) % team.crocCount;
         return playerIndex;
       }

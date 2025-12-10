@@ -37,17 +37,17 @@ class TeamSelectorManager {
         scene.teamCount === 1
           ? Config.GAME_WIDTH / 2
           : Config.GAME_WIDTH / 2 - w / 2 + i * (w / (scene.teamCount - 1));
-      this._createTeamPanel(scene, x, 280, scene.teams[i], i);
+      this._createTeamPanel(scene, x, 210, scene.teams[i], i);
     }
   }
 
   static _createTeamPanel(scene, x, y, team, idx) {
     if (!scene.teamUIElements) scene.teamUIElements = [];
     const c = scene.add.container(x, y + 100);
-    c.add(scene.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(-120, -80, 240, 220, 15));
+    c.add(scene.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(-120, -65, 240, 170, 15));
     c.add(
       scene.add
-        .text(0, -80, team.name, {
+        .text(0, -65, team.name, {
           font: "bold 24px Arial",
           fill: "#FFFFFF",
           stroke: "#000000",
@@ -60,15 +60,15 @@ class TeamSelectorManager {
       if (cond()) {
         team.crocCount += d;
         d > 0 ? team.players.push({ characterType: "CROCODILE" }) : team.players.pop();
-        UIComponents.updateCrocPreview(scene, x, y + 180, team.crocCount, idx);
+        UIComponents.updateCrocPreview(scene, x, y + 135, team.crocCount, idx);
       }
     };
-    c.add(this._countBtn(scene, -100, 80, "-", () => update(-1, () => team.crocCount > 1)));
-    c.add(this._countBtn(scene, 100, 80, "+", () => update(1, () => team.crocCount < 5)));
-    c.add(UIComponents.createColorSelector(scene, -10, 10, team, scene.availableColors));
+    c.add(this._countBtn(scene, -94, 75, "-", () => update(-1, () => team.crocCount > 1)));
+    c.add(this._countBtn(scene, 94, 75, "+", () => update(1, () => team.crocCount < 5)));
+    c.add(UIComponents.createColorSelector(scene, -10, -35, team, scene.availableColors));
 
     scene.teamUIElements.push(c);
-    UIComponents.updateCrocPreview(scene, x, y + 180, team.crocCount, idx);
+    UIComponents.updateCrocPreview(scene, x, y + 135, team.crocCount, idx);
   }
 
   static refreshTeamSelection = scene => this.createTeamSelection(scene);

@@ -34,7 +34,11 @@ class InputManager {
     const player = scene.players[currentPlayerIndex];
     const currentWeapon = scene.turnManager.getCurrentWeapon();
 
-    if (!player.canShoot || scene.turnManager.isTurnInProgress() || scene.turnManager.weaponAmmo[currentWeapon] <= 0)
+    if (
+      !player.canShoot ||
+      scene.turnManager.isTurnInProgress() ||
+      scene.turnManager.weaponAmmo[currentWeapon] <= 0
+    )
       return;
 
     // Calculate target position from aim angle (supports both mouse and keyboard aiming)
@@ -47,6 +51,9 @@ class InputManager {
     scene.turnManager.weaponAmmo[currentWeapon]--;
     console.log(`Ammo for ${currentWeapon}: ${scene.turnManager.weaponAmmo[currentWeapon]} remaining`);
     scene.turnManager.weaponLocked = true;
+
+    // Disable revival immediately when weapon is fired (before projectile is even created)
+    scene.canReviveThisTurn = false;
 
     WeaponManager.fireWeapon(scene, player, targetX, targetY, currentWeapon);
 
@@ -82,9 +89,15 @@ class InputManager {
     scene.aimLine = scene.add.graphics().lineStyle(4, 0xffd23f);
     scene.aimLine.moveTo(x, y).lineTo(endX, endY).strokePath();
     scene.aimLine.moveTo(endX, endY);
-    scene.aimLine.lineTo(endX - Math.cos(angle - Math.PI / 6) * 12, endY - Math.sin(angle - Math.PI / 6) * 12);
+    scene.aimLine.lineTo(
+      endX - Math.cos(angle - Math.PI / 6) * 12,
+      endY - Math.sin(angle - Math.PI / 6) * 12,
+    );
     scene.aimLine.moveTo(endX, endY);
-    scene.aimLine.lineTo(endX - Math.cos(angle + Math.PI / 6) * 12, endY - Math.sin(angle + Math.PI / 6) * 12);
+    scene.aimLine.lineTo(
+      endX - Math.cos(angle + Math.PI / 6) * 12,
+      endY - Math.sin(angle + Math.PI / 6) * 12,
+    );
     scene.aimLine.strokePath();
   }
 

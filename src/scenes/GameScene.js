@@ -1,5 +1,12 @@
 import { Config } from "@config";
-import { TurnManager, TerrainManager, PlayerManager, PhysicsManager, InputManager, StateManager } from "@utils";
+import {
+  TurnManager,
+  TerrainManager,
+  PlayerManager,
+  PhysicsManager,
+  InputManager,
+  StateManager,
+} from "@utils";
 import { UIManager, HealthBarManager } from "@ui";
 import { MovementManager } from "@player";
 import { WeaponSpriteManager } from "@weapons";
@@ -17,6 +24,8 @@ class GameScene extends Phaser.Scene {
       aimLine: null,
       currentMapPlatforms: [],
       turnManager: new TurnManager(this),
+      hasAttackedThisTurn: false, // Track if current player has attacked
+      canReviveThisTurn: true, // Track if player can still revive teammates
     });
   }
 
@@ -70,6 +79,13 @@ class GameScene extends Phaser.Scene {
         Config.WEAPON_CONFIGS[this.turnManager.getCurrentWeapon()],
         player.aimAngle,
       );
+
+      // Apply Last Stand pulsating effect
+      if (player.inLastStand) {
+        player.graphics.setAlpha(0.3 + Math.sin(Date.now() / 200) * 0.3);
+      } else if (player.health > 0) {
+        player.graphics.setAlpha(1.0);
+      }
     });
 
     const currentPlayerIndex = this.turnManager.getCurrentPlayerIndex();
@@ -82,6 +98,34 @@ class GameScene extends Phaser.Scene {
         InputManager.getCursors(this),
         InputManager.getSpaceKey(this),
       );
+
+      // Check for Last Stand revival (R key) - Only if player can still revive this turn
+      const rKey = this.input.keyboard.addKey("R");
+      if (Phaser.Input.Keyboard.JustDown(rKey) && this.canReviveThisTurn) {
+        const teammates = this.players.filter(p => p.teamId === currentPlayer.teamId && p.inLastStand);
+        teammates.forEach(teammate => {
+          const distance = Phaser.Math.Distance.Between(
+            currentPlayer.x,
+            currentPlayer.y,
+            teammate.x,
+            teammate.y,
+          );
+          if (distance <= 80) {
+            teammate.health = (teammate.maxHealth || 100) * (teammate.ability?.reviveHealthPercent || 0.25);
+            teammate.inLastStand = false;
+            teammate.lastStandTeamTurn = undefined; // Clear Last Stand tracking to prevent re-expiry
+            teammate.graphics.setAlpha(1.0);
+            console.log(
+              `💚 Player ${currentPlayer.id} revived ${teammate.id}! (Health: ${teammate.health.toFixed(1)})`,
+            );
+            this.turnManager.turnInProgress = false;
+            this.turnManager.startTurn();
+          }
+        });
+      } else if (Phaser.Input.Keyboard.JustDown(rKey) && !this.canReviveThisTurn) {
+        // Feedback when trying to revive after attacking
+        console.log("🚫 Cannot revive - you've already attacked this turn!");
+      }
     }
 
     if (currentPlayer.canShoot) {

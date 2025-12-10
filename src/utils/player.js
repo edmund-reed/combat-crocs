@@ -32,7 +32,7 @@ class PlayerManager {
       .setOrigin(0.5, 0.7)
       .setFlipX(shouldFaceLeft);
 
-    return {
+    const player = {
       id,
       teamId, // Store team ID for easy team lookup
       graphics,
@@ -48,8 +48,36 @@ class PlayerManager {
       canShoot: false,
       facingLeft: shouldFaceLeft,
       weaponStats: teamWeaponStats, // Reference team's weapon stats
+      characterType,
     };
+
+    // Apply character-specific abilities
+    this.applyCharacterAbility(player, characterType);
+
+    return player;
   };
+
+  static applyCharacterAbility(player, characterType) {
+    const ability = Config.CHARACTER_TYPES[characterType]?.ability;
+    if (!ability) return;
+
+    // DINOSAUR: Juggernaut - more health
+    if (ability.healthMultiplier) {
+      player.health *= ability.healthMultiplier;
+      player.maxHealth = player.health;
+    }
+
+    // GECKO: Last Stand - initialize flags
+    if (ability.reviveHealthPercent !== undefined) {
+      player.lastStandUsed = false;
+      player.inLastStand = false;
+    }
+
+    // Store ability reference
+    player.ability = ability;
+
+    Logger.playerAction(`Applied ability "${ability.name}" to Player ${player.id}`);
+  }
 
   static updatePositionSync = player => {
     const { x, y } = player.body.position;

@@ -49,7 +49,7 @@ class UIManager {
 
   static createTeamCountSelector(scene) {
     const cx = Config.GAME_WIDTH / 2,
-      y = 155;
+      y = 150;
     scene.add
       .text(cx, y, "Number of Teams", {
         font: "18px Arial",

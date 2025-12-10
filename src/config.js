@@ -93,12 +93,44 @@ const Config = {
     WATER_BLUE: 0x7cb9e8,
   },
 
-  // Character types for players (each will have special abilities later)
+  // Character types for players with unique abilities
   CHARACTER_TYPES: {
-    CHAMELEON: { baseName: "chameleon", desc: "Stealth specialist", scale: 0.9 },
-    CROCODILE: { baseName: "croc", desc: "Tank with high durability", scale: 1.0 },
-    DINOSAUR: { baseName: "dino", desc: "Power attacker", scale: 1.2 },
-    GECKO: { baseName: "gecko", desc: "Agile climber", scale: 1.0 },
+    CHAMELEON: {
+      baseName: "chameleon",
+      desc: "Wall Walker",
+      scale: 1,
+      ability: {
+        name: "Wall Walker",
+        jumpMultiplier: 1.3, // 30% higher jump
+      },
+    },
+    CROCODILE: {
+      baseName: "croc",
+      desc: "Stopping Power",
+      scale: 1,
+      ability: {
+        name: "Stopping Power",
+        damageMultiplier: 1.05, // 5% more damage (configurable)
+      },
+    },
+    DINOSAUR: {
+      baseName: "dino",
+      desc: "Juggernaut",
+      scale: 1,
+      ability: {
+        name: "Juggernaut",
+        healthMultiplier: 1.05, // 5% more health (configurable)
+      },
+    },
+    GECKO: {
+      baseName: "gecko",
+      desc: "Last Stand",
+      scale: 1,
+      ability: {
+        name: "Last Stand",
+        reviveHealthPercent: 0.25, // 25% health on revive (configurable)
+      },
+    },
   },
 
   // Color name mappings for sprite keys

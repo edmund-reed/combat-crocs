@@ -66,6 +66,11 @@ class UIComponents {
     arr.forEach(s => s.destroy());
     arr.length = 0;
 
+    // Clean up any existing tooltips for this team
+    if (!scene.tooltipArrays) scene.tooltipArrays = [];
+    scene.tooltipArrays[teamIdx]?.forEach(t => t.destroy());
+    scene.tooltipArrays[teamIdx] = [];
+
     const spacing = Math.max(25, 45 - Math.max(0, count - 2) * 5);
     const start = x - ((count - 1) * spacing) / 2;
     const types = Object.keys(Config.CHARACTER_TYPES);
@@ -78,6 +83,50 @@ class UIComponents {
         .setDisplaySize(Config.SPRITE_SIZES.UI_CHARACTER.width, Config.SPRITE_SIZES.UI_CHARACTER.height)
         .setInteractive();
 
+      // Get ability name for tooltip
+      const charConfig = Config.CHARACTER_TYPES[charType];
+      const abilityName = charConfig?.ability?.name || "Unknown Ability";
+
+      // Create tooltip on hover
+      sprite.on("pointerover", () => {
+        const tooltip = scene.add
+          .text(sprite.x + 3, sprite.y - 42, abilityName, {
+            font: "12px Arial",
+            fill: "#FFFFFF",
+            stroke: "#000000",
+            strokeThickness: 2,
+            backgroundColor: "#000000",
+            padding: { left: 4, right: 4, top: 2, bottom: 2 },
+          })
+          .setOrigin(0.5, 1); // Center horizontally, anchor to bottom
+
+        // Create traditional arrow pointing down from tooltip bottom
+        // Since origin is (0.5, 1), the tooltip position is the bottom center
+        const arrowY = sprite.y - 42 + 0; // Arrow starts at the tooltip position (no padding adjustment needed)
+        const arrow = scene.add.graphics();
+        arrow.fillStyle(0x000000, 1);
+        arrow.lineStyle(2, 0x000000, 1);
+
+        // Draw triangular arrow pointing down (shifted 3px right)
+        arrow.beginPath();
+        arrow.moveTo(sprite.x + 3 - 6, arrowY);
+        arrow.lineTo(sprite.x + 3 + 6, arrowY);
+        arrow.lineTo(sprite.x + 3, arrowY + 8);
+        arrow.closePath();
+        arrow.fillPath();
+        arrow.strokePath();
+
+        scene.tooltipArrays[teamIdx].push(tooltip, arrow);
+      });
+
+      // Hide tooltip on mouse out
+      sprite.on("pointerout", () => {
+        if (scene.tooltipArrays[teamIdx]) {
+          scene.tooltipArrays[teamIdx].forEach(tooltip => tooltip.destroy());
+          scene.tooltipArrays[teamIdx] = [];
+        }
+      });
+
       sprite.on("pointerdown", () => {
         const next =
           types[(types.indexOf(team.players?.[i]?.characterType || "CROCODILE") + 1) % types.length];
@@ -85,6 +134,13 @@ class UIComponents {
         sprite
           .setTexture(CharacterHelper.getSpriteKey(next, team.color?.hex))
           .setDisplaySize(Config.SPRITE_SIZES.UI_CHARACTER.width, Config.SPRITE_SIZES.UI_CHARACTER.height);
+
+        // Update tooltip if visible
+        const newCharConfig = Config.CHARACTER_TYPES[next];
+        const newAbilityName = newCharConfig?.ability?.name || "Unknown Ability";
+        if (scene.tooltipArrays[teamIdx] && scene.tooltipArrays[teamIdx].length > 0) {
+          scene.tooltipArrays[teamIdx][0].setText(newAbilityName);
+        }
       });
       arr.push(sprite);
     }
