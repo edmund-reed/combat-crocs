@@ -18,7 +18,7 @@ class TurnManager {
         Object.entries(Config.WEAPON_CONFIGS).map(([k, v]) => [k, v.shotsPerTurn]),
       ),
       turnCount: 0,
-      teamTurnCounters: {}, // Track turn number for each team
+      teamTurnCounters: {},
     });
   }
 
@@ -30,35 +30,15 @@ class TurnManager {
 
   startTurn = () => {
     this.currentTurnTimer?.destroy();
-    this.turnCount++; // Increment global turn counter
+    this.turnCount++;
 
-    // Reset flags for new turn
     this.scene.hasAttackedThisTurn = false;
     this.scene.canReviveThisTurn = true;
 
     this.currentPlayer = this.getNextPlayerIndex();
     const currentTeamId = this.getCurrentTeam();
 
-    // Check for expired Last Stand players for ALL teams when ANY turn starts
-    this.scene.players.forEach(player => {
-      if (player.inLastStand && player.lastStandTeamTurn !== undefined) {
-        const playerTeamTurn = this.teamTurnCounters[player.teamId] || 0;
-        // If this player's team's turn counter is >= when they entered Last Stand + 1, they expire
-        // This gives teams their next turn to attempt revival, and if they choose to attack instead, player dies at start of following turn
-        // Example: Enter at turn 3 → Can revive at turn 4 → Die at start of turn 5 (if not revived)
-        if (playerTeamTurn >= player.lastStandTeamTurn + 1) {
-          // Player has been in Last Stand for too long - kill them
-          player.health = 0;
-          player.inLastStand = false;
-          player.graphics.setAlpha(0.3);
-          console.log(
-            `💀 Player ${player.id} died (Last Stand expired - no revival by team turn ${playerTeamTurn})`,
-          );
-        }
-      }
-    });
-
-    // Increment team turn counter for the team that's about to play
+    this.#expireLastStandPlayers();
     this.teamTurnCounters[currentTeamId] = (this.teamTurnCounters[currentTeamId] || 0) + 1;
 
     Logger.gameEvent(
@@ -140,6 +120,12 @@ class TurnManager {
 
   endCurrentTurn = () => (Logger.gameEvent("Projectile turn ended"), (this.turnInProgress = false), true);
 
+  markPlayerAttacked = (player = null) => {
+    this.scene.hasAttackedThisTurn = true;
+    this.scene.canReviveThisTurn = false;
+    if (player) player.canMove = false;
+  };
+
   getCurrentPlayerIndex = () => this.currentPlayer;
   getCurrentTeam = () => this.currentTeamId || 0;
   isTurnInProgress = () => this.turnInProgress;
@@ -167,6 +153,22 @@ class TurnManager {
     projectileBody.timerId && clearTimeout(projectileBody.timerId);
     scene.endProjectileTurn();
   };
+
+  #expireLastStandPlayers() {
+    this.scene.players.forEach(player => {
+      if (player.inLastStand && player.lastStandTeamTurn !== undefined) {
+        const playerTeamTurn = this.teamTurnCounters[player.teamId] || 0;
+        if (playerTeamTurn >= player.lastStandTeamTurn + 1) {
+          player.health = 0;
+          player.inLastStand = false;
+          player.graphics.setAlpha(0.3);
+          console.log(
+            `💀 Player ${player.id} died (Last Stand expired - no revival by team turn ${playerTeamTurn})`,
+          );
+        }
+      }
+    });
+  }
 }
 
 export default TurnManager;

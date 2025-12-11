@@ -82,7 +82,10 @@ class GameScene extends Phaser.Scene {
 
       // Apply Last Stand pulsating effect
       if (player.inLastStand) {
-        player.graphics.setAlpha(0.3 + Math.sin(Date.now() / 200) * 0.3);
+        const { PULSE_BASE_ALPHA, PULSE_FREQUENCY } = Config.LAST_STAND;
+        player.graphics.setAlpha(
+          PULSE_BASE_ALPHA + Math.sin(Date.now() / PULSE_FREQUENCY) * PULSE_BASE_ALPHA,
+        );
       } else if (player.health > 0) {
         player.graphics.setAlpha(1.0);
       }
@@ -110,7 +113,7 @@ class GameScene extends Phaser.Scene {
             teammate.x,
             teammate.y,
           );
-          if (distance <= 80) {
+          if (distance <= Config.LAST_STAND.REVIVAL_RANGE) {
             teammate.health = (teammate.maxHealth || 100) * (teammate.ability?.reviveHealthPercent || 0.25);
             teammate.inLastStand = false;
             teammate.lastStandTeamTurn = undefined; // Clear Last Stand tracking to prevent re-expiry
@@ -171,14 +174,7 @@ class GameScene extends Phaser.Scene {
   }
 
   endProjectileTurn() {
-    console.log("Projectile turn ended, starting next turn after explosion delay");
-    this.time.addEvent({
-      delay: 500,
-      callback: () => {
-        console.log("Starting next turn from endProjectileTurn");
-        this.turnManager.startTurn();
-      },
-    });
+    this.time.addEvent({ delay: 500, callback: () => this.turnManager.startTurn() });
   }
 }
 

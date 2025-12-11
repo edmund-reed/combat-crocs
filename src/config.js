@@ -83,6 +83,14 @@ const Config = {
   // Turn settings
   TURN_TIME_LIMIT: 30000, // 30 seconds in milliseconds
 
+  // Last Stand ability settings
+  LAST_STAND: {
+    REVIVAL_RANGE: 80, // Distance within which teammates can revive
+    MINIMAL_HEALTH: 0.1, // Health when in Last Stand state
+    PULSE_BASE_ALPHA: 0.3, // Base alpha for pulsating effect
+    PULSE_FREQUENCY: 200, // Frequency of pulse animation (ms)
+  },
+
   // Orlando theme colors
   COLORS: {
     ORANGE: 0xff6b35,
