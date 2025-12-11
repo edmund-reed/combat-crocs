@@ -4,7 +4,7 @@ import { Config } from "@config";
 import PhysicsManager from "@utils/physics-manager.js";
 import { HealthBarManager } from "@ui";
 import { getWeaponDamage, getWeaponRadius, getExplosionColor, awardXP } from "@weapons";
-import { LastStandManager } from "@utils";
+import { DamageManager } from "@utils";
 
 class ExplosionSystem {
   static detonateTimerExplosion(scene, projectileBody) {
@@ -52,10 +52,10 @@ class ExplosionSystem {
           Math.max(0, maxDamage * (1 - (distance / radius) * 0.75)) *
           (attackingPlayer?.ability?.damageMultiplier ?? 1);
 
-        LastStandManager.handleDamage(scene, player, damage);
+        const { actualDamage } = DamageManager.applyDamage(scene, player, damage);
 
         if (attackerTeamId !== null && player.teamId !== attackerTeamId) {
-          totalDamage += damage;
+          totalDamage += actualDamage;
         }
 
         scene.checkGameEnd?.();

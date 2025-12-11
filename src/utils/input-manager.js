@@ -17,11 +17,9 @@ class InputManager {
   }
 
   static handleAiming(scene, pointer) {
-    if (!scene.gameStarted) return;
-
     const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
     const player = scene.players[currentPlayerIndex];
-    if (!player.canShoot) return;
+    if (!player?.canShoot) return;
 
     player.aimAngle = Phaser.Math.Angle.Between(player.x, player.y, pointer.worldX, pointer.worldY);
     this.updateAimLine(scene);

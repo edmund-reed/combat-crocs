@@ -39,7 +39,6 @@ class TurnManager {
     this.currentPlayer = this.getNextPlayerIndex();
     const currentTeamId = this.getCurrentTeam();
 
-    LastStandManager.updateLastStandPlayers(this.scene);
     this.teamTurnCounters[currentTeamId] = (this.teamTurnCounters[currentTeamId] || 0) + 1;
 
     Logger.gameEvent(

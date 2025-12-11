@@ -2,7 +2,7 @@ import { Config, Logger } from "@config";
 import WeaponMath from "@weapons/weapon-math.js";
 import { HealthBarManager } from "@ui";
 import { getWeaponDamage, awardXP } from "@weapons";
-import { LastStandManager } from "@utils";
+import { DamageManager } from "@utils";
 
 class HitscanWeapon {
   // Streamlined hitscan with generic utilities
@@ -34,17 +34,16 @@ class HitscanWeapon {
       return this.endTurn(scene, player, weapon);
     }
 
-    // Apply damage with Last Stand handling
-    const { health: healthBefore } = hitPlayer;
-    LastStandManager.handleDamage(scene, hitPlayer, damage);
+    // Apply damage via central DamageManager (with Last Stand support)
+    const damageResult = DamageManager.applyDamage(scene, hitPlayer, damage);
 
-    console.log(
-      `🔫 HITSCAN DAMAGE: Player ${hitPlayer.id} ${damage} damage (${healthBefore} → ${hitPlayer.health})`,
+    Logger.weaponEvent(
+      `🔫 HITSCAN DAMAGE: Player ${hitPlayer.id} ${damageResult.requestedDamage} damage ` +
+        `(${damageResult.previousHealth} → ${damageResult.currentHealth}), distance=${hitDist?.toFixed(1)}`,
     );
-    console.log(`🔫 Hit distance: ${hitDist?.toFixed(1)}`);
 
     // Award XP to the attacking player (only for damage to opponents)
-    const actualDamage = healthBefore - hitPlayer.health;
+    const actualDamage = damageResult.actualDamage;
     if (player.teamId !== hitPlayer.teamId) {
       awardXP(player, "SHOTGUN", actualDamage, scene);
     }

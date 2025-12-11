@@ -94,6 +94,17 @@ class GameScene extends Phaser.Scene {
     HealthBarManager.updateHealthBarPositions(this);
     HealthBarManager.updateHealthBars(this);
   }
+
+  endProjectileTurn() {
+    console.log("Projectile turn ended, starting next turn after explosion delay");
+    this.time.addEvent({
+      delay: 500,
+      callback: () => {
+        console.log("Starting next turn from endProjectileTurn");
+        this.turnManager.startTurn();
+      },
+    });
+  }
 }
 
 export default GameScene;
