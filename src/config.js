@@ -107,38 +107,26 @@ const Config = {
       baseName: "chameleon",
       desc: "Wall Walker",
       scale: 1,
-      ability: {
-        name: "Wall Walker",
-        jumpMultiplier: 1.3, // 30% higher jump
-      },
-    },
+      ability: { name: "Wall Walker", jumpMultiplier: 1.3 },
+    }, // 30% higher jump
     CROCODILE: {
       baseName: "croc",
       desc: "Stopping Power",
       scale: 1,
-      ability: {
-        name: "Stopping Power",
-        damageMultiplier: 1.05, // 5% more damage (configurable)
-      },
-    },
+      ability: { name: "Stopping Power", damageMultiplier: 1.05 },
+    }, // 5% more damage
     DINOSAUR: {
       baseName: "dino",
       desc: "Juggernaut",
       scale: 1,
-      ability: {
-        name: "Juggernaut",
-        healthMultiplier: 1.05, // 5% more health (configurable)
-      },
-    },
+      ability: { name: "Juggernaut", healthMultiplier: 1.05 },
+    }, // 5% more health
     GECKO: {
       baseName: "gecko",
       desc: "Last Stand",
       scale: 1,
-      ability: {
-        name: "Last Stand",
-        reviveHealthPercent: 0.25, // 25% health on revive (configurable)
-      },
-    },
+      ability: { name: "Last Stand", reviveHealthPercent: 0.25 },
+    }, // 25% health on revive
   },
 
   // Color name mappings for sprite keys

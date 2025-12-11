@@ -12,15 +12,7 @@ class HitscanWeapon {
 
     const weapon = Config.WEAPON_CONFIGS[weaponType];
     const { behaviorFlags } = weapon;
-
-    // Use upgraded damage if player has upgrades, otherwise use base damage
-    let damage = getWeaponDamage(player, "SHOTGUN");
-
-    // Apply CROCODILE damage multiplier
-    if (player.ability?.damageMultiplier) {
-      damage *= player.ability.damageMultiplier;
-    }
-
+    const damage = getWeaponDamage(player, "SHOTGUN") * (player.ability?.damageMultiplier ?? 1);
     const targets = scene.players.filter(p => p.id !== player.id && p.health > 0);
     const { player: hitPlayer, distance: hitDist } =
       WeaponMath.hitscanAlongLine(targets, player.x, player.y, targetX, targetY) || {};

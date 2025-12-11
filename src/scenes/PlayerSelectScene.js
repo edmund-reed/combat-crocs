@@ -1,6 +1,6 @@
 import { Config } from "@config";
 import { UIButtonHelpers, UIManager, TeamSelectorManager, UISceneHelpers } from "@ui";
-import { StateManager, Maps as MapManager, shuffleArray } from "@utils";
+import { StateManager, Maps as MapManager } from "@utils";
 
 class PlayerSelectScene extends Phaser.Scene {
   constructor() {
@@ -76,13 +76,9 @@ class PlayerSelectScene extends Phaser.Scene {
 
     UISceneHelpers.createStyledText(this, layout.centerX, yPosition, "ABILITIES", 20, 3);
 
-    const colorNames = this.availableColors.map(c => Config.COLOR_NAMES[c.hex]);
-    const shuffledColors = shuffleArray(colorNames);
-
-    const characterTypes = ["CROCODILE", "DINOSAUR", "GECKO", "CHAMELEON"];
-    const characters = characterTypes.map((type, index) => ({
+    const characters = ["CROCODILE", "DINOSAUR", "GECKO", "CHAMELEON"].map((type, index) => ({
       type,
-      color: shuffledColors[index],
+      color: ["red", "blue", "green", "purple"][index],
     }));
 
     const totalWidth = 600;

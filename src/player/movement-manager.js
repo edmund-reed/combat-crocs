@@ -40,10 +40,7 @@ class MovementManager {
     const canJump = isActuallyOnGround && player.hasJumpedThisTurn !== true;
 
     if (spaceKey.isDown && canJump) {
-      // Apply CHAMELEON jump boost if player has that ability
-      const jumpForce = player.ability?.jumpMultiplier
-        ? Config.PLAYER_JUMP_FORCE * player.ability.jumpMultiplier
-        : Config.PLAYER_JUMP_FORCE;
+      const jumpForce = Config.PLAYER_JUMP_FORCE * (player.ability?.jumpMultiplier ?? 1);
 
       scene.matter.body.setVelocity(player.body, {
         x: player.body.velocity.x,

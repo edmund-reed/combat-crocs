@@ -48,14 +48,10 @@ class ExplosionSystem {
         distance < radius &&
         !PhysicsManager.isExplosionBlocked(x, y, player.x, player.y, scene.currentMapPlatforms)
       ) {
-        let damage = Math.max(0, maxDamage * (1 - (distance / radius) * 0.75));
+        const damage =
+          Math.max(0, maxDamage * (1 - (distance / radius) * 0.75)) *
+          (attackingPlayer?.ability?.damageMultiplier ?? 1);
 
-        // Apply CROCODILE damage multiplier
-        if (attackingPlayer?.ability?.damageMultiplier) {
-          damage *= attackingPlayer.ability.damageMultiplier;
-        }
-
-        // Handle damage with Last Stand logic
         LastStandManager.handleDamage(scene, player, damage);
 
         if (attackerTeamId !== null && player.teamId !== attackerTeamId) {
