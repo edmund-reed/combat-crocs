@@ -1,59 +1,43 @@
 import { Config } from "@config";
 import { SpawnManager } from "@player";
-import { StateManager, Logger, PhysicsManager } from "@utils";
-import { initWeaponStats } from "@weapons";
+import { StateManager, PhysicsManager } from "@utils";
 import { CharacterHelper } from "./character-helper";
 
 class PlayerManager {
   static createPlayer = (scene, id, x, y, color, teamWeaponStats, characterType = "CROCODILE") => {
-    const spriteKey = CharacterHelper.getSpriteKey(characterType, color);
     const teamId = parseInt(id.charAt(0));
     const shouldFaceLeft = teamId % 2 === 0;
-
-    Logger.playerAction(
-      `Creating Player ${id} with character type: ${characterType}, color: ${color}, sprite: ${spriteKey}`,
-    );
-
-    // Create held weapon sprite (texture will be set when weapon is selected)
-    const defaultWeapon = Config.WEAPON_CONFIGS.BAZOOKA;
-    const weaponSprite = scene.add
-      .sprite(x, y, defaultWeapon.heldSpriteKey || "grenade-l1")
-      .setScale(0.04)
-      .setVisible(false)
-      .setDepth(100);
-
-    const graphics = scene.add.sprite(x, y, spriteKey);
-    const baseWidth = Config.SPRITE_SIZES.GAME_CHARACTER.width;
-    const baseHeight = Config.SPRITE_SIZES.GAME_CHARACTER.height;
+    const { width, height } = Config.SPRITE_SIZES.GAME_CHARACTER;
     const scaleFactor = Config.CHARACTER_TYPES[characterType]?.scale || 1.0;
-
-    graphics
-      .setDisplaySize(baseWidth * scaleFactor, baseHeight * scaleFactor)
-      .setOrigin(0.5, 0.7)
-      .setFlipX(shouldFaceLeft);
 
     const player = {
       id,
-      teamId, // Store team ID for easy team lookup
-      graphics,
-      body: PhysicsManager.createPlayerBody(scene, x, y),
-      hitAreaMarker: scene.add.graphics().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25).setDepth(-1),
-      weaponSprite,
+      teamId,
+      characterType,
+      color,
       x,
       y,
       health: 100,
-      color,
       aimAngle: 0,
       canMove: false,
       canShoot: false,
       facingLeft: shouldFaceLeft,
-      weaponStats: teamWeaponStats, // Reference team's weapon stats
-      characterType,
+      weaponStats: teamWeaponStats,
+      weaponSprite: scene.add
+        .sprite(x, y, Config.WEAPON_CONFIGS.BAZOOKA.heldSpriteKey || "grenade-l1")
+        .setScale(0.04)
+        .setVisible(false)
+        .setDepth(100),
+      graphics: scene.add
+        .sprite(x, y, CharacterHelper.getSpriteKey(characterType, color))
+        .setDisplaySize(width * scaleFactor, height * scaleFactor)
+        .setOrigin(0.5, 0.7)
+        .setFlipX(shouldFaceLeft),
+      body: PhysicsManager.createPlayerBody(scene, x, y),
+      hitAreaMarker: scene.add.graphics().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25).setDepth(-1),
     };
 
-    // Apply character-specific abilities
     this.applyCharacterAbility(player, characterType);
-
     return player;
   };
 
@@ -61,28 +45,19 @@ class PlayerManager {
     const ability = Config.CHARACTER_TYPES[characterType]?.ability;
     if (!ability) return;
 
-    // DINOSAUR: Juggernaut - more health
     if (ability.healthMultiplier) {
       player.health *= ability.healthMultiplier;
       player.maxHealth = player.health;
     }
-
-    // GECKO: Last Stand - initialize flags
     if (ability.reviveHealthPercent !== undefined) {
-      player.lastStandUsed = false;
-      player.inLastStand = false;
+      Object.assign(player, { lastStandUsed: false, inLastStand: false });
     }
-
-    // Store ability reference
     player.ability = ability;
-
-    Logger.playerAction(`Applied ability "${ability.name}" to Player ${player.id}`);
   }
 
   static updatePositionSync = player => {
     const { x, y } = player.body.position;
-    player.x = x;
-    player.y = y;
+    Object.assign(player, { x, y });
     player.graphics.setPosition(x, y);
   };
 
@@ -95,10 +70,10 @@ class PlayerManager {
 
   static updatePlayerPhysics = (scene, player) => {
     this.updatePositionSync(player);
-    if (player.x < 30 || player.x > Config.GAME_WIDTH - 30) {
-      const clampedX = Math.max(35, Math.min(Config.GAME_WIDTH - 35, player.x));
+    const clampedX = Math.max(35, Math.min(Config.GAME_WIDTH - 35, player.x));
+    if (clampedX !== player.x) {
       scene.matter.body.setPosition(player.body, { x: clampedX, y: player.y });
-      player.x = clampedX;
+      Object.assign(player, { x: clampedX });
       player.graphics.setPosition(clampedX, player.y);
     }
   };
@@ -107,13 +82,11 @@ class PlayerManager {
   static activateForTurn = player => Object.assign(player, { canMove: true, canShoot: true });
   static assignRandomSpawnPositions = (scene, players) =>
     SpawnManager.assignRandomSpawnPositions(scene, players);
-  static isPlayerAlive = (scene, playerIndex) =>
-    playerIndex >= 0 && playerIndex < scene.players.length && scene.players[playerIndex].health > 0;
-  static getPlayerIndexById = (scene, playerId) => scene.players.findIndex(p => p.id === playerId);
+  static isPlayerAlive = (scene, i) => i >= 0 && i < scene.players.length && scene.players[i].health > 0;
+  static getPlayerIndexById = (scene, id) => scene.players.findIndex(p => p.id === id);
 
   static createTeamPlayers = (scene, team, teamIndex, spawnY) => {
     const teamColor = team.color?.hex ?? (teamIndex % 5) + 1;
-    // Pass team's weaponStats reference to all players on the team
     for (let i = 0; i < team.crocCount; i++) {
       const characterType = team.players?.[i]?.characterType || "CROCODILE";
       scene.players.push(
@@ -132,16 +105,10 @@ class PlayerManager {
 
   static createGamePlayers = scene => {
     const teams = StateManager.getTeams();
-
-    // Initialize weapon stats for all teams BEFORE creating players
     StateManager.initializeTeamWeaponStats(teams);
 
-    scene.players = [];
-    scene.playerSprites = {};
-    scene.playerBodies = {};
-
+    Object.assign(scene, { players: [], playerSprites: {}, playerBodies: {} });
     teams.forEach((team, i) => this.createTeamPlayers(scene, team, i, Config.GAME_HEIGHT - 110));
-
     this.assignRandomSpawnPositions(scene, scene.players);
 
     scene.players.forEach(p => {
@@ -149,12 +116,6 @@ class PlayerManager {
       scene.playerBodies[p.id] = p.body;
       p.hitAreaMarker?.setPosition(p.x, p.y);
     });
-
-    Logger.gameEvent(
-      `Created ${scene.players.length} players: ${teams
-        .map(t => `Team ${t.id} (${t.crocCount})`)
-        .join(", ")}`,
-    );
   };
 }
 

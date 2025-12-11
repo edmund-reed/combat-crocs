@@ -4,6 +4,26 @@ import TeamSelectorManager from "./team-selector-manager.js";
 import { CharacterHelper } from "@utils/character-helper";
 
 class UIComponents {
+  static getAbilityName = charType => Config.CHARACTER_TYPES[charType]?.ability?.name || "Unknown";
+
+  static createTooltip(scene, x, y, text, tooltipArray) {
+    const tooltip = scene.add
+      .text(x + 3, y - 42, text, {
+        font: "12px Arial",
+        fill: "#FFF",
+        stroke: "#000",
+        strokeThickness: 2,
+        backgroundColor: "#000",
+        padding: { left: 4, right: 4, top: 2, bottom: 2 },
+      })
+      .setOrigin(0.5, 1);
+
+    const arrow = scene.add.graphics().fillStyle(0x000000, 1);
+    arrow.fillTriangle(x - 3, y - 42, x + 9, y - 42, x + 3, y - 34);
+    tooltipArray.push(tooltip, arrow);
+    return tooltip;
+  }
+
   static createColorButton = (scene, color, isSelected, x, y) =>
     scene.add
       .graphics()
@@ -23,18 +43,19 @@ class UIComponents {
       16,
     );
   };
-  static createTimerDisplay = scene => {
-    scene.timerText = UITextHelpers.secondaryText(scene, Config.GAME_WIDTH - 200, 50, "Time: 30", 16);
-  };
-  static createTurnIndicator = scene => {
-    scene.playerIndicator = UITextHelpers.primaryText(
+
+  static createTimerDisplay = scene =>
+    (scene.timerText = UITextHelpers.secondaryText(scene, Config.GAME_WIDTH - 200, 50, "Time: 30", 16));
+
+  static createTurnIndicator = scene =>
+    (scene.playerIndicator = UITextHelpers.primaryText(
       scene,
       Config.GAME_WIDTH / 2,
       20,
       "Player 1's Turn",
       20,
-    );
-  };
+    ));
+
   static createInstructions = scene =>
     UITextHelpers.secondaryText(
       scene,
@@ -50,10 +71,7 @@ class UIComponents {
       start = -((colors.length - 1) * spacing) / 2;
     colors.forEach((col, i) => {
       const btn = this.createColorButton(scene, col, team.color?.hex === col.hex, start + i * spacing, 0);
-      btn.on("pointerdown", () => {
-        team.color = col;
-        TeamSelectorManager.refreshTeamSelection(scene);
-      });
+      btn.on("pointerdown", () => ((team.color = col), TeamSelectorManager.refreshTeamSelection(scene)));
       c.add(btn);
     });
     if (!team.color) team.color = colors[(team.id - 1) % colors.length];
@@ -62,88 +80,81 @@ class UIComponents {
 
   static updateCrocPreview(scene, x, y, count, teamIdx) {
     if (!scene.teams?.[teamIdx]) return;
-    const arr = ((scene.spriteArrays ||= [])[teamIdx] ||= []);
-    arr.forEach(s => s.destroy());
-    arr.length = 0;
 
-    // Clean up any existing tooltips for this team
-    if (!scene.tooltipArrays) scene.tooltipArrays = [];
-    scene.tooltipArrays[teamIdx]?.forEach(t => t.destroy());
-    scene.tooltipArrays[teamIdx] = [];
-
-    const spacing = Math.max(25, 45 - Math.max(0, count - 2) * 5);
-    const start = x - ((count - 1) * spacing) / 2;
-    const types = Object.keys(Config.CHARACTER_TYPES);
-    const team = scene.teams[teamIdx];
+    this.#clearTeamPreview(scene, teamIdx);
+    const config = this.#getPreviewConfig(scene, x, y, count, teamIdx);
 
     for (let i = 0; i < count; i++) {
-      const charType = team.players?.[i]?.characterType || "CROCODILE";
-      const sprite = scene.add
-        .sprite(start + i * spacing, y, CharacterHelper.getSpriteKey(charType, team.color?.hex))
-        .setDisplaySize(Config.SPRITE_SIZES.UI_CHARACTER.width, Config.SPRITE_SIZES.UI_CHARACTER.height)
-        .setInteractive();
-
-      // Get ability name for tooltip
-      const charConfig = Config.CHARACTER_TYPES[charType];
-      const abilityName = charConfig?.ability?.name || "Unknown Ability";
-
-      // Create tooltip on hover
-      sprite.on("pointerover", () => {
-        const tooltip = scene.add
-          .text(sprite.x + 3, sprite.y - 42, abilityName, {
-            font: "12px Arial",
-            fill: "#FFFFFF",
-            stroke: "#000000",
-            strokeThickness: 2,
-            backgroundColor: "#000000",
-            padding: { left: 4, right: 4, top: 2, bottom: 2 },
-          })
-          .setOrigin(0.5, 1); // Center horizontally, anchor to bottom
-
-        // Create traditional arrow pointing down from tooltip bottom
-        // Since origin is (0.5, 1), the tooltip position is the bottom center
-        const arrowY = sprite.y - 42 + 0; // Arrow starts at the tooltip position (no padding adjustment needed)
-        const arrow = scene.add.graphics();
-        arrow.fillStyle(0x000000, 1);
-        arrow.lineStyle(2, 0x000000, 1);
-
-        // Draw triangular arrow pointing down (shifted 3px right)
-        arrow.beginPath();
-        arrow.moveTo(sprite.x + 3 - 6, arrowY);
-        arrow.lineTo(sprite.x + 3 + 6, arrowY);
-        arrow.lineTo(sprite.x + 3, arrowY + 8);
-        arrow.closePath();
-        arrow.fillPath();
-        arrow.strokePath();
-
-        scene.tooltipArrays[teamIdx].push(tooltip, arrow);
-      });
-
-      // Hide tooltip on mouse out
-      sprite.on("pointerout", () => {
-        if (scene.tooltipArrays[teamIdx]) {
-          scene.tooltipArrays[teamIdx].forEach(tooltip => tooltip.destroy());
-          scene.tooltipArrays[teamIdx] = [];
-        }
-      });
-
-      sprite.on("pointerdown", () => {
-        const next =
-          types[(types.indexOf(team.players?.[i]?.characterType || "CROCODILE") + 1) % types.length];
-        (team.players ||= [])[i] = { ...(team.players[i] || {}), characterType: next };
-        sprite
-          .setTexture(CharacterHelper.getSpriteKey(next, team.color?.hex))
-          .setDisplaySize(Config.SPRITE_SIZES.UI_CHARACTER.width, Config.SPRITE_SIZES.UI_CHARACTER.height);
-
-        // Update tooltip if visible
-        const newCharConfig = Config.CHARACTER_TYPES[next];
-        const newAbilityName = newCharConfig?.ability?.name || "Unknown Ability";
-        if (scene.tooltipArrays[teamIdx] && scene.tooltipArrays[teamIdx].length > 0) {
-          scene.tooltipArrays[teamIdx][0].setText(newAbilityName);
-        }
-      });
-      arr.push(sprite);
+      const sprite = this.#createCharacterSprite(scene, config, i);
+      this.#setupSpriteInteractions(scene, sprite, config, i);
+      scene.spriteArrays[teamIdx].push(sprite);
     }
+  }
+
+  static #clearTeamPreview(scene, teamIdx) {
+    [((scene.spriteArrays ||= [])[teamIdx] ||= []), ((scene.tooltipArrays ||= [])[teamIdx] ||= [])].forEach(
+      arr => (arr.forEach(s => s?.destroy()), (arr.length = 0)),
+    );
+  }
+
+  static #getPreviewConfig(scene, x, y, count, teamIdx) {
+    const spacing = Math.max(25, 45 - Math.max(0, count - 2) * 5);
+    return {
+      team: scene.teams[teamIdx],
+      startX: x - ((count - 1) * spacing) / 2,
+      y,
+      spacing,
+      teamIdx,
+      types: Object.keys(Config.CHARACTER_TYPES),
+      size: Config.SPRITE_SIZES.UI_CHARACTER,
+    };
+  }
+
+  static #createCharacterSprite(scene, config, index) {
+    const charType = config.team.players?.[index]?.characterType || "CROCODILE";
+    return scene.add
+      .sprite(
+        config.startX + index * config.spacing,
+        config.y,
+        CharacterHelper.getSpriteKey(charType, config.team.color?.hex),
+      )
+      .setDisplaySize(config.size.width, config.size.height)
+      .setInteractive();
+  }
+
+  static #setupSpriteInteractions(scene, sprite, config, index) {
+    const charType = config.team.players?.[index]?.characterType || "CROCODILE";
+
+    sprite.on("pointerover", () =>
+      this.createTooltip(
+        scene,
+        sprite.x,
+        sprite.y,
+        this.getAbilityName(charType),
+        scene.tooltipArrays[config.teamIdx],
+      ),
+    );
+
+    sprite.on(
+      "pointerout",
+      () => (
+        scene.tooltipArrays[config.teamIdx]?.forEach(t => t.destroy()),
+        (scene.tooltipArrays[config.teamIdx] = [])
+      ),
+    );
+
+    sprite.on("pointerdown", () => this.#cycleCharacterType(scene, sprite, config, index));
+  }
+
+  static #cycleCharacterType(scene, sprite, config, index) {
+    const current = config.team.players?.[index]?.characterType || "CROCODILE";
+    const next = config.types[(config.types.indexOf(current) + 1) % config.types.length];
+
+    (config.team.players ||= [])[index] = { ...(config.team.players[index] || {}), characterType: next };
+    sprite
+      .setTexture(CharacterHelper.getSpriteKey(next, config.team.color?.hex))
+      .setDisplaySize(config.size.width, config.size.height);
+    scene.tooltipArrays[config.teamIdx]?.[0]?.setText(this.getAbilityName(next));
   }
 }
 
