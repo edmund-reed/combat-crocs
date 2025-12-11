@@ -81,7 +81,11 @@ class UIComponents {
   static updateCrocPreview(scene, x, y, count, teamIdx) {
     if (!scene.teams?.[teamIdx]) return;
 
-    this.#clearTeamPreview(scene, teamIdx);
+    // Clear any existing sprites and tooltips for this team's preview
+    [((scene.spriteArrays ||= [])[teamIdx] ||= []), ((scene.tooltipArrays ||= [])[teamIdx] ||= [])].forEach(
+      arr => (arr.forEach(s => s?.destroy()), (arr.length = 0)),
+    );
+
     const config = this.#getPreviewConfig(scene, x, y, count, teamIdx);
 
     for (let i = 0; i < count; i++) {
@@ -89,12 +93,6 @@ class UIComponents {
       this.#setupSpriteInteractions(scene, sprite, config, i);
       scene.spriteArrays[teamIdx].push(sprite);
     }
-  }
-
-  static #clearTeamPreview(scene, teamIdx) {
-    [((scene.spriteArrays ||= [])[teamIdx] ||= []), ((scene.tooltipArrays ||= [])[teamIdx] ||= [])].forEach(
-      arr => (arr.forEach(s => s?.destroy()), (arr.length = 0)),
-    );
   }
 
   static #getPreviewConfig(scene, x, y, count, teamIdx) {

@@ -29,13 +29,12 @@ export class DamageManager {
     }
 
     const currentHealth = targetPlayer.health;
-    const actualDamage = previousHealth - currentHealth;
 
     return {
       previousHealth,
       currentHealth,
       requestedDamage: damage,
-      actualDamage,
+      actualDamage: previousHealth - currentHealth,
       enteredLastStand,
     };
   }

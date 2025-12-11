@@ -11,7 +11,6 @@ class HitscanWeapon {
     Logger.weaponEvent(`Player ${player.id} firing hitscan at (${targetX}, ${targetY})`);
 
     const weapon = Config.WEAPON_CONFIGS[weaponType];
-    const { behaviorFlags } = weapon;
     const damage = getWeaponDamage(player, "SHOTGUN") * (player.ability?.damageMultiplier ?? 1);
     const targets = scene.players.filter(p => p.id !== player.id && p.health > 0);
     const { player: hitPlayer, distance: hitDist } =
