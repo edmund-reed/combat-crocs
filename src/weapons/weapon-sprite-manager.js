@@ -1,4 +1,19 @@
+import { Config } from "@config";
+
 class WeaponSpriteManager {
+  static updateWeaponSpritesForTurn(scene, currentWeapon, currentPlayerIndex) {
+    const weaponConfig = Config.WEAPON_CONFIGS[currentWeapon];
+    scene.players.forEach((p, i) => {
+      if (p.weaponSprite && weaponConfig?.hasHeldSprite) {
+        p.weaponSprite.setTexture(weaponConfig.heldSpriteKey);
+        p.weaponSprite.setScale(weaponConfig.heldSpriteScale);
+        p.weaponSprite.setVisible(i === currentPlayerIndex);
+      } else {
+        p.weaponSprite?.setVisible(false);
+      }
+    });
+  }
+
   static updateWeaponSprite(player, weaponConfig, aimAngle) {
     if (!player.weaponSprite || !weaponConfig?.hasHeldSprite) return;
 

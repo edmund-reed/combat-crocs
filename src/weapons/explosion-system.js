@@ -7,6 +7,18 @@ import { getWeaponDamage, getWeaponRadius, getExplosionColor, awardXP } from "@w
 import { LastStandManager } from "@utils";
 
 class ExplosionSystem {
+  static detonateTimerExplosion(scene, projectileBody) {
+    this.createExplosion(
+      scene,
+      projectileBody.position.x,
+      projectileBody.position.y,
+      projectileBody.projectileOwner,
+      projectileBody.weaponType || "UNKNOWN",
+    );
+    projectileBody.timerId && clearTimeout(projectileBody.timerId);
+    scene.endProjectileTurn();
+  }
+
   static createExplosion(scene, x, y, projectileOwner = null, weaponType = "BAZOOKA") {
     const attackingPlayer = projectileOwner ? scene.players.find(p => p.id === projectileOwner) : null;
     const config = Config.WEAPON_CONFIGS[weaponType];

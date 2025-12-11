@@ -27,6 +27,29 @@ class InputManager {
     this.updateAimLine(scene);
   }
 
+  static handleAimingInput(scene, currentPlayer, cursors, isMoving) {
+    if (!currentPlayer?.canShoot) {
+      this.clearAimLine(scene);
+      return;
+    }
+
+    // Keyboard aiming adjustments
+    if (cursors.up.isDown) currentPlayer.aimAngle -= 0.026;
+    if (cursors.down.isDown) currentPlayer.aimAngle += 0.026;
+
+    // Update player direction when not moving
+    if (!isMoving) {
+      const aimTargetX = currentPlayer.x + Math.cos(currentPlayer.aimAngle) * 100;
+      const shouldFaceLeft = aimTargetX < currentPlayer.x;
+      if (shouldFaceLeft !== currentPlayer.facingLeft) {
+        currentPlayer.facingLeft = shouldFaceLeft;
+        currentPlayer.graphics.setFlipX(shouldFaceLeft);
+      }
+    }
+
+    this.updateAimLine(scene);
+  }
+
   static handleShooting(scene, pointer) {
     if (UIManager.isModalOpen(scene)) return;
 
