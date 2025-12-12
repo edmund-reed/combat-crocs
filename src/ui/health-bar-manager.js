@@ -33,16 +33,35 @@ class HealthBarManager {
       bar.clear();
 
       const dark = player.color & 0x7f7f7f;
-      const hp = Math.max(0, player.health);
-      const w = 100 * (hp / 100);
+      const baseMax = 100;
+      const baseWidth = 100;
+      const hp = Math.max(0, player.health || 0);
 
+      const baseHp = Math.min(hp, baseMax); // health up to default max
+      const rawBonusHp = Math.max(0, hp - baseMax); // health beyond default max
+      const clampedBonusHp = Math.min(rawBonusHp, baseMax); // cap bonus at +100 for visuals
+
+      const baseW = baseWidth * (baseHp / baseMax);
+      const bonusW = baseWidth * (clampedBonusHp / baseMax); // e.g. +25 hp => 25% of baseWidth
+      const totalWidth = baseWidth + bonusW;
+
+      // Background and outline for full potential width
       bar
         .fillStyle(dark)
-        .fillRect(0, 0, 100, 12)
-        .fillStyle(player.color)
-        .fillRect(0, 0, w, 12)
+        .fillRect(0, 0, totalWidth, 12)
         .lineStyle(1, 0x000000)
-        .strokeRect(0, 0, 100, 12);
+        .strokeRect(0, 0, totalWidth, 12);
+
+      // Base health segment (normal colour)
+      if (baseW > 0) {
+        bar.fillStyle(player.color).fillRect(0, 0, baseW, 12);
+      }
+
+      // Bonus health segment (lighter variant of player color)
+      if (bonusW > 0) {
+        const bonusColor = this._lightenColor(player.color, 0.4);
+        bar.fillStyle(bonusColor).fillRect(baseW, 0, bonusW, 12);
+      }
 
       if (hp > 0) {
         bar.setVisible(true);
@@ -69,6 +88,16 @@ class HealthBarManager {
     const rip = UITextHelpers.createStatusText(scene, x, y - 40, "RIP", "#FFFFFF", 10).setOrigin(0.5);
     player.graphics.setVisible(false);
     StateManager.registerCleanup(scene, { stone, rip }, "effects");
+  }
+
+  static _lightenColor(color, factor = 0.4) {
+    const r = (color >> 16) & 0xff;
+    const g = (color >> 8) & 0xff;
+    const b = color & 0xff;
+    const lr = Math.min(255, Math.round(r + (255 - r) * factor));
+    const lg = Math.min(255, Math.round(g + (255 - g) * factor));
+    const lb = Math.min(255, Math.round(b + (255 - b) * factor));
+    return (lr << 16) | (lg << 8) | lb;
   }
 }
 

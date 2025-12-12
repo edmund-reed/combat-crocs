@@ -37,14 +37,24 @@ class GameScene extends Phaser.Scene {
     this.load.image("grenade-l1", "src/assets/weapons/orange-grenade/orange-grenade-level-1.png");
     this.load.image("bazooka-l1", "src/assets/weapons/bazooka/bazooka-level-1.png");
     this.load.image("shotgun-l1", "src/assets/weapons/shotgun/shotgun-level-1.png");
+    this.load.image("health-pack", "src/assets/health-pack.png");
+    this.load.image("generic-map", "src/assets/backgrounds/generic-map.png");
+    this.load.image("terrain", "src/assets/terrain.png");
+    this.load.image("brick", "src/assets/brick.png");
   }
 
   create() {
+    const bg = this.add.image(Config.GAME_WIDTH / 2, Config.GAME_HEIGHT, "generic-map");
+    const bgScale = Math.max(Config.GAME_WIDTH / bg.width, Config.GAME_HEIGHT / bg.height);
+    bg.setOrigin(0.5, 1).setScale(bgScale).setDepth(-100);
+
     TerrainManager.createGameTerrain(this);
     PlayerManager.createGamePlayers(this);
     PhysicsManager.initializePhysics(this);
     UIManager.createGameUI(this);
     InputManager.setupInput(this);
+
+    this.healthCrates = [];
 
     this.turnManager.initializeTeams();
     this.turnManager.startTurn();
@@ -93,6 +103,43 @@ class GameScene extends Phaser.Scene {
     PhysicsManager.updateProjectiles(this);
     HealthBarManager.updateHealthBarPositions(this);
     HealthBarManager.updateHealthBars(this);
+
+    if (this.healthCrates?.length) {
+      this.healthCrates = this.healthCrates.filter(crate => {
+        let pickedUp = false;
+        this.players.forEach((p, idx) => {
+          if (pickedUp || !PlayerManager.isPlayerAlive(this, idx)) return;
+          const dx = p.x - crate.x;
+          const dy = p.y - crate.y;
+          if (Math.hypot(dx, dy) < 25) {
+            const heal = crate.healAmount || Config.HEALTH_CRATE_AMOUNT;
+            p.maxHealth = (p.maxHealth || 100) + heal;
+            p.health = (p.health || 0) + heal;
+            crate.destroy();
+            pickedUp = true;
+          }
+        });
+        return !pickedUp;
+      });
+    }
+  }
+
+  spawnHealthCrate(amount = Config.HEALTH_CRATE_AMOUNT) {
+    const x = Phaser.Math.Between(50, Config.GAME_WIDTH - 50);
+
+    // Find the top-most terrain under this x (platforms + ground)
+    let targetTop = Config.GAME_HEIGHT - 100;
+    (this.currentMapPlatforms || []).forEach(p => {
+      const top = p.y;
+      if (x >= p.x && x <= p.x + p.width && top < targetTop) targetTop = top;
+    });
+
+    const crate = this.add.image(x, -40, "health-pack").setDepth(900);
+    const maxWidth = 32;
+    if (crate.width > maxWidth) crate.setScale(maxWidth / crate.width);
+    crate.healAmount = amount;
+    this.tweens.add({ targets: crate, y: targetTop - 20, duration: 800, ease: "Bounce.Out" });
+    this.healthCrates.push(crate);
   }
 
   endProjectileTurn() {

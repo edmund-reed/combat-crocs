@@ -35,6 +35,10 @@ class TurnManager {
     this.scene.canReviveThisTurn = true;
     this.currentPlayer = this.getNextPlayerIndex();
 
+    if (Math.random() < (Config.HEALTH_CRATE_CHANCE || 0)) {
+      this.scene.spawnHealthCrate?.();
+    }
+
     const currentTeamId = this.getCurrentTeam();
     this.teamTurnCounters[currentTeamId] = (this.teamTurnCounters[currentTeamId] || 0) + 1;
 

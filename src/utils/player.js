@@ -18,6 +18,7 @@ class PlayerManager {
       x,
       y,
       health: 100,
+      maxHealth: 100,
       aimAngle: 0,
       canMove: false,
       canShoot: false,
