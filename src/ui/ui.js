@@ -1,5 +1,5 @@
 import { Config } from "@config";
-import { UITextHelpers } from "./ui-helpers.js";
+import { UITextHelpers, UISceneHelpers, UIButtonHelpers } from "./ui-helpers.js";
 import TeamSelectorManager from "./team-selector-manager.js";
 import HealthBarManager from "./health-bar-manager.js";
 import WeaponMenuManager from "./weapon-menu.js";
@@ -32,24 +32,11 @@ class UIManager {
   static isModalOpen = scene => scene.modalOverlayActive || false;
 
   static createTeamCountSelector(scene) {
-    const cx = Config.GAME_WIDTH / 2,
-      y = 150;
-    scene.add
-      .text(cx, y, "Number of Teams", {
-        font: "18px Arial",
-        fill: "#FFFFFF",
-        stroke: "#000000",
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5);
-    scene.teamCountText = scene.add
-      .text(cx, y + 35, scene.teamCount.toString(), {
-        font: "48px Arial",
-        fill: "#FFFFFF",
-        stroke: "#000000",
-        strokeThickness: 4,
-      })
-      .setOrigin(0.5);
+    const cx = Config.GAME_WIDTH / 2;
+    const y = 150;
+
+    UISceneHelpers.styledText(scene, cx, y, "Number of Teams", 18, 3);
+    scene.teamCountText = UISceneHelpers.styledText(scene, cx, y + 35, scene.teamCount.toString(), 48, 4);
 
     const update = (d, cond) => {
       if (cond()) {
@@ -61,18 +48,12 @@ class UIManager {
     };
 
     const btn = (x, label, onClick) => {
-      const c = scene.add
-        .container(x, y + 35)
-        .setSize(40, 40)
-        .setInteractive();
+      // prettier-ignore
+      const c = scene.add.container(x, y + 35).setSize(40, 40).setInteractive();
       c.add(scene.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(-20, -20, 40, 40, 8));
-      const t = scene.add
-        .text(0, 0, label, { font: "36px Arial", fill: "#FFFFFF", stroke: "#000000", strokeThickness: 3 })
-        .setOrigin(0.5);
-      c.add(t);
-      c.on("pointerover", () => t.setScale(1.2));
-      c.on("pointerout", () => t.setScale(1.0));
+      c.add(UITextHelpers.primaryText(scene, 0, 0, label, 36));
       c.on("pointerdown", onClick);
+      UIButtonHelpers.addHoverEffect(c, 1.2);
       return c;
     };
 

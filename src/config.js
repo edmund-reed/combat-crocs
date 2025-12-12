@@ -129,14 +129,14 @@ const Config = {
     }, // 25% health on revive
   },
 
-  // Color name mappings for sprite keys
-  COLOR_NAMES: {
-    0xff0000: "red",
-    0xffff00: "yellow",
-    0x00ff00: "green",
-    0x0000ff: "blue",
-    0x8a2be2: "purple",
-  },
+  // Color name mappings for sprite keys (array of { key, hex })
+  COLOR_NAMES: [
+    { key: "red", hex: 0xff0000 },
+    { key: "yellow", hex: 0xffff00 },
+    { key: "green", hex: 0x00ff00 },
+    { key: "blue", hex: 0x0000ff },
+    { key: "purple", hex: 0x8a2be2 },
+  ],
 
   // Standard sprite display sizes
   SPRITE_SIZES: {

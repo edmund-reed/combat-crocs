@@ -30,14 +30,7 @@ class MenuScene extends Phaser.Scene {
     if (logo.width > 680) logo.setScale(680 / logo.width);
 
     // Subtitle
-    UISceneHelpers.createStyledText(
-      this,
-      layout.centerX,
-      layout.centerY - 92,
-      "Orlando vs. Crocodiles!",
-      24,
-      4,
-    );
+    UISceneHelpers.styledText(this, layout.centerX, layout.centerY - 92, "Orlando vs. Crocodiles!", 24, 4);
 
     // Start button
     UIButtonHelpers.createStyledButton(

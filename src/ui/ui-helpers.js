@@ -40,15 +40,7 @@ class UIButtonHelpers {
   }
 
   static createStyledButton(scene, x, y, text, sizes = { default: 20, hover: 22 }, callback) {
-    const btn = scene.add
-      .text(x, y, text, {
-        font: `bold ${sizes.default}px Arial`,
-        fill: "#FFFFFF",
-        stroke: "#000000",
-        strokeThickness: 4,
-      })
-      .setOrigin(0.5)
-      .setInteractive();
+    const btn = UISceneHelpers.styledText(scene, x, y, text, sizes.default, 4).setInteractive();
     btn.setData("originalText", text);
     btn.setData("hoverText", text === "START GAME" ? "▶ START GAME ◀" : text);
     btn.on("pointerover", () => {
@@ -100,7 +92,7 @@ class UISceneHelpers {
     return bg;
   }
 
-  static createStyledText = (scene, x, y, text, fontSize = 18, strokeW = 4) =>
+  static styledText = (scene, x, y, text, fontSize = 18, strokeW = 4) =>
     scene.add
       .text(x, y, text, {
         font: `bold ${fontSize}px Arial`,

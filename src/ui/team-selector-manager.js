@@ -1,18 +1,18 @@
 import { Config } from "@config";
 import UIComponents from "./ui-components.js";
+import { UITextHelpers, UIButtonHelpers, UISceneHelpers } from "./ui-helpers.js";
 import { CharacterHelper } from "@utils/character-helper";
 
 class TeamSelectorManager {
   static _countBtn(scene, x, y, label, onClick) {
     const c = scene.add.container(x, y).setSize(40, 40).setInteractive();
+
     c.add(scene.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(-20, -20, 40, 40, 8));
-    const t = scene.add
-      .text(0, 0, label, { font: "36px Arial", fill: "#FFFFFF", stroke: "#000000", strokeThickness: 3 })
-      .setOrigin(0.5);
-    c.add(t);
-    c.on("pointerover", () => t.setScale(1.2));
-    c.on("pointerout", () => t.setScale(1.0));
+    c.add(UITextHelpers.primaryText(scene, 0, 0, label, 36));
     c.on("pointerdown", onClick);
+
+    UIButtonHelpers.addHoverEffect(c, 1.2);
+
     return c;
   }
 
@@ -48,16 +48,7 @@ class TeamSelectorManager {
     if (!scene.teamUIElements) scene.teamUIElements = [];
     const c = scene.add.container(x, y + 100);
     c.add(scene.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(-120, -65, 240, 170, 15));
-    c.add(
-      scene.add
-        .text(0, -65, team.name, {
-          font: "bold 24px Arial",
-          fill: "#FFFFFF",
-          stroke: "#000000",
-          strokeThickness: 3,
-        })
-        .setOrigin(0.5),
-    );
+    c.add(UISceneHelpers.styledText(scene, 0, -65, team.name, 24, 3));
 
     const update = (d, cond) => {
       if (cond()) {
@@ -113,12 +104,14 @@ class TeamSelectorManager {
   static updateCrocPreview(scene, x, y, count, teamIdx) {
     if (!scene.teams?.[teamIdx]) return;
 
-    // Clear existing
-    [scene.spriteArrays?.[teamIdx], scene.tooltipArrays?.[teamIdx]].forEach(arr => {
-      if (arr) {
-        arr.forEach(item => item?.destroy());
-        arr.length = 0;
-      }
+    // Ensure sprite/tooltip arrays exist for this team
+    const sprites = ((scene.spriteArrays ||= [])[teamIdx] ||= []);
+    const tooltips = ((scene.tooltipArrays ||= [])[teamIdx] ||= []);
+
+    // Clear existing sprites and tooltips
+    [sprites, tooltips].forEach(arr => {
+      arr.forEach(i => i?.destroy());
+      arr.length = 0;
     });
 
     const team = scene.teams[teamIdx];
@@ -140,13 +133,13 @@ class TeamSelectorManager {
           sprite.x,
           sprite.y,
           UIComponents.getAbilityName(charType),
-          scene.tooltipArrays[teamIdx],
+          tooltips,
         ),
       );
 
       sprite.on("pointerout", () => {
-        scene.tooltipArrays[teamIdx]?.forEach(t => t.destroy());
-        scene.tooltipArrays[teamIdx] = [];
+        tooltips.forEach(t => t.destroy());
+        tooltips.length = 0;
       });
 
       sprite.on("pointerdown", () => {
@@ -156,10 +149,10 @@ class TeamSelectorManager {
         sprite
           .setTexture(CharacterHelper.getSpriteKey(next, team.color?.hex))
           .setDisplaySize(size.width, size.height);
-        scene.tooltipArrays[teamIdx]?.[0]?.setText(UIComponents.getAbilityName(next));
+        tooltips[0]?.setText(UIComponents.getAbilityName(next));
       });
 
-      scene.spriteArrays[teamIdx].push(sprite);
+      sprites.push(sprite);
     }
   }
 }

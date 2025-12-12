@@ -12,8 +12,8 @@ class PlayerSelectScene extends Phaser.Scene {
 
     // Load all colored character sprites
     Object.values(Config.CHARACTER_TYPES).forEach(({ baseName }) =>
-      Object.values(Config.COLOR_NAMES).forEach(color =>
-        this.load.image(`${baseName}-${color}`, `src/assets/characters/${baseName}/${baseName}-${color}.png`),
+      Config.COLOR_NAMES.forEach(({ key }) =>
+        this.load.image(`${baseName}-${key}`, `src/assets/characters/${baseName}/${baseName}-${key}.png`),
       ),
     );
 
@@ -25,10 +25,7 @@ class PlayerSelectScene extends Phaser.Scene {
 
     Object.assign(this, {
       teamCount: 2,
-      availableColors: Object.entries(Config.COLOR_NAMES).map(([hexValue, colorKey]) => ({
-        name: colorKey.charAt(0).toUpperCase() + colorKey.slice(1),
-        hex: Number(hexValue),
-      })),
+      availableColors: Config.COLOR_NAMES,
     });
 
     this.teams = Array.from({ length: this.teamCount }, (_, index) => {
@@ -49,8 +46,8 @@ class PlayerSelectScene extends Phaser.Scene {
 
     const mapInfo = MapManager.getMapDisplayInfo(MapManager.getCurrentMap().id);
 
-    UISceneHelpers.createStyledText(this, layout.centerX, 60, "CHOOSE YOUR CROCODILES", 32, 4);
-    UISceneHelpers.createStyledText(this, layout.centerX, 98, `Map: ${mapInfo.name}`, 18, 3);
+    UISceneHelpers.styledText(this, layout.centerX, 60, "CHOOSE YOUR CROCODILES", 32, 4);
+    UISceneHelpers.styledText(this, layout.centerX, 98, `Map: ${mapInfo.name}`, 18, 3);
     UIManager.createTeamCountSelector(this);
     TeamSelectorManager.createTeamSelection(this);
 
@@ -70,11 +67,13 @@ class PlayerSelectScene extends Phaser.Scene {
     const layout = UISceneHelpers.getSceneLayout(Config);
     const yPosition = 470;
 
-    UISceneHelpers.createStyledText(this, layout.centerX, yPosition, "ABILITIES", 20, 3);
+    UISceneHelpers.styledText(this, layout.centerX, yPosition, "ABILITIES", 20, 3);
 
-    const characters = ["CROCODILE", "DINOSAUR", "GECKO", "CHAMELEON"].map((type, index) => ({
+    const types = ["CROCODILE", "DINOSAUR", "GECKO", "CHAMELEON"];
+    const colors = Phaser.Utils.Array.Shuffle(Config.COLOR_NAMES.map(c => c.key));
+    const characters = types.map((type, index) => ({
       type,
-      color: Object.values(Config.COLOR_NAMES)[index],
+      color: colors[index % colors.length],
     }));
 
     const totalWidth = 600;
@@ -91,7 +90,7 @@ class PlayerSelectScene extends Phaser.Scene {
         .setDisplaySize(32, 40)
         .setOrigin(0.5);
 
-      UISceneHelpers.createStyledText(this, x - 25, yPosition + 50, charConfig.ability.name, 16, 2).setOrigin(
+      UISceneHelpers.styledText(this, x - 25, yPosition + 50, charConfig.ability.name, 16, 2).setOrigin(
         0,
         0.5,
       );

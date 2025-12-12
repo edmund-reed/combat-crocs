@@ -24,8 +24,8 @@ class ThemeParkSelectScene extends Phaser.Scene {
     );
 
     // Title and subtitle
-    UISceneHelpers.createStyledText(this, layout.centerX, 80, "CHOOSE YOUR THEME PARK", 36, 6);
-    UISceneHelpers.createStyledText(this, layout.centerX, 130, "Select a theme park to explore", 18, 4);
+    UISceneHelpers.styledText(this, layout.centerX, 80, "CHOOSE YOUR THEME PARK", 36, 6);
+    UISceneHelpers.styledText(this, layout.centerX, 130, "Select a theme park to explore", 18, 4);
 
     // Theme park positions
     const positions = {
