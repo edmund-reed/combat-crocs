@@ -6,35 +6,58 @@ class InputManager {
   static setupInput(scene) {
     scene.cursors = scene.input.keyboard.createCursorKeys();
     scene.spaceKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-
     scene.input.on("pointermove", pointer => this.handleAiming(scene, pointer), scene);
-    scene.input.on("pointerdown", pointer => this.handleShooting(scene, pointer), scene);
+    scene.input.on("pointerdown", () => this.handleShooting(scene), scene);
     scene.events.on("turnChange", () => this.clearAimLine(scene));
-
     scene.input.keyboard.on("keydown-W", () => {
       if (!scene.turnManager.weaponLocked) UIManager.showWeaponSelectMenu(scene);
     });
   }
 
   static handleAiming(scene, pointer) {
-    if (!scene.gameStarted) return;
-
     const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
     const player = scene.players[currentPlayerIndex];
-    if (!player.canShoot) return;
+    if (!player?.canShoot) return;
 
     player.aimAngle = Phaser.Math.Angle.Between(player.x, player.y, pointer.worldX, pointer.worldY);
     this.updateAimLine(scene);
   }
 
-  static handleShooting(scene, pointer) {
+  static handleAimingInput(scene, currentPlayer, cursors, isMoving) {
+    if (!currentPlayer?.canShoot) {
+      this.clearAimLine(scene);
+      return;
+    }
+
+    // Keyboard aiming adjustments
+    if (cursors.up.isDown) currentPlayer.aimAngle -= 0.026;
+    if (cursors.down.isDown) currentPlayer.aimAngle += 0.026;
+
+    // Update player direction when not moving
+    if (!isMoving) {
+      const aimTargetX = currentPlayer.x + Math.cos(currentPlayer.aimAngle) * 100;
+      const shouldFaceLeft = aimTargetX < currentPlayer.x;
+      if (shouldFaceLeft !== currentPlayer.facingLeft) {
+        currentPlayer.facingLeft = shouldFaceLeft;
+        currentPlayer.graphics.setFlipX(shouldFaceLeft);
+      }
+    }
+
+    this.updateAimLine(scene);
+  }
+
+  static handleShooting(scene) {
     if (UIManager.isModalOpen(scene)) return;
 
     const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
     const player = scene.players[currentPlayerIndex];
     const currentWeapon = scene.turnManager.getCurrentWeapon();
 
-    if (!player.canShoot || scene.turnManager.isTurnInProgress() || scene.turnManager.weaponAmmo[currentWeapon] <= 0)
+    if (
+      !player.canShoot ||
+      scene.turnManager.isTurnInProgress() ||
+      scene.turnManager.weaponAmmo[currentWeapon] <= 0
+    )
       return;
 
     // Calculate target position from aim angle (supports both mouse and keyboard aiming)
@@ -42,11 +65,9 @@ class InputManager {
     const targetX = player.x + Math.cos(player.aimAngle) * shootDistance;
     const targetY = player.y + Math.sin(player.aimAngle) * shootDistance;
 
-    console.log(`Player ${player.id} shooting ${currentWeapon} at angle ${player.aimAngle.toFixed(2)}`);
-
     scene.turnManager.weaponAmmo[currentWeapon]--;
-    console.log(`Ammo for ${currentWeapon}: ${scene.turnManager.weaponAmmo[currentWeapon]} remaining`);
     scene.turnManager.weaponLocked = true;
+    scene.canReviveThisTurn = false;
 
     WeaponManager.fireWeapon(scene, player, targetX, targetY, currentWeapon);
 
@@ -56,7 +77,6 @@ class InputManager {
     if (behaviorFlags.includes("timerExplosion")) {
       scene.turnManager.currentTurnTimer?.destroy();
       scene.turnManager.currentTurnTimer = null;
-      console.log("🕐 Turn timer cancelled - waiting for delayed explosion");
     } else if (scene.turnManager.weaponAmmo[currentWeapon] <= 0) {
       scene.turnManager.endCurrentTurn();
     }
@@ -82,9 +102,15 @@ class InputManager {
     scene.aimLine = scene.add.graphics().lineStyle(4, 0xffd23f);
     scene.aimLine.moveTo(x, y).lineTo(endX, endY).strokePath();
     scene.aimLine.moveTo(endX, endY);
-    scene.aimLine.lineTo(endX - Math.cos(angle - Math.PI / 6) * 12, endY - Math.sin(angle - Math.PI / 6) * 12);
+    scene.aimLine.lineTo(
+      endX - Math.cos(angle - Math.PI / 6) * 12,
+      endY - Math.sin(angle - Math.PI / 6) * 12,
+    );
     scene.aimLine.moveTo(endX, endY);
-    scene.aimLine.lineTo(endX - Math.cos(angle + Math.PI / 6) * 12, endY - Math.sin(angle + Math.PI / 6) * 12);
+    scene.aimLine.lineTo(
+      endX - Math.cos(angle + Math.PI / 6) * 12,
+      endY - Math.sin(angle + Math.PI / 6) * 12,
+    );
     scene.aimLine.strokePath();
   }
 

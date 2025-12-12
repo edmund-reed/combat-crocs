@@ -83,6 +83,24 @@ class PhysicsManager {
 
     return { x, y };
   };
+
+  static updateProjectiles = scene => {
+    scene.matter.world.getAllBodies().forEach(body => {
+      if (!body.projectileGraphics || body.destroyed) return;
+
+      body.projectileGraphics.setPosition(body.position.x, body.position.y);
+
+      if (body.weaponConfig?.hasPhysicsRotation) {
+        const speed = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
+        const rotationSpeed = speed * 0.01;
+        body.projectileGraphics.rotation += rotationSpeed * (body.velocity.x < 0 ? -1 : 1);
+      } else {
+        body.projectileGraphics.setRotation(body.angle);
+      }
+
+      body.debugOutline?.setPosition(body.position.x, body.position.y);
+    });
+  };
 }
 
 export default PhysicsManager;

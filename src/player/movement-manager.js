@@ -40,11 +40,17 @@ class MovementManager {
     const canJump = isActuallyOnGround && player.hasJumpedThisTurn !== true;
 
     if (spaceKey.isDown && canJump) {
+      const jumpForce = Config.PLAYER_JUMP_FORCE * (player.ability?.jumpMultiplier ?? 1);
+
       scene.matter.body.setVelocity(player.body, {
         x: player.body.velocity.x,
-        y: -Config.PLAYER_JUMP_FORCE,
+        y: -jumpForce,
       });
-      console.log(`🦘 PLAYER JUMPED! (Velocity Y: ${player.body.velocity.y.toFixed(2)})`);
+      console.log(
+        `🦘 PLAYER JUMPED! (Force: ${jumpForce.toFixed(1)}, Velocity Y: ${player.body.velocity.y.toFixed(
+          2,
+        )})`,
+      );
 
       // Mark as having jumped this turn
       player.hasJumpedThisTurn = true;
@@ -56,7 +62,9 @@ class MovementManager {
         repeat: 25, // Check up to 5 seconds, stop repeating when landed
       });
     } else if (spaceKey.isDown && !canJump) {
-      console.log(`❌ Jump blocked - On ground: ${isActuallyOnGround}, Already jumped: ${player.hasJumpedThisTurn}`);
+      console.log(
+        `❌ Jump blocked - On ground: ${isActuallyOnGround}, Already jumped: ${player.hasJumpedThisTurn}`,
+      );
     }
 
     // Add slight rotation based on movement

@@ -1,4 +1,5 @@
 import { Config } from "@config";
+import { UISceneHelpers } from "@ui";
 import { WeaponUpgradeGrid } from "./weapon-upgrade-grid.js";
 import UIManager from "./ui.js";
 
@@ -39,14 +40,11 @@ class WeaponMenuManager {
       };
     });
 
-    const tile = 100,
-      gap = 5,
-      labelW = 60;
-    const gridW = (tile + gap) * 3 - gap,
-      gridH = weapons.length * (tile + 12);
+    const [tile, gap] = [100, 5];
+    const [gridW, gridH] = [(tile + gap) * 3 - gap, weapons.length * (tile + 12)];
+    const labelW = 60;
     const totalW = gridW + labelW;
-    const gx = w / 2 - totalW / 2 + labelW,
-      gy = h / 2 - gridH / 2 + 20;
+    const [gx, gy] = [w / 2 - totalW / 2 + labelW, h / 2 - gridH / 2 + 20];
 
     const els = {
       overlay: UIManager.createModalOverlay(scene, () => this.hideWeaponSelectMenu(scene)),
@@ -57,15 +55,9 @@ class WeaponMenuManager {
         .fillRoundedRect(w / 2 - totalW / 2 - 20, h / 2 - gridH / 2 - 40, totalW + 40, gridH + 80, 10)
         .lineStyle(3, 0xffd23f)
         .strokeRoundedRect(w / 2 - totalW / 2 - 20, h / 2 - gridH / 2 - 40, totalW + 40, gridH + 80, 10),
-      title: scene.add
-        .text(w / 2, h / 2 - gridH / 2 - 15, "Weapons Menu", {
-          font: "18px Arial",
-          fill: "#FFFFFF",
-          stroke: "#000000",
-          strokeThickness: 2,
-        })
-        .setOrigin(0.5)
-        .setDepth(depth + 2),
+      title: UISceneHelpers.styledText(scene, w / 2, h / 2 - gridH / 2 - 15, "Weapons Menu", 18, 2).setDepth(
+        depth + 2,
+      ),
       grid: WeaponUpgradeGrid.createGrid(scene, weapons, gx, gy, tile, gap, depth + 3, currentWeapon),
       labels: weapons.map((d, i) =>
         scene.add

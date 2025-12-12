@@ -16,37 +16,26 @@ class MapSelectScene extends Phaser.Scene {
   }
 
   create() {
-    const layout = UISceneHelpers.getSceneLayout(Config);
+    // const layout = UISceneHelpers.getSceneLayout(Config);
+    const { width, height, centerX } = UISceneHelpers.getSceneLayout(Config);
 
     // Map background image (positioned like main menu)
-    const bgImage = this.add.image(layout.centerX, layout.height, "mapBg");
-    bgImage.setScale(Math.max(layout.width / bgImage.width, layout.height / bgImage.height)).setOrigin(0.5, 1);
+    const bgImage = this.add.image(centerX, height, "mapBg");
+    bgImage.setScale(Math.max(width / bgImage.width, height / bgImage.height)).setOrigin(0.5, 1);
 
     // Title and subtitle
-    this.add
-      .text(layout.centerX, 80, "CHOOSE YOUR RIDE", {
-        font: "bold 36px Arial",
-        fill: "#FFFFFF",
-        stroke: "#000000",
-        strokeThickness: 4,
-      })
-      .setOrigin(0.5);
-    this.add
-      .text(layout.centerX, 130, "Select a ride to battle on", {
-        font: "bold 18px Arial",
-        fill: "#FFFFFF",
-        stroke: "#000000",
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5);
+    UISceneHelpers.styledText(this, centerX, 80, "CHOOSE YOUR RIDE", 36, 4);
+    UISceneHelpers.styledText(this, centerX, 130, "Select a ride to battle on", 18, 2);
 
     // Get maps for selected theme park
     const selectedThemePark = MapManager.getSelectedThemePark();
-    const mapIds = selectedThemePark ? MapManager.getMapsForThemePark(selectedThemePark) : MapManager.getMapIds();
+    const mapIds = selectedThemePark
+      ? MapManager.getMapsForThemePark(selectedThemePark)
+      : MapManager.getMapIds();
 
     // Create ride options in horizontal grid
     const spacing = 280;
-    const startX = layout.centerX - (spacing * (mapIds.length - 1)) / 2;
+    const startX = centerX - (spacing * (mapIds.length - 1)) / 2;
 
     mapIds.forEach((mapId, index) => {
       UIButtonHelpers.createInteractiveImage(this, startX + index * spacing, 300, mapId, 250, {
@@ -61,7 +50,7 @@ class MapSelectScene extends Phaser.Scene {
     });
 
     // Back button
-    UIButtonHelpers.createBackButton(this, "ThemeParkSelectScene", layout.centerX, layout.height - 120, "BACK");
+    UIButtonHelpers.createBackButton(this, "ThemeParkSelectScene", centerX, height - 120, "BACK");
   }
 }
 

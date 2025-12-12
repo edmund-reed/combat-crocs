@@ -83,6 +83,14 @@ const Config = {
   // Turn settings
   TURN_TIME_LIMIT: 30000, // 30 seconds in milliseconds
 
+  // Last Stand ability settings
+  LAST_STAND: {
+    REVIVAL_RANGE: 80, // Distance within which teammates can revive
+    MINIMAL_HEALTH: 0.1, // Health when in Last Stand state
+    PULSE_BASE_ALPHA: 0.3, // Base alpha for pulsating effect
+    PULSE_FREQUENCY: 200, // Frequency of pulse animation (ms)
+  },
+
   // Orlando theme colors
   COLORS: {
     ORANGE: 0xff6b35,
@@ -93,22 +101,42 @@ const Config = {
     WATER_BLUE: 0x7cb9e8,
   },
 
-  // Character types for players (each will have special abilities later)
+  // Character types for players with unique abilities
   CHARACTER_TYPES: {
-    CHAMELEON: { baseName: "chameleon", desc: "Stealth specialist", scale: 0.9 },
-    CROCODILE: { baseName: "croc", desc: "Tank with high durability", scale: 1.0 },
-    DINOSAUR: { baseName: "dino", desc: "Power attacker", scale: 1.2 },
-    GECKO: { baseName: "gecko", desc: "Agile climber", scale: 1.0 },
+    CHAMELEON: {
+      baseName: "chameleon",
+      desc: "Wall Walker",
+      scale: 1,
+      ability: { name: "Wall Walker", jumpMultiplier: 1.3 },
+    }, // 30% higher jump
+    CROCODILE: {
+      baseName: "croc",
+      desc: "Stopping Power",
+      scale: 1,
+      ability: { name: "Stopping Power", damageMultiplier: 1.05 },
+    }, // 5% more damage
+    DINOSAUR: {
+      baseName: "dino",
+      desc: "Juggernaut",
+      scale: 1,
+      ability: { name: "Juggernaut", healthMultiplier: 1.05 },
+    }, // 5% more health
+    GECKO: {
+      baseName: "gecko",
+      desc: "Last Stand",
+      scale: 1,
+      ability: { name: "Last Stand", reviveHealthPercent: 0.25 },
+    }, // 25% health on revive
   },
 
-  // Color name mappings for sprite keys
-  COLOR_NAMES: {
-    0xff0000: "red",
-    0xffff00: "yellow",
-    0x00ff00: "green",
-    0x0000ff: "blue",
-    0x8a2be2: "purple",
-  },
+  // Color name mappings for sprite keys (array of { key, hex })
+  COLOR_NAMES: [
+    { key: "red", hex: 0xff0000 },
+    { key: "yellow", hex: 0xffff00 },
+    { key: "green", hex: 0x00ff00 },
+    { key: "blue", hex: 0x0000ff },
+    { key: "purple", hex: 0x8a2be2 },
+  ],
 
   // Standard sprite display sizes
   SPRITE_SIZES: {

@@ -1,5 +1,13 @@
 import { Config } from "@config";
-import { TurnManager, TerrainManager, PlayerManager, PhysicsManager, InputManager, StateManager } from "@utils";
+import {
+  TurnManager,
+  TerrainManager,
+  PlayerManager,
+  PhysicsManager,
+  InputManager,
+  StateManager,
+  LastStandManager,
+} from "@utils";
 import { UIManager, HealthBarManager } from "@ui";
 import { MovementManager } from "@player";
 import { WeaponSpriteManager } from "@weapons";
@@ -12,11 +20,12 @@ class GameScene extends Phaser.Scene {
   init() {
     Object.assign(this, {
       players: [],
-      gameStarted: false,
       terrain: null,
       aimLine: null,
       currentMapPlatforms: [],
       turnManager: new TurnManager(this),
+      hasAttackedThisTurn: false,
+      canReviveThisTurn: true,
     });
   }
 
@@ -51,77 +60,37 @@ class GameScene extends Phaser.Scene {
   }
 
   update(delta) {
-    if (!this.gameStarted) this.gameStarted = true;
-
     UIManager.checkAndHandleGameEnd(this);
 
-    if (this.turnManager.currentTurnTimer) {
-      const remainingTime = Math.ceil(
-        (this.turnManager.currentTurnTimer.delay - this.turnManager.currentTurnTimer.elapsed) / 1000,
-      );
-      this.timerText.setText(`Time: ${remainingTime}`);
-    }
+    const timer = this.turnManager.currentTurnTimer;
+    if (timer) UIManager.updateTimer(this, (timer.delay - timer.elapsed) / 1000);
 
+    const weaponConfig = Config.WEAPON_CONFIGS[this.turnManager.getCurrentWeapon()];
     this.players.forEach(player => {
       PlayerManager.updatePlayerPhysics(this, player);
       PlayerManager.updateHitAreaMarker(player);
-      WeaponSpriteManager.updateWeaponSprite(
-        player,
-        Config.WEAPON_CONFIGS[this.turnManager.getCurrentWeapon()],
-        player.aimAngle,
-      );
+      WeaponSpriteManager.updateWeaponSprite(player, weaponConfig, player.aimAngle);
     });
 
-    const currentPlayerIndex = this.turnManager.getCurrentPlayerIndex();
-    const currentPlayer = this.players[currentPlayerIndex];
+    LastStandManager.updateLastStandPlayers(this);
 
-    if (currentPlayer.canMove) {
-      MovementManager.handleMovement(
-        this,
-        currentPlayer,
-        InputManager.getCursors(this),
-        InputManager.getSpaceKey(this),
-      );
+    const currentPlayer = this.players[this.turnManager.getCurrentPlayerIndex()];
+    const cursors = InputManager.getCursors(this);
+
+    if (currentPlayer?.canMove) {
+      MovementManager.handleMovement(this, currentPlayer, cursors, InputManager.getSpaceKey(this));
+
+      const rKey = this.input.keyboard.addKey("R");
+      if (LastStandManager.handleRevivalInput(this, currentPlayer, Phaser.Input.Keyboard.JustDown(rKey))) {
+        this.turnManager.turnInProgress = false;
+        this.turnManager.startTurn();
+      }
     }
 
-    if (currentPlayer.canShoot) {
-      const cursors = InputManager.getCursors(this);
-      if (cursors.up.isDown) currentPlayer.aimAngle -= 0.026;
-      if (cursors.down.isDown) currentPlayer.aimAngle += 0.026;
+    const isMoving = cursors.left.isDown || cursors.right.isDown;
+    InputManager.handleAimingInput(this, currentPlayer, cursors, isMoving);
 
-      const isMoving = cursors.left.isDown || cursors.right.isDown;
-      if (!isMoving) {
-        const aimTargetX = currentPlayer.x + Math.cos(currentPlayer.aimAngle) * 100;
-        if (aimTargetX < currentPlayer.x && !currentPlayer.facingLeft) {
-          currentPlayer.facingLeft = true;
-          currentPlayer.graphics.setFlipX(true);
-        } else if (aimTargetX >= currentPlayer.x && currentPlayer.facingLeft) {
-          currentPlayer.facingLeft = false;
-          currentPlayer.graphics.setFlipX(false);
-        }
-      }
-      UIManager.updateAimLine(this);
-    } else {
-      UIManager.clearAimLine(this);
-    }
-
-    this.matter.world.getAllBodies().forEach(body => {
-      if (body.projectileGraphics && !body.destroyed) {
-        body.projectileGraphics.setPosition(body.position.x, body.position.y);
-
-        // Property-based rotation
-        if (body.weaponConfig?.hasPhysicsRotation) {
-          const speed = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
-          const rotationSpeed = speed * 0.01;
-          body.projectileGraphics.rotation += rotationSpeed * (body.velocity.x < 0 ? -1 : 1);
-        } else {
-          body.projectileGraphics.setRotation(body.angle);
-        }
-
-        body.debugOutline?.setPosition(body.position.x, body.position.y);
-      }
-    });
-
+    PhysicsManager.updateProjectiles(this);
     HealthBarManager.updateHealthBarPositions(this);
     HealthBarManager.updateHealthBars(this);
   }

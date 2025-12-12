@@ -9,7 +9,7 @@ export class CharacterHelper {
     }
 
     const { baseName } = Config.CHARACTER_TYPES[characterType];
-    const colorName = colorHex ? Config.COLOR_NAMES[colorHex] || "red" : "red";
+    const colorName = Config.COLOR_NAMES.find(c => c.hex === colorHex)?.key || "red";
 
     return `${baseName}-${colorName}`;
   }

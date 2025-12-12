@@ -23,20 +23,35 @@ export class WeaponUpgradeGrid {
     const isCurrent = level === currentLevel;
     const locked = level > currentLevel;
     const tile = scene.add.container(0, 0).setAlpha(locked ? 0.6 : 1);
+    const isCurrentUnlocked = isCurrent && !locked; // current level
+    const isPreviouslyUnlocked = !locked && !isCurrent; // below current level
+    const gfx = scene.add.graphics();
 
-    // Background + border (single graphics)
-    const gfx = scene.add
-      .graphics()
-      .fillStyle(0x333333)
-      .fillRoundedRect(x, 0, size, size, 4)
-      .lineStyle(2, isCurrent && isSelected ? 0x00ff00 : 0xffffff, locked ? 0.3 : 1)
-      .strokeRoundedRect(x, 0, size, size, 4);
+    // Base background
+    gfx.fillStyle(0x333333).fillRoundedRect(x, 0, size, size, 4);
+
+    // Darken previously unlocked levels with transparent black
+    if (isPreviouslyUnlocked) {
+      gfx.fillStyle(0x000000, 0.3).fillRoundedRect(x, 0, size, size, 4);
+    }
+
+    // Brighten current unlocked level with transparent white
+    if (isCurrentUnlocked) {
+      gfx.fillStyle(0xffffff, 0.3).fillRoundedRect(x, 0, size, size, 4);
+    }
+
+    const borderColor = isCurrent && isSelected ? 0x00ff00 : 0xffffff;
+    let borderAlpha = 1;
+    if (locked) borderAlpha = 0.3;
+    else if (isPreviouslyUnlocked) borderAlpha = 0.5;
+
+    gfx.lineStyle(2, borderColor, borderAlpha).strokeRoundedRect(x, 0, size, size, 4);
 
     // Progress bar (on current level only)
     if (isCurrent && level < config.upgrades?.maxLevel) {
       const prog = Math.min(currentXP / xpThresholds[level - 1], 1);
-      const h = 6,
-        py = size - h;
+      const h = 6;
+      const py = size - h;
       gfx
         .fillStyle(isSelected ? 0x006400 : 0x666666)
         .fillRect(x, py, size, h)
@@ -47,9 +62,9 @@ export class WeaponUpgradeGrid {
     }
     tile.add(gfx);
 
-    // Icon (scale to 52px width)
+    // Icon (scale to 57px width)
     const icon = scene.add.image(x + size / 2, size / 2 - 8, config.heldSpriteKey);
-    icon.setScale(52 / icon.width);
+    icon.setScale(57 / icon.width);
     if (locked) icon.setTint(0x666666);
     tile.add(icon);
 

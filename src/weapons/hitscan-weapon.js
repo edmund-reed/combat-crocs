@@ -2,6 +2,7 @@ import { Config, Logger } from "@config";
 import WeaponMath from "@weapons/weapon-math.js";
 import { HealthBarManager } from "@ui";
 import { getWeaponDamage, awardXP } from "@weapons";
+import { DamageManager } from "@utils";
 
 class HitscanWeapon {
   // Streamlined hitscan with generic utilities
@@ -10,11 +11,7 @@ class HitscanWeapon {
     Logger.weaponEvent(`Player ${player.id} firing hitscan at (${targetX}, ${targetY})`);
 
     const weapon = Config.WEAPON_CONFIGS[weaponType];
-    const { behaviorFlags } = weapon;
-
-    // Use upgraded damage if player has upgrades, otherwise use base damage
-    const damage = getWeaponDamage(player, "SHOTGUN");
-
+    const damage = getWeaponDamage(player, "SHOTGUN") * (player.ability?.damageMultiplier ?? 1);
     const targets = scene.players.filter(p => p.id !== player.id && p.health > 0);
     const { player: hitPlayer, distance: hitDist } =
       WeaponMath.hitscanAlongLine(targets, player.x, player.y, targetX, targetY) || {};
@@ -23,6 +20,7 @@ class HitscanWeapon {
     if (!hitPlayer) {
       console.log("❌ Hitscan MISS");
       this.showShotgunTrail(scene, player.x, player.y, targetX, targetY);
+      scene.turnManager.markPlayerAttacked(player);
       return this.endTurn(scene, player, weapon);
     }
 
@@ -31,18 +29,20 @@ class HitscanWeapon {
     if (terrainBlocks) {
       console.log(`🏔️ TERRAIN BLOCK: Player ${hitPlayer.id} path blocked`);
       this.showShotgunTrail(scene, player.x, player.y, terrainBlocks.x, terrainBlocks.y);
+      scene.turnManager.markPlayerAttacked(player);
       return this.endTurn(scene, player, weapon);
     }
 
-    // Apply damage
-    const { health: healthBefore } = hitPlayer;
-    hitPlayer.health = Math.max(0, healthBefore - damage);
+    // Apply damage via central DamageManager (with Last Stand support)
+    const damageResult = DamageManager.applyDamage(scene, hitPlayer, damage);
 
-    console.log(`🔫 HITSCAN DAMAGE: Player ${hitPlayer.id} ${damage} damage (${healthBefore} → ${hitPlayer.health})`);
-    console.log(`🔫 Hit distance: ${hitDist?.toFixed(1)}`);
+    Logger.weaponEvent(
+      `🔫 HITSCAN DAMAGE: Player ${hitPlayer.id} ${damageResult.requestedDamage} damage ` +
+        `(${damageResult.previousHealth} → ${damageResult.currentHealth}), distance=${hitDist?.toFixed(1)}`,
+    );
 
     // Award XP to the attacking player (only for damage to opponents)
-    const actualDamage = healthBefore - hitPlayer.health;
+    const actualDamage = damageResult.actualDamage;
     if (player.teamId !== hitPlayer.teamId) {
       awardXP(player, "SHOTGUN", actualDamage, scene);
     }
@@ -51,6 +51,7 @@ class HitscanWeapon {
     scene.checkGameEnd?.();
     this.showShotgunTrail(scene, player.x, player.y, hitPlayer.x, hitPlayer.y);
 
+    scene.turnManager.markPlayerAttacked(player);
     return this.endTurn(scene, player, weapon);
   };
 
