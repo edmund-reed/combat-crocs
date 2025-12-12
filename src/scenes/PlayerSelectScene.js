@@ -101,30 +101,16 @@ class PlayerSelectScene extends Phaser.Scene {
     const layout = UISceneHelpers.getSceneLayout(Config);
     const buttonY = layout.height - 100;
 
-    UIButtonHelpers.createStyledButton(
-      this,
-      layout.centerX,
-      buttonY,
-      "START BATTLE",
-      { default: 28, hover: 32 },
-      () => {
-        StateManager.storeTeams(this.teams);
-        this._stopIntroMusic();
-        this.scene.start("GameScene");
-      },
-    );
+    UIButtonHelpers.createStyledButton(this, layout.centerX, buttonY, "START BATTLE", [28, 32], () => {
+      StateManager.storeTeams(this.teams);
+      this._stopIntroMusic();
+      this.scene.start("GameScene");
+    });
 
-    UIButtonHelpers.createStyledButton(
-      this,
-      layout.centerX,
-      buttonY + 60,
-      "Back",
-      { default: 24, hover: 28 },
-      () => {
-        this._stopIntroMusic();
-        this.scene.start("MapSelectScene");
-      },
-    );
+    UIButtonHelpers.createStyledButton(this, layout.centerX, buttonY + 60, "Back", [24, 28], () => {
+      this._stopIntroMusic();
+      this.scene.start("MapSelectScene");
+    });
   }
 }
 

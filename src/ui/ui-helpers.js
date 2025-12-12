@@ -39,16 +39,17 @@ class UIButtonHelpers {
     return btn;
   }
 
-  static createStyledButton(scene, x, y, text, sizes = { default: 20, hover: 22 }, callback) {
-    const btn = UISceneHelpers.styledText(scene, x, y, text, sizes.default, 4).setInteractive();
+  static createStyledButton(scene, x, y, text, sizes = [20, 22], callback) {
+    const [defaultSize, hoverSize] = sizes;
+    const btn = UISceneHelpers.styledText(scene, x, y, text, defaultSize, 4).setInteractive();
     btn.setData("originalText", text);
     btn.setData("hoverText", text === "START GAME" ? "▶ START GAME ◀" : text);
     btn.on("pointerover", () => {
-      btn.setStyle({ font: `bold ${sizes.hover}px Arial` });
+      btn.setStyle({ font: `bold ${hoverSize}px Arial` });
       btn.setText(btn.getData("hoverText"));
     });
     btn.on("pointerout", () => {
-      btn.setStyle({ font: `bold ${sizes.default}px Arial` });
+      btn.setStyle({ font: `bold ${defaultSize}px Arial` });
       btn.setText(btn.getData("originalText"));
     });
     if (callback) btn.on("pointerdown", callback);
@@ -67,9 +68,7 @@ class UIButtonHelpers {
   }
 
   static createBackButton(scene, targetScene, x, y, text = "BACK TO MENU") {
-    return this.createStyledButton(scene, x, y, text, { default: 20, hover: 22 }, () =>
-      scene.scene.start(targetScene),
-    );
+    return this.createStyledButton(scene, x, y, text, [20, 22], () => scene.scene.start(targetScene));
   }
 }
 
