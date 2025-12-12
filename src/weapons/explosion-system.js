@@ -1,5 +1,3 @@
-// Explosion effect and damage system for Combat Crocs
-
 import { Config } from "@config";
 import PhysicsManager from "@utils/physics-manager.js";
 import { HealthBarManager } from "@ui";
@@ -19,6 +17,7 @@ class ExplosionSystem {
       .graphics({ x, y })
       .fillStyle(getExplosionColor(weaponLevel), 0.8)
       .fillCircle(0, 0, radius);
+
     scene.tweens.add({
       targets: explosion,
       scaleX: 0,

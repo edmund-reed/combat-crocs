@@ -8,12 +8,11 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 
   preload() {
-    // Load background and player sprites
     this.load.image("mapBg", "src/assets/map-bg.png");
 
     // Load all colored character sprites
     Object.values(Config.CHARACTER_TYPES).forEach(({ baseName }) =>
-      ["red", "yellow", "green", "blue", "purple"].forEach(color =>
+      Object.values(Config.COLOR_NAMES).forEach(color =>
         this.load.image(`${baseName}-${color}`, `src/assets/characters/${baseName}/${baseName}-${color}.png`),
       ),
     );
@@ -26,13 +25,10 @@ class PlayerSelectScene extends Phaser.Scene {
 
     Object.assign(this, {
       teamCount: 2,
-      availableColors: [
-        { name: "Red", hex: 0xff0000 },
-        { name: "Yellow", hex: 0xffff00 },
-        { name: "Green", hex: 0x00ff00 },
-        { name: "Blue", hex: 0x0000ff },
-        { name: "Purple", hex: 0x8a2be2 },
-      ],
+      availableColors: Object.entries(Config.COLOR_NAMES).map(([hexValue, colorKey]) => ({
+        name: colorKey.charAt(0).toUpperCase() + colorKey.slice(1),
+        hex: Number(hexValue),
+      })),
     });
 
     this.teams = Array.from({ length: this.teamCount }, (_, index) => {
@@ -55,9 +51,9 @@ class PlayerSelectScene extends Phaser.Scene {
 
     UISceneHelpers.createStyledText(this, layout.centerX, 60, "CHOOSE YOUR CROCODILES", 32, 4);
     UISceneHelpers.createStyledText(this, layout.centerX, 98, `Map: ${mapInfo.name}`, 18, 3);
-
     UIManager.createTeamCountSelector(this);
     TeamSelectorManager.createTeamSelection(this);
+
     this.createAbilitiesDisplay();
     this.createActionButtons();
 
@@ -78,7 +74,7 @@ class PlayerSelectScene extends Phaser.Scene {
 
     const characters = ["CROCODILE", "DINOSAUR", "GECKO", "CHAMELEON"].map((type, index) => ({
       type,
-      color: ["red", "blue", "green", "purple"][index],
+      color: Object.values(Config.COLOR_NAMES)[index],
     }));
 
     const totalWidth = 600;

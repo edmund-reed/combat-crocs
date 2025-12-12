@@ -2,7 +2,6 @@ import { Config } from "@config";
 import { StateManager, Logger, PlayerManager } from "@utils";
 import { UIManager } from "@ui";
 import { WeaponSpriteManager } from "@weapons";
-import { LastStandManager } from "./last-stand-manager.js";
 
 class TurnManager {
   constructor(scene) {
@@ -32,20 +31,17 @@ class TurnManager {
   startTurn = () => {
     this.currentTurnTimer?.destroy();
     this.turnCount++;
-
     this.scene.hasAttackedThisTurn = false;
     this.scene.canReviveThisTurn = true;
-
     this.currentPlayer = this.getNextPlayerIndex();
-    const currentTeamId = this.getCurrentTeam();
 
+    const currentTeamId = this.getCurrentTeam();
     this.teamTurnCounters[currentTeamId] = (this.teamTurnCounters[currentTeamId] || 0) + 1;
 
     Logger.gameEvent(
       `TURN: Player ${this.currentPlayer}, Team ${currentTeamId} Turn #${this.teamTurnCounters[currentTeamId]}`,
     );
 
-    const currentPlayerObj = this.scene.players[this.currentPlayer];
     this.scene.players.forEach((p, i) =>
       i === this.currentPlayer ? PlayerManager.activateForTurn(p) : PlayerManager.resetForTurn(p),
     );
@@ -63,7 +59,7 @@ class TurnManager {
       }
     });
 
-    UIManager.updateTurnIndicator(this.scene, currentPlayerObj);
+    UIManager.updateTurnIndicator(this.scene, this.scene.players[this.currentPlayer]);
     UIManager.updatePlayerHighlighting(this.scene, this.currentPlayer);
     UIManager.updateWeaponDisplay(this.scene);
     UIManager.clearAimLine(this.scene);
@@ -84,11 +80,13 @@ class TurnManager {
         return playerIndex;
       }
     }
+
     return -1;
   };
 
   getNextPlayerIndex = () => {
     const teams = StateManager.getTeams();
+
     for (let attempts = 0; attempts < teams.length; attempts++) {
       const playerIndex = this.findNextLivingPlayerInTeam(teams[this.currentTeamIndex]);
       if (playerIndex >= 0) {
@@ -98,6 +96,7 @@ class TurnManager {
       }
       this.currentTeamIndex = (this.currentTeamIndex + 1) % teams.length;
     }
+
     Logger.warn("No living players found");
     return 0;
   };

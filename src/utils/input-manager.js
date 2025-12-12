@@ -6,11 +6,9 @@ class InputManager {
   static setupInput(scene) {
     scene.cursors = scene.input.keyboard.createCursorKeys();
     scene.spaceKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-
     scene.input.on("pointermove", pointer => this.handleAiming(scene, pointer), scene);
-    scene.input.on("pointerdown", pointer => this.handleShooting(scene, pointer), scene);
+    scene.input.on("pointerdown", () => this.handleShooting(scene), scene);
     scene.events.on("turnChange", () => this.clearAimLine(scene));
-
     scene.input.keyboard.on("keydown-W", () => {
       if (!scene.turnManager.weaponLocked) UIManager.showWeaponSelectMenu(scene);
     });
@@ -48,7 +46,7 @@ class InputManager {
     this.updateAimLine(scene);
   }
 
-  static handleShooting(scene, pointer) {
+  static handleShooting(scene) {
     if (UIManager.isModalOpen(scene)) return;
 
     const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
@@ -67,13 +65,8 @@ class InputManager {
     const targetX = player.x + Math.cos(player.aimAngle) * shootDistance;
     const targetY = player.y + Math.sin(player.aimAngle) * shootDistance;
 
-    console.log(`Player ${player.id} shooting ${currentWeapon} at angle ${player.aimAngle.toFixed(2)}`);
-
     scene.turnManager.weaponAmmo[currentWeapon]--;
-    console.log(`Ammo for ${currentWeapon}: ${scene.turnManager.weaponAmmo[currentWeapon]} remaining`);
     scene.turnManager.weaponLocked = true;
-
-    // Disable revival immediately when weapon is fired (before projectile is even created)
     scene.canReviveThisTurn = false;
 
     WeaponManager.fireWeapon(scene, player, targetX, targetY, currentWeapon);
@@ -84,7 +77,6 @@ class InputManager {
     if (behaviorFlags.includes("timerExplosion")) {
       scene.turnManager.currentTurnTimer?.destroy();
       scene.turnManager.currentTurnTimer = null;
-      console.log("🕐 Turn timer cancelled - waiting for delayed explosion");
     } else if (scene.turnManager.weaponAmmo[currentWeapon] <= 0) {
       scene.turnManager.endCurrentTurn();
     }

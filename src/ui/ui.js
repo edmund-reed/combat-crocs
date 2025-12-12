@@ -1,6 +1,5 @@
 import { Config } from "@config";
 import { UITextHelpers } from "./ui-helpers.js";
-import UIComponents from "./ui-components.js";
 import TeamSelectorManager from "./team-selector-manager.js";
 import HealthBarManager from "./health-bar-manager.js";
 import WeaponMenuManager from "./weapon-menu.js";
@@ -14,15 +13,13 @@ class UIManager {
 
   static HealthBar = HealthBarManager;
   static TeamSelector = TeamSelectorManager;
-  static Components = UIComponents;
 
   static createModalOverlay(scene, closeCallback = null) {
     const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
     const overlay = scene.add.graphics().fillStyle(0x000000, 0.7).fillRect(0, 0, w, h).setDepth(1000);
     if (closeCallback) overlay.setInteractive().on("pointerdown", closeCallback);
     scene.modalOverlayActive = true;
-    if (!scene.modalOverlays) scene.modalOverlays = [];
-    scene.modalOverlays.push(overlay);
+    (scene.modalOverlays ||= []).push(overlay);
     return overlay;
   }
 
@@ -33,19 +30,6 @@ class UIManager {
   }
 
   static isModalOpen = scene => scene.modalOverlayActive || false;
-
-  static _countBtn(scene, x, y, label, onClick) {
-    const c = scene.add.container(x, y).setSize(40, 40).setInteractive();
-    c.add(scene.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(-20, -20, 40, 40, 8));
-    const t = scene.add
-      .text(0, 0, label, { font: "36px Arial", fill: "#FFFFFF", stroke: "#000000", strokeThickness: 3 })
-      .setOrigin(0.5);
-    c.add(t);
-    c.on("pointerover", () => t.setScale(1.2));
-    c.on("pointerout", () => t.setScale(1.0));
-    c.on("pointerdown", onClick);
-    return c;
-  }
 
   static createTeamCountSelector(scene) {
     const cx = Config.GAME_WIDTH / 2,
@@ -75,18 +59,32 @@ class UIManager {
         TeamSelectorManager.refreshTeamSelection(scene);
       }
     };
-    this._countBtn(scene, cx - 80, y + 35, "-", () => update(-1, () => scene.teamCount > 2));
-    this._countBtn(scene, cx + 80, y + 35, "+", () => update(1, () => scene.teamCount < 5));
+
+    const btn = (x, label, onClick) => {
+      const c = scene.add
+        .container(x, y + 35)
+        .setSize(40, 40)
+        .setInteractive();
+      c.add(scene.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(-20, -20, 40, 40, 8));
+      const t = scene.add
+        .text(0, 0, label, { font: "36px Arial", fill: "#FFFFFF", stroke: "#000000", strokeThickness: 3 })
+        .setOrigin(0.5);
+      c.add(t);
+      c.on("pointerover", () => t.setScale(1.2));
+      c.on("pointerout", () => t.setScale(1.0));
+      c.on("pointerdown", onClick);
+      return c;
+    };
+
+    btn(cx - 80, "-", () => update(-1, () => scene.teamCount > 2));
+    btn(cx + 80, "+", () => update(1, () => scene.teamCount < 5));
   }
 
   static updateTimer = (scene, timeLeft) => scene.timerText.setText(`Time: ${Math.ceil(timeLeft)}`);
 
   static showGameEndScreen(scene, winnerTeam) {
     const { GAME_WIDTH: w, GAME_HEIGHT: h } = Config;
-    const back = () => {
-      scene.scene.stop();
-      scene.scene.start("MenuScene");
-    };
+    const back = () => (scene.scene.stop(), scene.scene.start("MenuScene"));
     scene.add
       .graphics()
       .fillStyle(0x000000, 0.8)
@@ -100,9 +98,6 @@ class UIManager {
 
   static updateAimLine = scene => InputManager.updateAimLine(scene);
   static clearAimLine = scene => InputManager.clearAimLine(scene);
-  static createWeaponSelectIcon = scene => WeaponMenuManager.createWeaponSelectIcon(scene);
-  static showWeaponSelectMenu = scene => WeaponMenuManager.showWeaponSelectMenu(scene);
-  static hideWeaponSelectMenu = scene => WeaponMenuManager.hideWeaponSelectMenu(scene);
   static updateWeaponDisplay = scene =>
     scene.weaponText?.setText(`Weapon: ${scene.turnManager.getCurrentWeapon()}`);
 
@@ -117,10 +112,28 @@ class UIManager {
 
   static createGameUI(scene) {
     HealthBarManager.createHealthBars(scene);
-    UIComponents.createWeaponDisplay(scene);
-    UIComponents.createTimerDisplay(scene);
-    UIComponents.createTurnIndicator(scene);
-    UIComponents.createInstructions(scene);
+    scene.weaponText = UITextHelpers.primaryText(
+      scene,
+      Config.GAME_WIDTH - 200,
+      20,
+      `Weapon: ${scene.turnManager.getCurrentWeapon()}`,
+      16,
+    );
+    scene.timerText = UITextHelpers.secondaryText(scene, Config.GAME_WIDTH - 200, 50, "Time: 30", 16);
+    scene.playerIndicator = UITextHelpers.primaryText(
+      scene,
+      Config.GAME_WIDTH / 2,
+      20,
+      "Player 1's Turn",
+      20,
+    );
+    UITextHelpers.secondaryText(
+      scene,
+      Config.GAME_WIDTH / 2,
+      50,
+      "Move: Arrow Keys | Aim: Mouse | Shoot: Click | Jump: Spacebar | Weapons: W or 🔫",
+      14,
+    );
     WeaponMenuManager.createWeaponSelectIcon(scene);
   }
 
@@ -131,14 +144,8 @@ class UIManager {
         .filter(p => String(p.id).startsWith(t.id))
         .some((p, _, arr) => PlayerManager.isPlayerAlive(scene, scene.players.indexOf(p))),
     );
-    if (alive.length === 1) {
-      this.showGameEndScreen(scene, alive[0].name);
-      return true;
-    }
-    if (alive.length === 0) {
-      this.showGameEndScreen(scene, "No One");
-      return true;
-    }
+    if (alive.length === 1) return this.showGameEndScreen(scene, alive[0].name), true;
+    if (alive.length === 0) return this.showGameEndScreen(scene, "No One"), true;
     return false;
   }
 }

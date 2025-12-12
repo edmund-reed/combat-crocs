@@ -15,11 +15,6 @@ export class LastStandManager {
     return hasHadNextTurn && !isPlayersTeamTurnNow;
   }
 
-  static #getPulseAlpha = () => {
-    const { PULSE_BASE_ALPHA, PULSE_FREQUENCY } = Config.LAST_STAND;
-    return PULSE_BASE_ALPHA * (1 + Math.sin(Date.now() / PULSE_FREQUENCY));
-  };
-
   // Entry point used by DamageManager to allow Last Stand to intercept lethal hits
   static tryEnterLastStand(scene, player, finalHealth) {
     if (
@@ -75,7 +70,10 @@ export class LastStandManager {
           player.graphics.setAlpha(0.3);
           Logger.gameEvent(`💀 Player ${player.id} Last Stand expired - died`);
         } else {
-          player.graphics.setAlpha(this.#getPulseAlpha());
+          player.graphics.setAlpha(
+            Config.LAST_STAND.PULSE_BASE_ALPHA *
+              (1 + Math.sin(Date.now() / Config.LAST_STAND.PULSE_FREQUENCY)),
+          );
         }
       } else if (player.health > 0) {
         player.graphics.setAlpha(1.0);
