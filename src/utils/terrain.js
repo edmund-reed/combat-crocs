@@ -240,20 +240,59 @@ class TerrainManager {
       results.push(sprite);
 
       // Optional: generate terrain from texture alpha for parent decoration
-      if (decor.collisionFromTexture) {
-        this._createTerrainFromTexture(scene, sprite, decor.sprite);
-      }
+      // OR use circular collision for rotating bodies
+      if (decor.useCircleCollision) {
+        // For rotating decorations like donut: use a single circular static body
+        // that we manually rotate each frame (kinematic movement in Matter.js)
+        const radius = Math.min(sprite.displayWidth, sprite.displayHeight) / 2.2; // slightly smaller than visual
+        const body = PhysicsManager.createTerrainCircle(scene, sprite.x, sprite.y, radius);
 
-      // Optional: rotating decoration (e.g. donut) - visual only for now
-      if (decor.rotating) {
-        const speed = decor.rotationSpeed ?? 0.2; // radians per second
-        const duration = (Math.PI * 2 * 1000) / speed; // time for full rotation
-        scene.tweens.add({
-          targets: sprite,
-          angle: 360,
-          duration,
-          repeat: -1,
+        // Keep it static - kinematic bodies in Matter.js are static bodies that we manually move
+        // No need to call setStatic(false) or set mass/density
+
+        // Store reference
+        sprite.physicsBody = body;
+
+        // Track as platform for health crate landing
+        scene.currentMapPlatforms.push({
+          x: sprite.x - radius,
+          y: sprite.y - radius,
+          width: radius * 2,
+          height: radius * 2,
+          name: `Rotating Platform (${decor.sprite})`,
         });
+
+        // Rotate both sprite and body together
+        if (decor.rotating) {
+          const speed = decor.rotationSpeed ?? 0.2; // radians per second
+          const duration = (Math.PI * 2 * 1000) / speed;
+          scene.tweens.add({
+            targets: sprite,
+            angle: 360,
+            duration,
+            repeat: -1,
+            onUpdate: () => {
+              // Manually update the static body's angle each frame
+              // This creates kinematic rotation - the body rotates but isn't affected by physics
+              scene.matter.body.setAngle(body, Phaser.Math.DegToRad(sprite.angle));
+            },
+          });
+        }
+      } else if (decor.collisionFromTexture) {
+        // Static collision from texture alpha (grid-based)
+        this._createTerrainFromTexture(scene, sprite, decor.sprite);
+
+        // Visual rotation only (physics stay static)
+        if (decor.rotating) {
+          const speed = decor.rotationSpeed ?? 0.2;
+          const duration = (Math.PI * 2 * 1000) / speed;
+          scene.tweens.add({
+            targets: sprite,
+            angle: 360,
+            duration,
+            repeat: -1,
+          });
+        }
       }
 
       // Process children (relative to parent position)
