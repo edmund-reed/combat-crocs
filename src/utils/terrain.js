@@ -9,13 +9,17 @@ class TerrainManager {
     // Base graphics layer for terrain (used by platforms and as a fallback)
     const terrainGfx = scene.add.graphics();
 
+    // Choose ground texture per map (terrain-2 for Heavy Metal Coaster, terrain for others)
+    const selectedMapId = window.CombatCrocs?.gameState?.game?.selectedMap || MapManager.getCurrentMap().id;
+    const groundTextureKey = selectedMapId === "heavyMetalCoaster" ? "terrain-2" : "terrain";
+
     // Visual ground texture using repeat-x if available
-    if (scene.textures.exists("terrain")) {
-      const texture = scene.textures.get("terrain");
+    if (scene.textures.exists(groundTextureKey)) {
+      const texture = scene.textures.get(groundTextureKey);
       const texHeight = texture.source[0].height;
       const scale = 100 / texHeight; // Scale proportionally to fit 100px height
       const groundTile = scene.add
-        .tileSprite(0, groundY, Config.GAME_WIDTH, 100, "terrain")
+        .tileSprite(0, groundY, Config.GAME_WIDTH, 100, groundTextureKey)
         .setOrigin(0, 0)
         .setDepth(-5);
       // Scale both X and Y proportionally so texture repeats at correct aspect ratio
