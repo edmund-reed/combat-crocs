@@ -65,9 +65,48 @@ class MapManager {
       backgroundColor: "#4B0082",
       difficulty: 1,
       platforms: [
-        { x: 350, y: "GAME_HEIGHT - 140", width: 180, height: 55 },
-        { x: 650, y: "GAME_HEIGHT - 190", width: 160, height: 50 },
-        { x: 900, y: "GAME_HEIGHT - 160", width: 140, height: 60 },
+        { x: 250, y: "GAME_HEIGHT - 300", width: 150, height: 40 },
+        { x: 950, y: "GAME_HEIGHT - 280", width: 150, height: 40 },
+      ],
+      decorations: [
+        {
+          sprite: "hotel-horror",
+          x: 600,
+          y: "GAME_HEIGHT - 100",
+          originX: 0.5,
+          originY: 1,
+          scale: 0.5,
+          children: [
+            {
+              sprite: "elevator-horror",
+              x: -200,
+              y: -800, // top position
+              displayWidth: 200,
+              hasPhysics: true,
+              animate: {
+                axis: "y",
+                toOffset: -180, // bottom position
+                durationMs: 4000,
+                yoyo: true,
+                repeat: -1,
+              },
+            },
+            {
+              sprite: "elevator-horror",
+              x: 100,
+              y: -180, // bottom position
+              displayWidth: 200,
+              hasPhysics: true,
+              animate: {
+                axis: "y",
+                toOffset: -800, // top position
+                durationMs: 4000,
+                yoyo: true,
+                repeat: -1,
+              },
+            },
+          ],
+        },
       ],
       groundVariation: true,
     },
@@ -77,11 +116,37 @@ class MapManager {
       description: "Rock out on this intense roller coaster with challenging platforms",
       backgroundColor: "#8B008B",
       difficulty: 2,
-      platforms: [
-        { x: 250, y: "GAME_HEIGHT - 180", width: 120, height: 50 },
-        { x: 500, y: "GAME_HEIGHT - 240", width: 100, height: 55 },
-        { x: 750, y: "GAME_HEIGHT - 200", width: 130, height: 50 },
-        { x: 950, y: "GAME_HEIGHT - 280", width: 110, height: 60 },
+      platforms: [],
+      decorations: [
+        {
+          sprite: "metal-coaster",
+          x: 600,
+          y: "GAME_HEIGHT - 100", // sit flush on ground band
+          originX: 0.5,
+          originY: 1,
+          relativeWidth: 0.5,
+          collisionFromTexture: true,
+        },
+        {
+          sprite: "donut-coaster",
+          x: 150, // shifted slightly right from left edge
+          y: "GAME_HEIGHT - 270", // raised ~70px higher above ground
+          originX: 0.5,
+          originY: 0.5,
+          relativeWidth: 0.15, // ~15% of game width (~25% smaller than 0.2)
+          rotating: true,
+          rotationSpeed: 0.2, // radians per second, slow spin
+          useCircleCollision: true,
+        },
+        {
+          sprite: "palm-tree-coaster",
+          x: 1070, // moved ~30px left from previous 1100
+          y: "GAME_HEIGHT - 100", // sit on ground band
+          originX: 0.5,
+          originY: 1,
+          relativeWidth: 0.17, // ~15% smaller than 0.2
+          collisionFromTexture: true,
+        },
       ],
       groundVariation: false,
     },
@@ -103,6 +168,7 @@ class MapManager {
       terrain: {
         platforms: config.platforms,
         groundVariation: config.groundVariation,
+        decorations: config.decorations || [],
       },
       backgroundColor: config.backgroundColor,
       difficulty: config.difficulty,

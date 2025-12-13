@@ -84,7 +84,7 @@ const Config = {
   TURN_TIME_LIMIT: 30000, // 30 seconds in milliseconds
 
   // Health crate settings
-  HEALTH_CRATE_CHANCE: 1,
+  HEALTH_CRATE_CHANCE: 0.25,
   HEALTH_CRATE_AMOUNT: 25,
 
   // Last Stand ability settings

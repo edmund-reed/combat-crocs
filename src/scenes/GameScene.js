@@ -7,6 +7,7 @@ import {
   InputManager,
   StateManager,
   LastStandManager,
+  Maps as MapManager,
 } from "@utils";
 import { UIManager, HealthBarManager } from "@ui";
 import { MovementManager } from "@player";
@@ -41,10 +42,19 @@ class GameScene extends Phaser.Scene {
     this.load.image("generic-map", "src/assets/backgrounds/generic-map.png");
     this.load.image("terrain", "src/assets/terrain.png");
     this.load.image("brick", "src/assets/brick.png");
+    this.load.image("hotel-horror", "src/assets/maps/hotel-of-horror/hotel.png");
+    this.load.image("elevator-horror", "src/assets/maps/hotel-of-horror/elevator.png");
+    this.load.image("heavy-metal-coaster-bg", "src/assets/rides/heavy-metal-coaster/background.png");
+    this.load.image("metal-coaster", "src/assets/rides/heavy-metal-coaster/metal-coaster.png");
+    this.load.image("donut-coaster", "src/assets/rides/heavy-metal-coaster/donut.png");
+    this.load.image("palm-tree-coaster", "src/assets/rides/heavy-metal-coaster/palm-tree.png");
   }
 
   create() {
-    const bg = this.add.image(Config.GAME_WIDTH / 2, Config.GAME_HEIGHT, "generic-map");
+    const selectedMapId = window.CombatCrocs?.gameState?.game?.selectedMap || MapManager.getCurrentMap().id;
+    console.log("[GameScene] Using map for background:", selectedMapId);
+    const bgKey = selectedMapId === "heavyMetalCoaster" ? "heavy-metal-coaster-bg" : "generic-map";
+    const bg = this.add.image(Config.GAME_WIDTH / 2, Config.GAME_HEIGHT, bgKey);
     const bgScale = Math.max(Config.GAME_WIDTH / bg.width, Config.GAME_HEIGHT / bg.height);
     bg.setOrigin(0.5, 1).setScale(bgScale).setDepth(-100);
 
@@ -78,6 +88,11 @@ class GameScene extends Phaser.Scene {
     const weaponConfig = Config.WEAPON_CONFIGS[this.turnManager.getCurrentWeapon()];
     this.players.forEach(player => {
       PlayerManager.updatePlayerPhysics(this, player);
+      // Safety net: if any texture-based terrain has been registered (e.g. metal-coaster),
+      // nudge the player out if they end up inside the solid area.
+      if (this._textureCollision?.["metal-coaster"]) {
+        TerrainManager.nudgePlayerOutOfTexture(this, player, "metal-coaster");
+      }
       PlayerManager.updateHitAreaMarker(player);
       WeaponSpriteManager.updateWeaponSprite(player, weaponConfig, player.aimAngle);
     });
