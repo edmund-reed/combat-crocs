@@ -162,9 +162,9 @@ const PhaserConfig = {
     default: "matter",
     matter: {
       gravity: {
-        y: Config.GRAVITY, // Direct use of final gravity value
+        y: Config.GRAVITY,
       },
-      debug: false, // Disable physics debug - we'll add manual debug for projectiles
+      debug: false,
       enableSleeping: false,
     },
   },

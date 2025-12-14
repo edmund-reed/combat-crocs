@@ -1,7 +1,6 @@
 import { Config } from "@config";
 import { PhysicsManager } from "@utils";
 import TerrainManager from "./terrain-manager.js";
-import TextureCollisionManager from "./texture-collision.js";
 
 class DecorationsManager {
   static createDecorations(scene, mapConfig) {
@@ -10,6 +9,60 @@ class DecorationsManager {
       if (!scene.textures.exists(decor.sprite))
         return console.warn(`Decoration texture "${decor.sprite}" not found`) || [];
 
+      // PhysicsEditor path: Create Matter sprite directly (following tutorial exactly)
+      if (decor.physicsJson) {
+        const shapes = scene.cache.json.get(decor.physicsJson);
+        if (!shapes || !shapes[decor.sprite]) {
+          console.warn(`PhysicsEditor shapes not found for "${decor.sprite}", skipping`);
+          return [];
+        }
+
+        // Create Matter sprite with physics shape - exactly as tutorial shows
+        const matterSprite = scene.matter.add.sprite(0, 0, decor.sprite, null, {
+          shape: shapes[decor.sprite],
+          isStatic: true,
+          friction: 1.0,
+          frictionStatic: 1.0,
+          collisionFilter: { category: PhysicsManager.CATEGORIES.TERRAIN },
+        });
+
+        // Calculate scale based on relativeWidth
+        let scale = 1;
+        if (decor.relativeWidth) {
+          scale = (Config.GAME_WIDTH * decor.relativeWidth) / matterSprite.width;
+        } else if (decor.scale) {
+          scale = decor.scale;
+        }
+        matterSprite.setScale(scale);
+
+        // Position using centerOfMass offset (exactly as tutorial shows)
+        // Adjust for origin - tutorial uses bottom-center positioning
+        const originX = decor.originX ?? 0.5;
+        const originY = decor.originY ?? 1;
+        const offsetX = matterSprite.displayWidth * (0.5 - originX);
+        const offsetY = matterSprite.displayHeight * (0.5 - originY);
+
+        matterSprite.setPosition(
+          decor.x + matterSprite.centerOfMass.x + offsetX,
+          yPos + matterSprite.centerOfMass.y + offsetY,
+        );
+
+        matterSprite.setDepth(decor.depth ?? -3);
+
+        // Track for platform bounds
+        scene.currentMapPlatforms.push({
+          x: matterSprite.x - matterSprite.displayWidth / 2,
+          y: matterSprite.y - matterSprite.displayHeight / 2,
+          width: matterSprite.displayWidth,
+          height: matterSprite.displayHeight,
+          name: `PhysicsEditor Terrain (${decor.sprite})`,
+        });
+
+        console.log(`🎯 Created PhysicsEditor terrain: ${decor.sprite}`);
+        return [matterSprite];
+      }
+
+      // Standard path: Create Image sprite
       const sprite = scene.add
         .image(decor.x, yPos, decor.sprite)
         .setOrigin(decor.originX ?? 0.5, decor.originY ?? 1)
@@ -38,15 +91,6 @@ class DecorationsManager {
             duration: (Math.PI * 2 * 1000) / (decor.rotationSpeed ?? 0.2),
             repeat: -1,
             onUpdate: () => scene.matter.body.setAngle(body, Phaser.Math.DegToRad(sprite.angle)),
-          });
-      } else if (decor.collisionFromTexture) {
-        TextureCollisionManager.createTerrainFromTexture(scene, sprite, decor.sprite);
-        if (decor.rotating)
-          scene.tweens.add({
-            targets: sprite,
-            angle: 360,
-            duration: (Math.PI * 2 * 1000) / (decor.rotationSpeed ?? 0.2),
-            repeat: -1,
           });
       }
 

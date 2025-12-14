@@ -121,11 +121,11 @@ class MapManager {
         {
           sprite: "metal-coaster",
           x: 600,
-          y: "GAME_HEIGHT - 100", // sit flush on ground band
+          y: "GAME_HEIGHT - 100",
           originX: 0.5,
           originY: 1,
           relativeWidth: 0.5,
-          collisionFromTexture: true,
+          physicsJson: "metal-coaster-physics", // PhysicsEditor JSON for precise collision
         },
         {
           sprite: "donut-coaster",
@@ -140,12 +140,12 @@ class MapManager {
         },
         {
           sprite: "palm-tree-coaster",
-          x: 1070, // moved ~30px left from previous 1100
-          y: "GAME_HEIGHT - 100", // sit on ground band
+          x: 1070,
+          y: "GAME_HEIGHT - 100",
           originX: 0.5,
           originY: 1,
-          relativeWidth: 0.17, // ~15% smaller than 0.2
-          collisionFromTexture: true,
+          relativeWidth: 0.17,
+          // No collision - purely decorative (or add physicsJson when JSON is created)
         },
       ],
       groundVariation: false,

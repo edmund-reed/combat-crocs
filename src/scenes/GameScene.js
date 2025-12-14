@@ -12,7 +12,7 @@ import {
 import { UIManager, HealthBarManager } from "@ui";
 import { MovementManager } from "@player";
 import { WeaponSpriteManager } from "@weapons";
-import { TerrainManager, TextureCollisionManager } from "@terrain";
+import { TerrainManager } from "@terrain";
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -51,6 +51,7 @@ class GameScene extends Phaser.Scene {
     // Heavy Metal Coaster
     this.load.image("heavy-metal-coaster-bg", "src/assets/rides/heavy-metal-coaster/background.png");
     this.load.image("metal-coaster", "src/assets/rides/heavy-metal-coaster/metal-coaster.png");
+    this.load.json("metal-coaster-physics", "src/assets/rides/heavy-metal-coaster/metal-coaster.json");
     this.load.image("donut-coaster", "src/assets/rides/heavy-metal-coaster/donut.png");
     this.load.image("palm-tree-coaster", "src/assets/rides/heavy-metal-coaster/palm-tree.png");
   }
@@ -93,11 +94,6 @@ class GameScene extends Phaser.Scene {
     const weaponConfig = Config.WEAPON_CONFIGS[this.turnManager.getCurrentWeapon()];
     this.players.forEach(player => {
       PlayerManager.updatePlayerPhysics(this, player);
-      // Safety net: if any texture-based terrain has been registered (e.g. metal-coaster),
-      // nudge the player out if they end up inside the solid area.
-      if (this._textureCollision?.["metal-coaster"]) {
-        TextureCollisionManager.nudgePlayerOutOfTexture(this, player, "metal-coaster");
-      }
       PlayerManager.updateHitAreaMarker(player);
       WeaponSpriteManager.updateWeaponSprite(player, weaponConfig, player.aimAngle);
     });
