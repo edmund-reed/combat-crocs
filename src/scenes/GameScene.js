@@ -53,7 +53,9 @@ class GameScene extends Phaser.Scene {
     this.load.image("metal-coaster", "src/assets/rides/heavy-metal-coaster/metal-coaster.png");
     this.load.json("metal-coaster-physics", "src/assets/rides/heavy-metal-coaster/metal-coaster.json");
     this.load.image("donut-coaster", "src/assets/rides/heavy-metal-coaster/donut.png");
+    this.load.json("donut-coaster-physics", "src/assets/rides/heavy-metal-coaster/donut.json");
     this.load.image("palm-tree-coaster", "src/assets/rides/heavy-metal-coaster/palm-tree.png");
+    this.load.json("palm-tree-coaster-physics", "src/assets/rides/heavy-metal-coaster/palm-tree.json");
   }
 
   create() {

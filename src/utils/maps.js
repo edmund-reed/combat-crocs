@@ -129,14 +129,15 @@ class MapManager {
         },
         {
           sprite: "donut-coaster",
-          x: 150, // shifted slightly right from left edge
-          y: "GAME_HEIGHT - 270", // raised ~70px higher above ground
+          x: 150,
+          y: "GAME_HEIGHT - 270",
           originX: 0.5,
           originY: 0.5,
-          relativeWidth: 0.15, // ~15% of game width (~25% smaller than 0.2)
+          relativeWidth: 0.15,
+          physicsJson: "donut-coaster-physics",
+          shapeKey: "donut", // Key in JSON file
           rotating: true,
-          rotationSpeed: 0.2, // radians per second, slow spin
-          useCircleCollision: true,
+          rotationSpeed: 0.2,
         },
         {
           sprite: "palm-tree-coaster",
@@ -145,7 +146,8 @@ class MapManager {
           originX: 0.5,
           originY: 1,
           relativeWidth: 0.17,
-          // No collision - purely decorative (or add physicsJson when JSON is created)
+          physicsJson: "palm-tree-coaster-physics",
+          shapeKey: "palm-tree", // Key in JSON file
         },
       ],
       groundVariation: false,

@@ -12,14 +12,19 @@ class DecorationsManager {
       // PhysicsEditor path: Create Matter sprite directly (following tutorial exactly)
       if (decor.physicsJson) {
         const shapes = scene.cache.json.get(decor.physicsJson);
-        if (!shapes || !shapes[decor.sprite]) {
-          console.warn(`PhysicsEditor shapes not found for "${decor.sprite}", skipping`);
+        const shapeKey = decor.shapeKey || decor.sprite; // Allow custom shape key for mismatched names
+
+        if (!shapes || !shapes[shapeKey]) {
+          console.warn(
+            `PhysicsEditor shapes not found for "${shapeKey}" in ${decor.physicsJson}, skipping. Available keys:`,
+            shapes ? Object.keys(shapes) : "null",
+          );
           return [];
         }
 
-        // Create Matter sprite with physics shape - exactly as tutorial shows
+        // Create Matter sprite with PhysicsEditor shape
         const matterSprite = scene.matter.add.sprite(0, 0, decor.sprite, null, {
-          shape: shapes[decor.sprite],
+          shape: shapes[shapeKey],
           isStatic: true,
           friction: 1.0,
           frictionStatic: 1.0,
@@ -35,19 +40,26 @@ class DecorationsManager {
         }
         matterSprite.setScale(scale);
 
-        // Position using centerOfMass offset (exactly as tutorial shows)
-        // Adjust for origin - tutorial uses bottom-center positioning
+        // Position sprite based on desired origin
+        // Matter sprites are centered by default, so we adjust for custom origins
         const originX = decor.originX ?? 0.5;
         const originY = decor.originY ?? 1;
         const offsetX = matterSprite.displayWidth * (0.5 - originX);
         const offsetY = matterSprite.displayHeight * (0.5 - originY);
 
-        matterSprite.setPosition(
-          decor.x + matterSprite.centerOfMass.x + offsetX,
-          yPos + matterSprite.centerOfMass.y + offsetY,
-        );
+        matterSprite.setPosition(decor.x + offsetX, yPos + offsetY);
 
         matterSprite.setDepth(decor.depth ?? -3);
+
+        // Handle rotation for PhysicsEditor sprites
+        if (decor.rotating) {
+          scene.tweens.add({
+            targets: matterSprite,
+            angle: 360,
+            duration: (Math.PI * 2 * 1000) / (decor.rotationSpeed ?? 0.2),
+            repeat: -1,
+          });
+        }
 
         // Track for platform bounds
         scene.currentMapPlatforms.push({
@@ -58,7 +70,6 @@ class DecorationsManager {
           name: `PhysicsEditor Terrain (${decor.sprite})`,
         });
 
-        console.log(`🎯 Created PhysicsEditor terrain: ${decor.sprite}`);
         return [matterSprite];
       }
 
