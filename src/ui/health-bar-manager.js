@@ -30,51 +30,46 @@ class HealthBarManager {
       if (!player) return;
 
       const { bar, label } = data;
-      bar.clear();
-
-      const dark = player.color & 0x7f7f7f;
-      const baseMax = 100;
-      const baseWidth = 100;
       const hp = Math.max(0, player.health || 0);
 
-      const baseHp = Math.min(hp, baseMax); // health up to default max
-      const rawBonusHp = Math.max(0, hp - baseMax); // health beyond default max
-      const clampedBonusHp = Math.min(rawBonusHp, baseMax); // cap bonus at +100 for visuals
-
-      const baseW = baseWidth * (baseHp / baseMax);
-      const bonusW = baseWidth * (clampedBonusHp / baseMax); // e.g. +25 hp => 25% of baseWidth
-      const totalWidth = baseWidth + bonusW;
-
-      // Background and outline for full potential width
-      bar
-        .fillStyle(dark)
-        .fillRect(0, 0, totalWidth, 12)
-        .lineStyle(1, 0x000000)
-        .strokeRect(0, 0, totalWidth, 12);
-
-      // Base health segment (normal colour)
-      if (baseW > 0) {
-        bar.fillStyle(player.color).fillRect(0, 0, baseW, 12);
-      }
-
-      // Bonus health segment (lighter variant of player color)
-      if (bonusW > 0) {
-        const bonusColor = this._lightenColor(player.color, 0.4);
-        bar.fillStyle(bonusColor).fillRect(baseW, 0, bonusW, 12);
-      }
-
-      if (hp > 0) {
-        bar.setVisible(true);
-        label.setVisible(true);
-      } else {
-        bar.setVisible(false);
+      // Handle death
+      if (hp <= 0) {
+        bar.setVisible(false).clear();
         label.setVisible(false);
         if (player.body && !player.body.isRemoved && scene.matter?.world) {
           scene.matter.world.remove(player.body);
           player.body.isRemoved = true;
         }
         this._showGravestone(scene, player);
+        return;
       }
+
+      // Render health bar
+      bar.clear().setVisible(true);
+      label.setVisible(true);
+
+      const baseMax = 100;
+      const barWidth = 100;
+      const maxHp = player.maxHealth || baseMax;
+
+      // Calculate dimensions
+      const totalWidth = Math.min(barWidth * (maxHp / baseMax), barWidth * 2); // cap visual at 2x
+      const fillWidth = (hp / maxHp) * totalWidth;
+      const baseW = Math.min(fillWidth, barWidth);
+      const bonusW = Math.max(0, fillWidth - barWidth);
+
+      // Draw background
+      const darkColor = player.color & 0x7f7f7f;
+      bar.fillStyle(darkColor).fillRect(0, 0, totalWidth, 12);
+
+      // Draw health fill
+      if (baseW > 0) bar.fillStyle(player.color).fillRect(0, 0, baseW, 12);
+      if (bonusW > 0) {
+        bar.fillStyle(this._lightenColor(player.color, 0.4)).fillRect(barWidth, 0, bonusW, 12);
+      }
+
+      // Draw outline
+      bar.lineStyle(1, 0x000000).strokeRect(0, 0, totalWidth, 12);
     });
   }
 

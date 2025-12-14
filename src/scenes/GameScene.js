@@ -1,17 +1,18 @@
 import { Config } from "@config";
 import {
   TurnManager,
-  TerrainManager,
   PlayerManager,
   PhysicsManager,
   InputManager,
   StateManager,
   LastStandManager,
   Maps as MapManager,
+  HealthPackManager,
 } from "@utils";
 import { UIManager, HealthBarManager } from "@ui";
 import { MovementManager } from "@player";
 import { WeaponSpriteManager } from "@weapons";
+import { TerrainManager, TextureCollisionManager } from "@terrain";
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -92,7 +93,7 @@ class GameScene extends Phaser.Scene {
       // Safety net: if any texture-based terrain has been registered (e.g. metal-coaster),
       // nudge the player out if they end up inside the solid area.
       if (this._textureCollision?.["metal-coaster"]) {
-        TerrainManager.nudgePlayerOutOfTexture(this, player, "metal-coaster");
+        TextureCollisionManager.nudgePlayerOutOfTexture(this, player, "metal-coaster");
       }
       PlayerManager.updateHitAreaMarker(player);
       WeaponSpriteManager.updateWeaponSprite(player, weaponConfig, player.aimAngle);
@@ -119,43 +120,11 @@ class GameScene extends Phaser.Scene {
     PhysicsManager.updateProjectiles(this);
     HealthBarManager.updateHealthBarPositions(this);
     HealthBarManager.updateHealthBars(this);
-
-    if (this.healthCrates?.length) {
-      this.healthCrates = this.healthCrates.filter(crate => {
-        let pickedUp = false;
-        this.players.forEach((p, idx) => {
-          if (pickedUp || !PlayerManager.isPlayerAlive(this, idx)) return;
-          const dx = p.x - crate.x;
-          const dy = p.y - crate.y;
-          if (Math.hypot(dx, dy) < 25) {
-            const heal = crate.healAmount || Config.HEALTH_CRATE_AMOUNT;
-            p.maxHealth = (p.maxHealth || 100) + heal;
-            p.health = (p.health || 0) + heal;
-            crate.destroy();
-            pickedUp = true;
-          }
-        });
-        return !pickedUp;
-      });
-    }
+    HealthPackManager.update(this);
   }
 
   spawnHealthCrate(amount = Config.HEALTH_CRATE_AMOUNT) {
-    const x = Phaser.Math.Between(50, Config.GAME_WIDTH - 50);
-
-    // Find the top-most terrain under this x (platforms + ground)
-    let targetTop = Config.GAME_HEIGHT - 100;
-    (this.currentMapPlatforms || []).forEach(p => {
-      const top = p.y;
-      if (x >= p.x && x <= p.x + p.width && top < targetTop) targetTop = top;
-    });
-
-    const crate = this.add.image(x, -40, "health-pack").setDepth(900);
-    const maxWidth = 32;
-    if (crate.width > maxWidth) crate.setScale(maxWidth / crate.width);
-    crate.healAmount = amount;
-    this.tweens.add({ targets: crate, y: targetTop - 20, duration: 800, ease: "Bounce.Out" });
-    this.healthCrates.push(crate);
+    HealthPackManager.spawn(this);
   }
 
   endProjectileTurn() {

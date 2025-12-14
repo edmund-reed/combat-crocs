@@ -1,5 +1,5 @@
-import { Config } from "@config";
-import { StateManager, Logger, PlayerManager } from "@utils";
+import { Config, Logger } from "@config";
+import { StateManager, PlayerManager } from "@utils";
 import { UIManager } from "@ui";
 import { WeaponSpriteManager } from "@weapons";
 

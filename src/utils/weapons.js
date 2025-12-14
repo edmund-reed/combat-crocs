@@ -1,6 +1,6 @@
-import { Config } from "@config";
+import { Config, Logger } from "@config";
 import { HitscanWeapon, ExplosionSystem } from "@weapons";
-import { InputManager, StateManager, Logger, PhysicsManager } from "@utils";
+import { InputManager, StateManager, PhysicsManager } from "@utils";
 
 class WeaponManager {
   static fireWeapon = (scene, player, targetX, targetY, weaponType) => {
@@ -31,7 +31,10 @@ class WeaponManager {
     const projectile =
       config.renderType === "sprite"
         ? scene.add.sprite(body.position.x, body.position.y, config.spriteKey).setScale(config.spriteScale)
-        : scene.add.graphics({ x: body.position.x, y: body.position.y }).fillStyle(0xff0000).fillCircle(0, 0, 5);
+        : scene.add
+            .graphics({ x: body.position.x, y: body.position.y })
+            .fillStyle(0xff0000)
+            .fillCircle(0, 0, 5);
 
     // Hide held weapon sprite only for thrown weapons (grenade)
     if (config.hasHeldSprite && config.projectileUsesHeldSprite) {
@@ -81,7 +84,9 @@ class WeaponManager {
     let hasHit = false;
     scene.matter.world.on("collisionstart", event => {
       if (projectileBody.destroyed || hasHit) return;
-      const collision = event.pairs.find(pair => pair.bodyA === projectileBody || pair.bodyB === projectileBody);
+      const collision = event.pairs.find(
+        pair => pair.bodyA === projectileBody || pair.bodyB === projectileBody,
+      );
       if (!collision) return;
 
       Logger.weaponEvent("Projectile collision!");
