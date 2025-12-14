@@ -42,6 +42,7 @@ class MapManager {
         { x: 950, y: "GAME_HEIGHT - 225", width: 100, height: 50 },
       ],
       groundVariation: true,
+      groundTexture: "terrain",
     },
     dinocoaster: {
       id: "dinocoaster",
@@ -57,6 +58,7 @@ class MapManager {
         { x: 850, y: "GAME_HEIGHT - 375", width: 80, height: 45 },
       ],
       groundVariation: false,
+      groundTexture: "terrain",
     },
     hotelOfHorror: {
       id: "hotelOfHorror",
@@ -68,6 +70,7 @@ class MapManager {
         { x: 250, y: "GAME_HEIGHT - 300", width: 150, height: 40 },
         { x: 950, y: "GAME_HEIGHT - 280", width: 150, height: 40 },
       ],
+      groundTexture: "terrain",
       decorations: [
         {
           sprite: "hotel-horror",
@@ -117,6 +120,7 @@ class MapManager {
       backgroundColor: "#8B008B",
       difficulty: 2,
       platforms: [],
+      groundTexture: "terrain-2",
       decorations: [
         {
           sprite: "metal-coaster",
@@ -171,6 +175,7 @@ class MapManager {
         platforms: config.platforms,
         groundVariation: config.groundVariation,
         decorations: config.decorations || [],
+        groundTexture: config.groundTexture || "terrain",
       },
       backgroundColor: config.backgroundColor,
       difficulty: config.difficulty,

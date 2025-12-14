@@ -55,14 +55,6 @@ class PhysicsManager {
       collisionFilter: { category: this.CATEGORIES.TERRAIN },
     });
 
-  static createTerrainCircle = (scene, x, y, radius) =>
-    scene.matter.add.circle(x, y, radius, {
-      isStatic: true,
-      friction: this.CONFIG.FRICTION.TERRAIN,
-      frictionStatic: this.CONFIG.FRICTION.TERRAIN,
-      collisionFilter: { category: this.CATEGORIES.TERRAIN },
-    });
-
   // Set projectile velocity and apply physics
   static applyProjectileVelocity = (scene, projectileBody, angle, power) => {
     scene.matter.body.setVelocity(projectileBody, {

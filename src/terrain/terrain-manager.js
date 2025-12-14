@@ -13,8 +13,8 @@ class TerrainManager {
 
   static createGround(scene) {
     const groundY = Config.GAME_HEIGHT - 100;
-    const mapId = window.CombatCrocs?.gameState?.game?.selectedMap || MapManager.getCurrentMap().id;
-    const textureKey = mapId === "heavyMetalCoaster" ? "terrain-2" : "terrain";
+    const selectedMap = MapManager.getCurrentMap();
+    const textureKey = selectedMap.terrain?.groundTexture || "terrain";
 
     if (scene.textures.exists(textureKey)) {
       const scale = 100 / scene.textures.get(textureKey).source[0].height;

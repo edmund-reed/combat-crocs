@@ -87,7 +87,7 @@ class GameScene extends Phaser.Scene {
     console.log("🎮 GameScene initialization complete");
   }
 
-  update(delta) {
+  update() {
     UIManager.checkAndHandleGameEnd(this);
 
     const timer = this.turnManager.currentTurnTimer;
