@@ -32,20 +32,23 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("croc-1", "src/assets/players/croc-1.png");
-    this.load.image("croc-2", "src/assets/players/croc-2.png");
-    this.load.image("chameleon-1", "src/assets/players/chameleon-1.png");
-    this.load.image("gecko-1", "src/assets/players/gecko-1.png");
+    // Weapons
     this.load.image("grenade-l1", "src/assets/weapons/orange-grenade/orange-grenade-level-1.png");
     this.load.image("bazooka-l1", "src/assets/weapons/bazooka/bazooka-level-1.png");
     this.load.image("shotgun-l1", "src/assets/weapons/shotgun/shotgun-level-1.png");
+
+    // UI / environment
     this.load.image("health-pack", "src/assets/health-pack.png");
     this.load.image("generic-map", "src/assets/backgrounds/generic-map.png");
     this.load.image("terrain", "src/assets/terrain.png");
     this.load.image("terrain-2", "src/assets/terrain-2.png");
     this.load.image("brick", "src/assets/brick.png");
+
+    // Hotel of Horror
     this.load.image("hotel-horror", "src/assets/maps/hotel-of-horror/hotel.png");
     this.load.image("elevator-horror", "src/assets/maps/hotel-of-horror/elevator.png");
+
+    // Heavy Metal Coaster
     this.load.image("heavy-metal-coaster-bg", "src/assets/rides/heavy-metal-coaster/background.png");
     this.load.image("metal-coaster", "src/assets/rides/heavy-metal-coaster/metal-coaster.png");
     this.load.image("donut-coaster", "src/assets/rides/heavy-metal-coaster/donut.png");

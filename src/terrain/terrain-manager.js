@@ -13,68 +13,43 @@ class TerrainManager {
 
   static createGround(scene) {
     const groundY = Config.GAME_HEIGHT - 100;
-    const terrainGfx = scene.add.graphics();
+    const mapId = window.CombatCrocs?.gameState?.game?.selectedMap || MapManager.getCurrentMap().id;
+    const textureKey = mapId === "heavyMetalCoaster" ? "terrain-2" : "terrain";
 
-    const selectedMapId = window.CombatCrocs?.gameState?.game?.selectedMap || MapManager.getCurrentMap().id;
-    const groundTextureKey = selectedMapId === "heavyMetalCoaster" ? "terrain-2" : "terrain";
-
-    if (scene.textures.exists(groundTextureKey)) {
-      const texture = scene.textures.get(groundTextureKey);
-      const texHeight = texture.source[0].height;
-      const scale = 100 / texHeight;
-      const groundTile = scene.add
-        .tileSprite(0, groundY, Config.GAME_WIDTH, 100, groundTextureKey)
+    if (scene.textures.exists(textureKey)) {
+      const scale = 100 / scene.textures.get(textureKey).source[0].height;
+      scene.groundTile = scene.add
+        .tileSprite(0, groundY, Config.GAME_WIDTH, 100, textureKey)
         .setOrigin(0, 0)
         .setDepth(-5);
-      groundTile.tileScaleX = scale;
-      groundTile.tileScaleY = scale;
-      scene.groundTile = groundTile;
+      scene.groundTile.tileScaleX = scene.groundTile.tileScaleY = scale;
     } else {
-      terrainGfx.fillStyle(Config.COLORS.ORANGE).fillRect(0, groundY, Config.GAME_WIDTH, 100);
+      scene.add.graphics().fillStyle(Config.COLORS.ORANGE).fillRect(0, groundY, Config.GAME_WIDTH, 100);
     }
 
-    scene.terrain = terrainGfx;
-
-    return {
-      y: groundY,
-      body: PhysicsManager.createTerrainBody(
-        scene,
-        Config.GAME_WIDTH / 2,
-        Config.GAME_HEIGHT - 50,
-        Config.GAME_WIDTH,
-        100,
-      ),
-    };
+    scene.terrain = scene.add.graphics();
+    PhysicsManager.createTerrainBody(
+      scene,
+      Config.GAME_WIDTH / 2,
+      Config.GAME_HEIGHT - 50,
+      Config.GAME_WIDTH,
+      100,
+    );
   }
 
   static createPlatforms(scene, mapConfig) {
     return (mapConfig.terrain.platforms || []).map((platformData, index) => {
-      let yPos = platformData.y;
-      if (typeof platformData.y === "string" && platformData.y.includes("GAME_HEIGHT")) {
-        const match = platformData.y
-          .replace(/GAME_HEIGHT/g, Config.GAME_HEIGHT.toString())
-          .match(/(\d+)\s*-\s*(\d+)/);
-        yPos = match
-          ? parseInt(match[1]) - parseInt(match[2])
-          : (console.warn(`Could not parse: ${platformData.y}`), 0);
-      } else if (typeof platformData.y === "string") {
-        yPos = parseFloat(platformData.y);
-      }
-
+      const yPos = this.parseYPosition(platformData.y);
       const platX = platformData.x - platformData.width / 2;
       const platY = yPos - platformData.height / 2;
 
       if (scene.textures.exists("brick")) {
-        const texture = scene.textures.get("brick");
-        const texSize = texture.source[0].height;
-        const targetBrickSize = 50;
-        const scale = targetBrickSize / texSize;
+        const scale = 50 / scene.textures.get("brick").source[0].height;
         const platTile = scene.add
           .tileSprite(platX, platY, platformData.width, platformData.height, "brick")
           .setOrigin(0, 0)
           .setDepth(-4);
-        platTile.tileScaleX = scale;
-        platTile.tileScaleY = scale;
+        platTile.tileScaleX = platTile.tileScaleY = scale;
       } else {
         scene.terrain
           .fillStyle(Config.COLORS.BRIGHT_ORANGE)
@@ -82,7 +57,6 @@ class TerrainManager {
       }
 
       PhysicsManager.createTerrainBody(scene, platformData.x, yPos, platformData.width, platformData.height);
-
       return {
         x: platX,
         y: platY,
@@ -95,10 +69,10 @@ class TerrainManager {
 
   static parseYPosition(y) {
     if (typeof y === "string" && y.includes("GAME_HEIGHT")) {
-      const match = y.replace(/GAME_HEIGHT/g, Config.GAME_HEIGHT.toString()).match(/(\d+)\s*-\s*(\d+)/);
-      return match ? parseInt(match[1]) - parseInt(match[2]) : Config.GAME_HEIGHT;
+      const match = y.replace(/GAME_HEIGHT/g, String(Config.GAME_HEIGHT)).match(/(\d+)\s*-\s*(\d+)/);
+      return match ? Number(match[1]) - Number(match[2]) : Config.GAME_HEIGHT;
     }
-    return typeof y === "string" ? parseFloat(y) : y;
+    return typeof y === "string" ? Number(y) : y;
   }
 
   static getSafeSpawnPositions = () => ({ player1: { x: 150 }, player2: { x: 1000 } });

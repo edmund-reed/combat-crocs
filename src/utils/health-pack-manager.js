@@ -9,13 +9,11 @@ class HealthPackManager {
       Config.GAME_HEIGHT - 100,
     );
 
-    const crate = scene.add
-      .image(x, -40, "health-pack")
-      .setDepth(900)
-      .setScale(Math.min(1, 32 / scene.textures.get("health-pack").source[0].width));
+    const crate = scene.add.image(x, -40, "health-pack").setDepth(900);
+    crate.setScale(Math.min(1, 32 / scene.textures.get("health-pack").source[0].width));
     crate.healAmount = Config.HEALTH_CRATE_AMOUNT;
     scene.tweens.add({ targets: crate, y: topY - 20, duration: 800, ease: "Bounce.Out" });
-    (scene.healthCrates = scene.healthCrates || []).push(crate);
+    (scene.healthCrates ||= []).push(crate);
   }
 
   static update(scene) {

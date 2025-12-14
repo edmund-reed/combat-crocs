@@ -83,18 +83,12 @@ class TextureCollisionManager {
           const minTy = cy * cellSizeTexY;
           const maxTy = Math.min((cy + 1) * cellSizeTexY, texH) - 1;
 
-          const uCenter = (minTx + maxTx) / 2 / texW;
-          const vCenter = (minTy + maxTy) / 2 / texH;
-          const uWidth = (maxTx - minTx + 1) / texW;
-          const vHeight = (maxTy - minTy + 1) / texH;
-
-          const worldX = worldLeft + uCenter * displayWidth;
-          const worldY = worldTop + vCenter * displayHeight;
-          const worldW = displayWidth * uWidth;
-          const worldH = displayHeight * vHeight;
+          const worldX = worldLeft + ((minTx + maxTx) / 2 / texW) * displayWidth;
+          const worldY = worldTop + ((minTy + maxTy) / 2 / texH) * displayHeight;
+          const worldW = displayWidth * ((maxTx - minTx + 1) / texW);
+          const worldH = displayHeight * ((maxTy - minTy + 1) / texH);
 
           PhysicsManager.createTerrainBody(scene, worldX, worldY, worldW, worldH);
-
           scene.currentMapPlatforms.push({
             x: worldX - worldW / 2,
             y: worldY - worldH / 2,

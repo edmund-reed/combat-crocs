@@ -32,7 +32,6 @@ class HealthBarManager {
       const { bar, label } = data;
       const hp = Math.max(0, player.health || 0);
 
-      // Handle death
       if (hp <= 0) {
         bar.setVisible(false).clear();
         label.setVisible(false);
@@ -44,31 +43,24 @@ class HealthBarManager {
         return;
       }
 
-      // Render health bar
       bar.clear().setVisible(true);
       label.setVisible(true);
 
-      const baseMax = 100;
-      const barWidth = 100;
-      const maxHp = player.maxHealth || baseMax;
-
-      // Calculate dimensions
-      const totalWidth = Math.min(barWidth * (maxHp / baseMax), barWidth * 2); // cap visual at 2x
+      const maxHp = player.maxHealth || 100;
+      const totalWidth = Math.min(maxHp, 200);
       const fillWidth = (hp / maxHp) * totalWidth;
-      const baseW = Math.min(fillWidth, barWidth);
-      const bonusW = Math.max(0, fillWidth - barWidth);
+      const baseW = Math.min(fillWidth, 100);
+      const bonusW = Math.max(0, fillWidth - 100);
 
-      // Draw background
-      const darkColor = player.color & 0x7f7f7f;
-      bar.fillStyle(darkColor).fillRect(0, 0, totalWidth, 12);
-
-      // Draw health fill
+      bar.fillStyle(player.color & 0x7f7f7f).fillRect(0, 0, totalWidth, 12);
       if (baseW > 0) bar.fillStyle(player.color).fillRect(0, 0, baseW, 12);
       if (bonusW > 0) {
-        bar.fillStyle(this._lightenColor(player.color, 0.4)).fillRect(barWidth, 0, bonusW, 12);
+        const c = player.color;
+        const r = Math.min(255, ((c >> 16) & 0xff) + Math.round((255 - ((c >> 16) & 0xff)) * 0.4));
+        const g = Math.min(255, ((c >> 8) & 0xff) + Math.round((255 - ((c >> 8) & 0xff)) * 0.4));
+        const b = Math.min(255, (c & 0xff) + Math.round((255 - (c & 0xff)) * 0.4));
+        bar.fillStyle((r << 16) | (g << 8) | b).fillRect(100, 0, bonusW, 12);
       }
-
-      // Draw outline
       bar.lineStyle(1, 0x000000).strokeRect(0, 0, totalWidth, 12);
     });
   }
@@ -83,16 +75,6 @@ class HealthBarManager {
     const rip = UITextHelpers.createStatusText(scene, x, y - 40, "RIP", "#FFFFFF", 10).setOrigin(0.5);
     player.graphics.setVisible(false);
     StateManager.registerCleanup(scene, { stone, rip }, "effects");
-  }
-
-  static _lightenColor(color, factor = 0.4) {
-    const r = (color >> 16) & 0xff;
-    const g = (color >> 8) & 0xff;
-    const b = color & 0xff;
-    const lr = Math.min(255, Math.round(r + (255 - r) * factor));
-    const lg = Math.min(255, Math.round(g + (255 - g) * factor));
-    const lb = Math.min(255, Math.round(b + (255 - b) * factor));
-    return (lr << 16) | (lg << 8) | lb;
   }
 }
 
