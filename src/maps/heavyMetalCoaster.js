@@ -20,7 +20,7 @@ export default {
     {
       sprite: "donut-coaster",
       x: 150,
-      bottom: 270,
+      bottom: 250,
       originX: 0.5,
       originY: 0.5,
       relativeWidth: 0.15,
@@ -31,7 +31,7 @@ export default {
     },
     {
       sprite: "palm-tree-coaster",
-      x: 1070,
+      x: 1035,
       bottom: 100,
       originX: 0.5,
       originY: 1,

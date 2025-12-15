@@ -124,7 +124,7 @@ class GameScene extends Phaser.Scene {
     const isMoving = cursors.left.isDown || cursors.right.isDown;
     InputManager.handleAimingInput(this, currentPlayer, cursors, isMoving);
 
-    PhysicsManager.updateProjectiles(this);
+    PhysicsManager.updatePhysicsBodies(this);
     HealthBarManager.updateHealthBarPositions(this);
     HealthBarManager.updateHealthBars(this);
     HealthPackManager.update(this);

@@ -19,7 +19,40 @@ class PhysicsManager {
   static initializePhysics = scene => {
     scene.matter.world.setBounds(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
     scene.matter.world.setGravity(0, Config.GRAVITY); // Direct use of final gravity value
+
+    // Ground contact tracking for jump lockout
+    // Tracks collisions between player bodies and terrain bodies.
+    scene.matter.world.on("collisionstart", event => {
+      event.pairs.forEach(({ bodyA, bodyB }) => {
+        this.#handleGroundContact(scene, bodyA, bodyB, +1);
+        this.#handleGroundContact(scene, bodyB, bodyA, +1);
+      });
+    });
+
+    scene.matter.world.on("collisionend", event => {
+      event.pairs.forEach(({ bodyA, bodyB }) => {
+        this.#handleGroundContact(scene, bodyA, bodyB, -1);
+        this.#handleGroundContact(scene, bodyB, bodyA, -1);
+      });
+    });
   };
+
+  static #handleGroundContact(scene, maybePlayerBody, maybeTerrainBody, delta) {
+    if (!maybePlayerBody || !maybeTerrainBody) return;
+
+    if (
+      maybePlayerBody.collisionFilter?.category !== this.CATEGORIES.PLAYERS ||
+      maybeTerrainBody.collisionFilter?.category !== this.CATEGORIES.TERRAIN
+    ) {
+      return;
+    }
+
+    const player = scene.players?.find(p => p.body === maybePlayerBody);
+    if (!player) return;
+
+    player.groundContacts = Math.max(0, (player.groundContacts || 0) + delta);
+    if (player.groundContacts > 0) player.jumpLocked = false;
+  }
 
   static createPlayerBody = (scene, x, y) =>
     scene.matter.add.rectangle(x, y, 30, 20, {
@@ -93,7 +126,19 @@ class PhysicsManager {
     return { x, y };
   };
 
-  static updateProjectiles = scene => {
+  static updateRotatingTerrain = scene => {
+    // Drive any kinematic rotating terrain bodies (e.g. donut)
+    const MatterBody = Phaser.Physics.Matter.Matter.Body;
+    scene.matter.world.getAllBodies().forEach(body => {
+      if (body?.isKinematicSpinner) {
+        // Scale down rotation speed to make values more intuitive (0.2 = slow, 1.0 = fast)
+        const scaledAngularVelocity = (body.spinnerAngularVelocity || 0) * 0.1;
+        MatterBody.setAngularVelocity(body, scaledAngularVelocity);
+      }
+    });
+  };
+
+  static updateWeaponProjectiles = scene => {
     scene.matter.world.getAllBodies().forEach(body => {
       if (!body.projectileGraphics || body.destroyed) return;
 
@@ -109,6 +154,11 @@ class PhysicsManager {
 
       body.debugOutline?.setPosition(body.position.x, body.position.y);
     });
+  };
+
+  static updatePhysicsBodies = scene => {
+    this.updateRotatingTerrain(scene);
+    this.updateWeaponProjectiles(scene);
   };
 }
 

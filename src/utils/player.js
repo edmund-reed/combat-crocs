@@ -36,6 +36,11 @@ class PlayerManager {
         .setFlipX(shouldFaceLeft),
       body: PhysicsManager.createPlayerBody(scene, x, y),
       hitAreaMarker: scene.add.graphics().lineStyle(2, 0x00ff00, 0.7).strokeCircle(0, 0, 25).setDepth(-1),
+
+      // Grounded/jump control
+      groundContacts: 0,
+      jumpLocked: false,
+      lastJumpAtMs: 0,
     };
 
     this.applyCharacterAbility(player, characterType);

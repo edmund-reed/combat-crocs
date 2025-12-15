@@ -11,8 +11,8 @@ const Config = {
   BOUNCE: 0.2,
 
   // Player settings
-  PLAYER_SPEED: 10,
-  PLAYER_JUMP_FORCE: 15, // Even higher for very noticeable jumping
+  PLAYER_SPEED: 5,
+  PLAYER_JUMP_FORCE: 15,
 
   // Behavior-driven weapon configurations - eliminates weapon name references
   WEAPON_CONFIGS: {

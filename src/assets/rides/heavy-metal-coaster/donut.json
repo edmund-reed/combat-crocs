@@ -4,10 +4,11 @@
 		"type": "fromPhysicsEditor",
 		"label": "donut",
 		"isStatic": false,
+		"ignoreGravity": true,
 		"density": 0.1,
 		"restitution": 0,
-		"friction": 0.1,
-		"frictionAir": 0.01,
+		"friction": 1,
+		"frictionAir": 0.5,
 		"frictionStatic": 0.5,
 		"collisionFilter": {
 			"group": 0,

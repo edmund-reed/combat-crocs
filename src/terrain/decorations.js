@@ -39,11 +39,19 @@ class DecorationsManager {
 
     const sprite = scene.matter.add.sprite(0, 0, decor.sprite, null, {
       shape: shapes[key],
-      isStatic: true,
+      isStatic: !decor.rotating,
       friction: 1.0,
       frictionStatic: 1.0,
       collisionFilter: { category: PhysicsManager.CATEGORIES.TERRAIN },
     });
+
+    // Rotating terrain (e.g. donut): make body behave like a kinematic spinner.
+    if (decor.rotating && sprite.body) {
+      // Prevent rotation changes due to collisions
+      Phaser.Physics.Matter.Matter.Body.setInertia(sprite.body, Infinity);
+      sprite.body.isKinematicSpinner = true;
+      sprite.body.spinnerAngularVelocity = decor.rotationSpeed ?? 0.2;
+    }
 
     // Tag Matter body for explosion LOS raycasts
     if (sprite.body) {
@@ -57,7 +65,8 @@ class DecorationsManager {
     const dy = sprite.displayHeight * (0.5 - (decor.originY ?? 1));
     sprite.setPosition(decor.x + dx, yPos + dy).setDepth(decor.depth ?? -3);
 
-    if (decor.rotating) {
+    // NOTE: for rotating physics decorations we rotate the Matter body (see PhysicsManager tick)
+    if (decor.rotating && !sprite.body) {
       scene.tweens.add({
         targets: sprite,
         angle: 360,
