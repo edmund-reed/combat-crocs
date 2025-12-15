@@ -49,13 +49,20 @@ class PhysicsManager {
     });
   };
 
-  static createTerrainBody = (scene, x, y, width, height) =>
-    scene.matter.add.rectangle(x, y, width, height, {
+  static createTerrainBody = (scene, x, y, width, height) => {
+    const body = scene.matter.add.rectangle(x, y, width, height, {
       isStatic: true,
       friction: this.CONFIG.FRICTION.TERRAIN,
       frictionStatic: this.CONFIG.FRICTION.TERRAIN,
       collisionFilter: { category: this.CATEGORIES.TERRAIN },
     });
+
+    // Tag for explosion LOS raycasts
+    body.isTerrain = true;
+    body.terrainName = "Terrain";
+
+    return body;
+  };
 
   // Set projectile velocity and apply physics
   static applyProjectileVelocity = (scene, projectileBody, angle, power) => {
@@ -66,8 +73,8 @@ class PhysicsManager {
   };
 
   // Delegate to existing ExplosionPhysics for terrain blocking
-  static isExplosionBlocked = (explosionX, explosionY, playerX, playerY, platforms) =>
-    ExplosionPhysics.isExplosionBlockedByTerrain(explosionX, explosionY, playerX, playerY, platforms);
+  static isExplosionBlocked = (explosionX, explosionY, playerX, playerY, scene) =>
+    ExplosionPhysics.isExplosionBlockedByTerrain(explosionX, explosionY, playerX, playerY, scene);
 
   // Calculate explosion position on terrain surface (opposite to travel direction)
   static calculateExplosionPosition = body => {

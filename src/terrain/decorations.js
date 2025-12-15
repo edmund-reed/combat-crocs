@@ -45,6 +45,12 @@ class DecorationsManager {
       collisionFilter: { category: PhysicsManager.CATEGORIES.TERRAIN },
     });
 
+    // Tag Matter body for explosion LOS raycasts
+    if (sprite.body) {
+      sprite.body.isTerrain = true;
+      sprite.body.terrainName = `PhysicsEditor (${decor.sprite})`;
+    }
+
     sprite.setScale(this.#calculateScale(decor, sprite));
 
     const dx = sprite.displayWidth * (0.5 - (decor.originX ?? 0.5));

@@ -1,12 +1,19 @@
 class ExplosionPhysics {
-  static isExplosionBlockedByTerrain(explosionX, explosionY, playerX, playerY, platforms) {
-    if (!platforms?.length) return false;
-    return platforms.some(platform =>
-      this.platformBlocksPath(platform, explosionX, explosionY, playerX, playerY),
-    );
+  // Raycast-based blocker using actual Matter bodies (including PhysicsEditor polygons).
+  static isExplosionBlockedByTerrain(explosionX, explosionY, playerX, playerY, scene) {
+    if (!scene?.matter?.world?.localWorld?.bodies) return false;
+
+    const bodies = scene.matter.world.localWorld.bodies;
+    const start = { x: explosionX, y: explosionY };
+    const end = { x: playerX, y: playerY };
+
+    // Query ray against all bodies; filter to terrain-tagged bodies only.
+    const hits = Phaser.Physics.Matter.Matter.Query.ray(bodies, start, end);
+
+    return hits.some(hit => hit.body && hit.body.isTerrain);
   }
 
-  // Debug helper: return the first platform that blocks LOS (or null)
+  // Debug helper (legacy rectangle-based LOS); kept for reference.
   static getBlockingPlatform(explosionX, explosionY, playerX, playerY, platforms) {
     if (!platforms?.length) return null;
     return (

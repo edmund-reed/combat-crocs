@@ -33,39 +33,13 @@ class ExplosionSystem {
       const distance = Phaser.Math.Distance.Between(x, y, player.x, player.y);
       const inRadius = distance < radius;
 
-      const blockingPlatform = PhysicsManager.isExplosionBlocked(
-        x,
-        y,
-        player.x,
-        player.y,
-        scene.currentMapPlatforms,
-      )
-        ? PhysicsManager.ExplosionPhysics?.getBlockingPlatform?.(
-            x,
-            y,
-            player.x,
-            player.y,
-            scene.currentMapPlatforms,
-          )
-        : null;
-      const blocked = !!blockingPlatform;
+      // New LOS check: raycast against actual Matter bodies (PhysicsEditor polygons etc.)
+      const blocked = PhysicsManager.isExplosionBlocked(x, y, player.x, player.y, scene);
 
       if (inRadius && blocked) {
-        const bx1 = blockingPlatform.x;
-        const by1 = blockingPlatform.y;
-        const bx2 = blockingPlatform.x + blockingPlatform.width;
-        const by2 = blockingPlatform.y + blockingPlatform.height;
-
-        const explosionInside = x >= bx1 && x <= bx2 && y >= by1 && y <= by2;
-        const playerInside = player.x >= bx1 && player.x <= bx2 && player.y >= by1 && player.y <= by2;
-
         console.log(
           `💥 Explosion(${weaponType}) BLOCKED for P${player.id}: dist=${distance.toFixed(1)}/${radius} ` +
-            `exp=(${x.toFixed(1)},${y.toFixed(1)}) player=(${player.x.toFixed(1)},${player.y.toFixed(1)}) ` +
-            `by=${blockingPlatform.name} rect=[${bx1.toFixed(1)},${by1.toFixed(1)} → ${bx2.toFixed(
-              1,
-            )},${by2.toFixed(1)}] ` +
-            `expInside=${explosionInside} playerInside=${playerInside}`,
+            `exp=(${x.toFixed(1)},${y.toFixed(1)}) player=(${player.x.toFixed(1)},${player.y.toFixed(1)})`,
         );
       }
 
