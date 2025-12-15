@@ -1,5 +1,5 @@
 import { Config } from "@config";
-import { UITextHelpers, UIButtonHelpers, UISceneHelpers } from "@ui";
+import { UIButtonHelpers, UISceneHelpers } from "@ui";
 import { Maps as MapManager } from "@utils";
 
 class MapSelectScene extends Phaser.Scene {
