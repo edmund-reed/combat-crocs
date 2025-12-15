@@ -9,14 +9,11 @@ class PlayerSelectScene extends Phaser.Scene {
 
   preload() {
     this.load.image("mapBg", "src/assets/backgrounds/map-bg.png");
-
-    // Load all colored character sprites
     Object.values(Config.CHARACTER_TYPES).forEach(({ baseName }) =>
       Config.COLOR_NAMES.forEach(({ key }) =>
         this.load.image(`${baseName}-${key}`, `src/assets/characters/${baseName}/${baseName}-${key}.png`),
       ),
     );
-
     this.load.audio("introMusic", "src/assets/intro.mp3");
   }
 
@@ -35,15 +32,9 @@ class PlayerSelectScene extends Phaser.Scene {
       })),
     });
 
-    const bgImage = this.add.image(layout.centerX, layout.height, "mapBg");
-    bgImage
-      .setScale(Math.max(layout.width / bgImage.width, layout.height / bgImage.height))
-      .setOrigin(0.5, 1);
-
-    const mapInfo = MapManager.getCurrentMap();
-
+    UISceneHelpers.setupScaledBackground(this, "mapBg", layout);
     UISceneHelpers.styledText(this, layout.centerX, 60, "CHOOSE YOUR CROCODILES", 32, 4);
-    UISceneHelpers.styledText(this, layout.centerX, 98, `Map: ${mapInfo.name}`, 18, 3);
+    UISceneHelpers.styledText(this, layout.centerX, 98, `Map: ${MapManager.getCurrentMap().name}`, 18, 3);
     UIManager.createTeamCountSelector(this);
     TeamSelectorManager.createTeamSelection(this);
 

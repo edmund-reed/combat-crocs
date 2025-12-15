@@ -76,6 +76,12 @@ class UISceneHelpers {
     centerY: config.GAME_HEIGHT / 2,
   });
 
+  static setupScaledBackground = (scene, imageKey, layout) => {
+    const bg = scene.add.image(layout.centerX, layout.height, imageKey);
+    bg.setScale(Math.max(layout.width / bg.width, layout.height / bg.height)).setOrigin(0.5, 1);
+    return bg;
+  };
+
   static createBackground(scene, config, layout) {
     const bg = scene.add.image(
       layout.centerX + (config.offsetX || 0),
@@ -86,6 +92,11 @@ class UISceneHelpers {
     if (config.scale) bg.setScale(config.scale);
     return bg;
   }
+
+  static createSceneHeader = (scene, layout, title, subtitle, titleY = 80, subtitleY = 130) => {
+    this.styledText(scene, layout.centerX, titleY, title, 36, 4);
+    subtitle && this.styledText(scene, layout.centerX, subtitleY, subtitle, 18, 2);
+  };
 
   static styledText = (scene, x, y, text, fontSize = 18, strokeW = 4) =>
     scene.add

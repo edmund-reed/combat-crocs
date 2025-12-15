@@ -23,7 +23,7 @@ class GameScene extends Phaser.Scene {
     Object.assign(this, {
       players: [],
       terrain: null,
-      aimLine: null,
+      aimIndicator: null,
       currentMapPlatforms: [],
       turnManager: new TurnManager(this),
       hasAttackedThisTurn: false,
@@ -39,6 +39,8 @@ class GameScene extends Phaser.Scene {
 
     // UI / environment
     this.load.image("health-pack", "src/assets/health-pack.png");
+    this.load.image("rip", "src/assets/rip.png");
+    this.load.image("crosshair", "src/assets/crosshair.png");
     this.load.image("generic-map", "src/assets/backgrounds/generic-map.png");
     this.load.image("terrain", "src/assets/textures/ground-terrain.png");
     this.load.image("terrain-2", "src/assets/textures/ground-terrain-2.png");

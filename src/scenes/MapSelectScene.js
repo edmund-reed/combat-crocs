@@ -9,32 +9,23 @@ class MapSelectScene extends Phaser.Scene {
 
   preload() {
     this.load.image("mapBg", "src/assets/backgrounds/map-bg.png");
-
-    // Each ride provides src/assets/rides/<rideFolder>/logo.png
     Object.values(MapManager.maps).forEach(map => {
-      if (!map?.id || !map?.rideFolder) return;
-      this.load.image(map.id, `src/assets/rides/${map.rideFolder}/logo.png`);
+      map?.id && map?.rideFolder && this.load.image(map.id, `src/assets/rides/${map.rideFolder}/logo.png`);
     });
   }
 
   create() {
-    const { width, height, centerX } = UISceneHelpers.getSceneLayout(Config);
+    const layout = UISceneHelpers.getSceneLayout(Config);
+    UISceneHelpers.setupScaledBackground(this, "mapBg", layout);
+    UISceneHelpers.createSceneHeader(this, layout, "CHOOSE YOUR RIDE", "Select a ride to battle on");
 
-    const bgImage = this.add.image(centerX, height, "mapBg");
-    bgImage.setScale(Math.max(width / bgImage.width, height / bgImage.height)).setOrigin(0.5, 1);
-
-    UISceneHelpers.styledText(this, centerX, 80, "CHOOSE YOUR RIDE", 36, 4);
-    UISceneHelpers.styledText(this, centerX, 130, "Select a ride to battle on", 18, 2);
-
-    // Get maps for selected theme park
     const selectedThemePark = MapManager.getSelectedThemePark();
     const mapIds = selectedThemePark
       ? MapManager.themeParks[selectedThemePark]?.maps ?? []
       : Object.keys(MapManager.maps);
 
-    // Create ride options in horizontal grid
     const spacing = 280;
-    const startX = centerX - (spacing * (mapIds.length - 1)) / 2;
+    const startX = layout.centerX - (spacing * (mapIds.length - 1)) / 2;
 
     mapIds.forEach((mapId, index) => {
       UIButtonHelpers.createInteractiveImage(this, startX + index * spacing, 300, mapId, 250, {
@@ -42,14 +33,18 @@ class MapSelectScene extends Phaser.Scene {
         onClick: () => {
           MapManager.setCurrentMap(mapId);
           window.CombatCrocs.gameState.game.selectedMap = mapId;
-          console.log(`Selected map: ${MapManager.maps[mapId].name} (${mapId})`);
           this.scene.start("PlayerSelectScene");
         },
       });
     });
 
-    // Back button
-    UIButtonHelpers.createBackButton(this, "ThemeParkSelectScene", centerX, height - 120, "BACK");
+    UIButtonHelpers.createBackButton(
+      this,
+      "ThemeParkSelectScene",
+      layout.centerX,
+      layout.height - 120,
+      "BACK",
+    );
   }
 }
 

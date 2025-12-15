@@ -8,7 +8,7 @@ class InputManager {
     scene.spaceKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     scene.input.on("pointermove", pointer => this.handleAiming(scene, pointer), scene);
     scene.input.on("pointerdown", () => this.handleShooting(scene), scene);
-    scene.events.on("turnChange", () => this.clearAimLine(scene));
+    scene.events.on("turnChange", () => this.clearAimIndicator(scene));
     scene.input.keyboard.on("keydown-W", () => {
       if (!scene.turnManager.weaponLocked) UIManager.showWeaponSelectMenu(scene);
     });
@@ -20,12 +20,12 @@ class InputManager {
     if (!player?.canShoot) return;
 
     player.aimAngle = Phaser.Math.Angle.Between(player.x, player.y, pointer.worldX, pointer.worldY);
-    this.updateAimLine(scene);
+    this.updateAimIndicator(scene);
   }
 
   static handleAimingInput(scene, currentPlayer, cursors, isMoving) {
     if (!currentPlayer?.canShoot) {
-      this.clearAimLine(scene);
+      this.clearAimIndicator(scene);
       return;
     }
 
@@ -43,7 +43,7 @@ class InputManager {
       }
     }
 
-    this.updateAimLine(scene);
+    this.updateAimIndicator(scene);
   }
 
   static handleShooting(scene) {
@@ -81,42 +81,37 @@ class InputManager {
       scene.turnManager.endCurrentTurn();
     }
 
-    this.clearAimLine(scene);
+    this.clearAimIndicator(scene);
   }
 
   static getCursors = scene => scene.cursors;
   static getSpaceKey = scene => scene.spaceKey;
 
-  static updateAimLine(scene) {
-    this.clearAimLine(scene);
+  static updateAimIndicator(scene) {
+    this.clearAimIndicator(scene);
 
     const player = scene.players[scene.turnManager.getCurrentPlayerIndex()];
     if (!player.canShoot) return;
 
     const { x, y } = player;
     const angle = player.aimAngle; // Use player's aim angle (set by mouse or keyboard)
-    const lineLength = Math.max(150, 300 - Math.abs(player.body.velocity.y) * 5);
-    const endX = x + Math.cos(angle) * lineLength;
-    const endY = y + Math.sin(angle) * lineLength;
 
-    scene.aimLine = scene.add.graphics().lineStyle(4, 0xffd23f);
-    scene.aimLine.moveTo(x, y).lineTo(endX, endY).strokePath();
-    scene.aimLine.moveTo(endX, endY);
-    scene.aimLine.lineTo(
-      endX - Math.cos(angle - Math.PI / 6) * 12,
-      endY - Math.sin(angle - Math.PI / 6) * 12,
-    );
-    scene.aimLine.moveTo(endX, endY);
-    scene.aimLine.lineTo(
-      endX - Math.cos(angle + Math.PI / 6) * 12,
-      endY - Math.sin(angle + Math.PI / 6) * 12,
-    );
-    scene.aimLine.strokePath();
+    // Place crosshair closer than max firing distance for a more Worms-like feel
+    // (and slightly closer still per tuning)
+    const crosshairDistance = Math.max(110, 220 - Math.abs(player.body.velocity.y) * 3 - 40);
+    const endX = x + Math.cos(angle) * crosshairDistance;
+    const endY = y + Math.sin(angle) * crosshairDistance;
+
+    // Worms-style crosshair at the end of the aim line
+    const crosshair = scene.add.image(endX, endY, "crosshair").setOrigin(0.5).setDepth(200);
+    const targetSizePx = 41;
+    crosshair.setScale(targetSizePx / crosshair.width);
+    scene.aimIndicator = crosshair;
   }
 
-  static clearAimLine(scene) {
-    scene.aimLine?.destroy();
-    scene.aimLine = null;
+  static clearAimIndicator(scene) {
+    scene.aimIndicator?.destroy();
+    scene.aimIndicator = null;
   }
 
   static addProjectileTrail(scene, projectileBody) {

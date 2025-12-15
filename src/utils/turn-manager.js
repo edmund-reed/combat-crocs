@@ -67,7 +67,7 @@ class TurnManager {
     UIManager.updateTurnIndicator(this.scene, this.scene.players[this.currentPlayer]);
     UIManager.updatePlayerHighlighting(this.scene, this.currentPlayer);
     UIManager.updateWeaponDisplay(this.scene);
-    UIManager.clearAimLine(this.scene);
+    UIManager.clearAimIndicator(this.scene);
     WeaponSpriteManager.updateWeaponSpritesForTurn(this.scene, this.getCurrentWeapon(), this.currentPlayer);
   };
 

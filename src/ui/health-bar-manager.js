@@ -70,14 +70,18 @@ class HealthBarManager {
 
   static _showGravestone(scene, player) {
     const { x, y } = player;
-    const stone = scene.add
-      .graphics()
-      .fillStyle(0x666666)
-      .fillRect(x - 8, y - 30, 16, 30)
-      .fillRect(x - 12, y - 35, 24, 8);
-    const rip = UITextHelpers.createStatusText(scene, x, y - 40, "RIP", "#FFFFFF", 10).setOrigin(0.5);
+
+    // Old gravestone marker was ~35px tall; keep similar on-screen sizing
+    const targetHeight = 40;
+
+    const gravestone = scene.add.image(x, y, "rip").setOrigin(0.5, 1).setDepth(5);
+    const scale = targetHeight / gravestone.height;
+    gravestone.setScale(scale);
+
     player.graphics.setVisible(false);
-    StateManager.registerCleanup(scene, { stone, rip }, "effects");
+
+    // Register in the shape expected by StateManager cleanup
+    StateManager.registerCleanup(scene, { gravestone }, "effects");
   }
 }
 
