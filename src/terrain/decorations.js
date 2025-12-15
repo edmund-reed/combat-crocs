@@ -27,7 +27,9 @@ class DecorationsManager {
   }
 
   static #addPlatform(scene, x, y, width, height, name) {
-    scene.currentMapPlatforms.push({ x: x - width / 2, y: y - height / 2, width, height, name });
+    const platform = { x: x - width / 2, y: y - height / 2, width, height, name };
+    scene.currentMapPlatforms.push(platform);
+    return platform;
   }
 
   static #createPhysicsSprite(scene, decor, yPos) {
@@ -101,8 +103,16 @@ class DecorationsManager {
     if (child.hasPhysics) {
       const w = sprite.displayWidth;
       const h = sprite.displayHeight;
-      PhysicsManager.createTerrainBody(scene, x, y, w, h);
-      this.#addPlatform(scene, x, y, w, h, `Child (${child.sprite})`);
+
+      // Create ONE terrain body and move it with the sprite (do not recreate each frame)
+      const body = PhysicsManager.createTerrainBody(scene, x, y, w, h);
+      const platform = this.#addPlatform(scene, x, y, w, h, `Child (${child.sprite})`);
+
+      const syncPlatform = () => {
+        // Keep currentMapPlatforms in sync for explosion blocking/LOS checks
+        platform.x = x - w / 2;
+        platform.y = sprite.y - h / 2;
+      };
 
       if (child.animate?.axis === "y") {
         const endY = yPos + (child.animate.toOffset ?? child.y ?? 0) * pScale;
@@ -112,12 +122,13 @@ class DecorationsManager {
           duration: child.animate.durationMs ?? 4000,
           yoyo: child.animate.yoyo ?? true,
           repeat: child.animate.repeat ?? -1,
-          onUpdate: () =>
-            scene.matter.body.setPosition(PhysicsManager.createTerrainBody(scene, x, y, w, h), {
-              x,
-              y: sprite.y,
-            }),
+          onUpdate: () => {
+            scene.matter.body.setPosition(body, { x, y: sprite.y });
+            syncPlatform();
+          },
         });
+      } else {
+        syncPlatform();
       }
     }
 

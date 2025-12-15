@@ -8,7 +8,7 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("mapBg", "src/assets/map-bg.png");
+    this.load.image("mapBg", "src/assets/backgrounds/map-bg.png");
 
     // Load all colored character sprites
     Object.values(Config.CHARACTER_TYPES).forEach(({ baseName }) =>

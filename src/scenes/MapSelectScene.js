@@ -8,7 +8,7 @@ class MapSelectScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("mapBg", "src/assets/map-bg.png");
+    this.load.image("mapBg", "src/assets/backgrounds/map-bg.png");
 
     // Each ride provides src/assets/rides/<rideFolder>/logo.png
     Object.values(MapManager.maps).forEach(map => {

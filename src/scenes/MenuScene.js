@@ -7,7 +7,7 @@ class MenuScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("map-bg", "./src/assets/map-bg.png");
+    this.load.image("map-bg", "./src/assets/backgrounds/map-bg.png");
     this.load.image("logo", "./src/assets/logo.png");
     this.load.audio("introMusic", "src/assets/intro.mp3");
   }
