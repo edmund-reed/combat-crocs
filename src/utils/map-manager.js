@@ -32,7 +32,7 @@ class MapManager {
         groundTexture: config.groundTexture || "terrain",
       },
       backgroundColor: config.backgroundColor,
-      backgroundKey: config.backgroundKey,
+      rideFolder: config.rideFolder,
       difficulty: config.difficulty,
     };
   }

@@ -9,10 +9,12 @@ class MapSelectScene extends Phaser.Scene {
 
   preload() {
     this.load.image("mapBg", "src/assets/map-bg.png");
-    this.load.image("magnificentBulk", "src/assets/rides/magnificent-bulk.png");
-    this.load.image("dinocoaster", "src/assets/rides/dinocoaster.png");
-    this.load.image("hotelOfHorror", "src/assets/rides/hotel-of-horror.png");
-    this.load.image("heavyMetalCoaster", "src/assets/rides/heavy-metal-coaster.png");
+
+    // Each ride provides src/assets/rides/<rideFolder>/logo.png
+    Object.values(MapManager.maps).forEach(map => {
+      if (!map?.id || !map?.rideFolder) return;
+      this.load.image(map.id, `src/assets/rides/${map.rideFolder}/logo.png`);
+    });
   }
 
   create() {

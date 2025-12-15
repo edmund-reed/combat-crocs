@@ -3,7 +3,7 @@ export default {
   name: "Hotel of Horror",
   description: "Spooky platforms suspended in a haunted atmosphere",
   backgroundColor: "#4B0082",
-  backgroundKey: "generic-map",
+  rideFolder: "hotel-of-horror",
   difficulty: 1,
   platforms: [
     { x: 250, bottom: 300, width: 150, height: 40 },

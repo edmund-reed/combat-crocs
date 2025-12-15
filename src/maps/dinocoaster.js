@@ -3,7 +3,7 @@ export default {
   name: "Dinocoaster",
   description: "Navigate treacherous prehistoric terrain with strategic positions",
   backgroundColor: "#4682B4",
-  backgroundKey: "generic-map",
+  rideFolder: "dinocoaster",
   difficulty: 2,
   platforms: [
     { x: 300, bottom: 150, width: 100, height: 60 },

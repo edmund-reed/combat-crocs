@@ -44,12 +44,17 @@ class GameScene extends Phaser.Scene {
     this.load.image("terrain-2", "src/assets/terrain-2.png");
     this.load.image("brick", "src/assets/brick.png");
 
-    // Hotel of Horror
-    this.load.image("hotel-horror", "src/assets/maps/hotel-of-horror/hotel.png");
-    this.load.image("elevator-horror", "src/assets/maps/hotel-of-horror/elevator.png");
+    // Ride backgrounds (optional): src/assets/rides/<rideFolder>/background.png
+    // We register them as `${mapId}-bg` and fall back to `generic-map` if missing.
+    Object.values(MapManager.maps).forEach(map => {
+      if (!map?.id || !map?.rideFolder) return;
+      this.load.image(`${map.id}-bg`, `src/assets/rides/${map.rideFolder}/background.png`);
+    });
 
-    // Heavy Metal Coaster
-    this.load.image("heavy-metal-coaster-bg", "src/assets/rides/heavy-metal-coaster/background.png");
+    // Ride / map-specific sprites (still explicitly loaded for now)
+    this.load.image("hotel-horror", "src/assets/rides/hotel-of-horror/hotel.png");
+    this.load.image("elevator-horror", "src/assets/rides/hotel-of-horror/elevator.png");
+
     this.load.image("metal-coaster", "src/assets/rides/heavy-metal-coaster/metal-coaster.png");
     this.load.json("metal-coaster-physics", "src/assets/rides/heavy-metal-coaster/metal-coaster.json");
     this.load.image("donut-coaster", "src/assets/rides/heavy-metal-coaster/donut.png");
@@ -61,7 +66,8 @@ class GameScene extends Phaser.Scene {
   create() {
     const selectedMapId = window.CombatCrocs?.gameState?.game?.selectedMap || MapManager.getCurrentMap().id;
     console.log("[GameScene] Using map for background:", selectedMapId);
-    const bgKey = MapManager.getCurrentMap().backgroundKey || "generic-map";
+    const preferredBgKey = `${selectedMapId}-bg`;
+    const bgKey = this.textures.exists(preferredBgKey) ? preferredBgKey : "generic-map";
     const bg = this.add.image(Config.GAME_WIDTH / 2, Config.GAME_HEIGHT, bgKey);
     const bgScale = Math.max(Config.GAME_WIDTH / bg.width, Config.GAME_HEIGHT / bg.height);
     bg.setOrigin(0.5, 1).setScale(bgScale).setDepth(-100);

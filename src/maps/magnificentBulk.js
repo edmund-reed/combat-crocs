@@ -3,7 +3,7 @@ export default {
   name: "The Magnificent Bulk",
   description: "Smash through floating platforms in this superhero-themed arena",
   backgroundColor: "#87CEEB",
-  backgroundKey: "generic-map",
+  rideFolder: "magnificent-bulk",
   difficulty: 1,
   platforms: [
     { x: 400, bottom: 125, width: 200, height: 50 },

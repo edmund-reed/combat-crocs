@@ -3,7 +3,7 @@ export default {
   name: "Heavy-Metal Coaster",
   description: "Rock out on this intense roller coaster with challenging platforms",
   backgroundColor: "#8B008B",
-  backgroundKey: "heavy-metal-coaster-bg",
+  rideFolder: "heavy-metal-coaster",
   difficulty: 2,
   platforms: [],
   groundTexture: "terrain-2",
