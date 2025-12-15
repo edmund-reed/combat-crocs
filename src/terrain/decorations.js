@@ -3,8 +3,8 @@ import { PhysicsManager } from "@utils";
 import TerrainManager from "./terrain-manager.js";
 
 class DecorationsManager {
-  static createDecorations(scene, mapConfig) {
-    return (mapConfig.terrain?.decorations ?? []).flatMap(decor => {
+  static createDecorations = (scene, mapConfig) =>
+    (mapConfig.terrain?.decorations ?? []).flatMap(decor => {
       const yPos = TerrainManager.resolveY(decor);
       if (!scene.textures.exists(decor.sprite)) return console.warn(`Missing texture: ${decor.sprite}`) || [];
 
@@ -12,25 +12,41 @@ class DecorationsManager {
         ? this.#createPhysicsSprite(scene, decor, yPos)
         : this.#createImageSprite(scene, decor, yPos);
 
-      if (!baseSprite) return [];
-
-      const children = (decor.children ?? [])
-        .map(c => this.#createChild(scene, baseSprite, decor, c, yPos))
-        .filter(Boolean);
-
-      return [baseSprite, ...children];
+      return baseSprite
+        ? [
+            baseSprite,
+            ...(decor.children ?? [])
+              .map(c => this.#createChild(scene, baseSprite, decor, c, yPos))
+              .filter(Boolean),
+          ]
+        : [];
     });
-  }
 
-  static #calculateScale(decor, sprite) {
-    return decor.relativeWidth ? (Config.GAME_WIDTH * decor.relativeWidth) / sprite.width : decor.scale ?? 1;
-  }
+  static #calculateScale = (decor, sprite) =>
+    decor.relativeWidth ? (Config.GAME_WIDTH * decor.relativeWidth) / sprite.width : decor.scale ?? 1;
 
-  static #addPlatform(scene, x, y, width, height, name) {
+  static #addPlatform = (scene, x, y, width, height, name) => {
     const platform = { x: x - width / 2, y: y - height / 2, width, height, name };
     scene.currentMapPlatforms.push(platform);
     return platform;
-  }
+  };
+
+  static #tagTerrainBody = (body, name) => {
+    body.isTerrain = true;
+    body.terrainName = name;
+    body.parts?.forEach(part => {
+      part.isTerrain = true;
+      part.terrainName = name;
+    });
+  };
+
+  static #positionSprite = (sprite, decor, yPos, scale) => {
+    sprite.setScale(scale);
+    const dx = sprite.displayWidth * (0.5 - (decor.originX ?? 0.5));
+    const dy = sprite.displayHeight * (0.5 - (decor.originY ?? 1));
+    sprite.setPosition(decor.x + dx, yPos + dy).setDepth(decor.depth ?? -3);
+    return sprite;
+  };
 
   static #createPhysicsSprite(scene, decor, yPos) {
     const shapes = scene.cache.json.get(decor.physicsJson);
@@ -45,44 +61,25 @@ class DecorationsManager {
       collisionFilter: { category: PhysicsManager.CATEGORIES.TERRAIN },
     });
 
-    // Rotating terrain (e.g. donut): make body behave like a kinematic spinner.
     if (decor.rotating && sprite.body) {
-      // Prevent rotation changes due to collisions
       Phaser.Physics.Matter.Matter.Body.setInertia(sprite.body, Infinity);
-      sprite.body.isKinematicSpinner = true;
-      sprite.body.spinnerAngularVelocity = decor.rotationSpeed ?? 0.2;
+      Object.assign(sprite.body, {
+        isKinematicSpinner: true,
+        spinnerAngularVelocity: decor.rotationSpeed ?? 0.2,
+      });
     }
 
-    // Tag Matter body for explosion LOS raycasts
-    if (sprite.body) {
-      sprite.body.isTerrain = true;
-      sprite.body.terrainName = `PhysicsEditor (${decor.sprite})`;
+    sprite.body && this.#tagTerrainBody(sprite.body, `PhysicsEditor (${decor.sprite})`);
+    this.#positionSprite(sprite, decor, yPos, this.#calculateScale(decor, sprite));
 
-      // CRITICAL: Tag all parts of compound body for raycast detection
-      // PhysicsEditor bodies have multiple parts, and raycasts hit individual parts
-      if (sprite.body.parts) {
-        sprite.body.parts.forEach(part => {
-          part.isTerrain = true;
-          part.terrainName = sprite.body.terrainName;
-        });
-      }
-    }
-
-    sprite.setScale(this.#calculateScale(decor, sprite));
-
-    const dx = sprite.displayWidth * (0.5 - (decor.originX ?? 0.5));
-    const dy = sprite.displayHeight * (0.5 - (decor.originY ?? 1));
-    sprite.setPosition(decor.x + dx, yPos + dy).setDepth(decor.depth ?? -3);
-
-    // NOTE: for rotating physics decorations we rotate the Matter body (see PhysicsManager tick)
-    if (decor.rotating && !sprite.body) {
+    decor.rotating &&
+      !sprite.body &&
       scene.tweens.add({
         targets: sprite,
         angle: 360,
         duration: (Math.PI * 2 * 1000) / (decor.rotationSpeed ?? 0.2),
         repeat: -1,
       });
-    }
 
     this.#addPlatform(
       scene,
@@ -115,9 +112,7 @@ class DecorationsManager {
       ? (child.displayHeight * pScale) / texture.height
       : (child.scale ?? 1) * pScale;
 
-    const x = decor.x + (child.x ?? 0) * pScale;
-    const y = yPos + (child.y ?? 0) * pScale;
-
+    const [x, y] = [decor.x + (child.x ?? 0) * pScale, yPos + (child.y ?? 0) * pScale];
     const sprite = scene.add
       .image(x, y, child.sprite)
       .setOrigin(child.originX ?? 0.5, child.originY ?? 0.5)
@@ -125,35 +120,25 @@ class DecorationsManager {
       .setScale(cScale);
 
     if (child.hasPhysics) {
-      const w = sprite.displayWidth;
-      const h = sprite.displayHeight;
-
-      // Create ONE terrain body and move it with the sprite (do not recreate each frame)
+      const [w, h] = [sprite.displayWidth, sprite.displayHeight];
       const body = PhysicsManager.createTerrainBody(scene, x, y, w, h);
       const platform = this.#addPlatform(scene, x, y, w, h, `Child (${child.sprite})`);
 
-      const syncPlatform = () => {
-        // Keep currentMapPlatforms in sync for explosion blocking/LOS checks
-        platform.x = x - w / 2;
-        platform.y = sprite.y - h / 2;
-      };
+      const syncPlatform = () => Object.assign(platform, { x: x - w / 2, y: sprite.y - h / 2 });
 
-      if (child.animate?.axis === "y") {
-        const endY = yPos + (child.animate.toOffset ?? child.y ?? 0) * pScale;
-        scene.tweens.add({
-          targets: sprite,
-          y: endY,
-          duration: child.animate.durationMs ?? 4000,
-          yoyo: child.animate.yoyo ?? true,
-          repeat: child.animate.repeat ?? -1,
-          onUpdate: () => {
-            scene.matter.body.setPosition(body, { x, y: sprite.y });
-            syncPlatform();
-          },
-        });
-      } else {
-        syncPlatform();
-      }
+      child.animate?.axis === "y"
+        ? scene.tweens.add({
+            targets: sprite,
+            y: yPos + (child.animate.toOffset ?? child.y ?? 0) * pScale,
+            duration: child.animate.durationMs ?? 4000,
+            yoyo: child.animate.yoyo ?? true,
+            repeat: child.animate.repeat ?? -1,
+            onUpdate: () => {
+              scene.matter.body.setPosition(body, { x, y: sprite.y });
+              syncPlatform();
+            },
+          })
+        : syncPlatform();
     }
 
     return sprite;

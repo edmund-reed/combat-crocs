@@ -26,17 +26,13 @@ class PlayerSelectScene extends Phaser.Scene {
     Object.assign(this, {
       teamCount: 2,
       availableColors: Config.COLOR_NAMES,
-    });
-
-    this.teams = Array.from({ length: this.teamCount }, (_, index) => {
-      const id = index + 1;
-      return {
-        id,
-        name: `Team ${id}`,
+      teams: Array.from({ length: 2 }, (_, index) => ({
+        id: index + 1,
+        name: `Team ${index + 1}`,
         crocCount: 1,
-        color: this.availableColors[index],
+        color: Config.COLOR_NAMES[index],
         players: [{ characterType: "CROCODILE" }],
-      };
+      })),
     });
 
     const bgImage = this.add.image(layout.centerX, layout.height, "mapBg");

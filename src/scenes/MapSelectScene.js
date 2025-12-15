@@ -18,14 +18,11 @@ class MapSelectScene extends Phaser.Scene {
   }
 
   create() {
-    // const layout = UISceneHelpers.getSceneLayout(Config);
     const { width, height, centerX } = UISceneHelpers.getSceneLayout(Config);
 
-    // Map background image (positioned like main menu)
     const bgImage = this.add.image(centerX, height, "mapBg");
     bgImage.setScale(Math.max(width / bgImage.width, height / bgImage.height)).setOrigin(0.5, 1);
 
-    // Title and subtitle
     UISceneHelpers.styledText(this, centerX, 80, "CHOOSE YOUR RIDE", 36, 4);
     UISceneHelpers.styledText(this, centerX, 130, "Select a ride to battle on", 18, 2);
 

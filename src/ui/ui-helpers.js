@@ -42,17 +42,13 @@ class UIButtonHelpers {
   static createStyledButton(scene, x, y, text, sizes = [20, 22], callback) {
     const [defaultSize, hoverSize] = sizes;
     const btn = UISceneHelpers.styledText(scene, x, y, text, defaultSize, 4).setInteractive();
-    btn.setData("originalText", text);
-    btn.setData("hoverText", text === "START GAME" ? "▶ START GAME ◀" : text);
-    btn.on("pointerover", () => {
-      btn.setStyle({ font: `bold ${hoverSize}px Arial` });
-      btn.setText(btn.getData("hoverText"));
-    });
-    btn.on("pointerout", () => {
-      btn.setStyle({ font: `bold ${defaultSize}px Arial` });
-      btn.setText(btn.getData("originalText"));
-    });
-    if (callback) btn.on("pointerdown", callback);
+    const hoverText = text === "START GAME" ? "▶ START GAME ◀" : text;
+    btn.on(
+      "pointerover",
+      () => (btn.setStyle({ font: `bold ${hoverSize}px Arial` }), btn.setText(hoverText)),
+    );
+    btn.on("pointerout", () => (btn.setStyle({ font: `bold ${defaultSize}px Arial` }), btn.setText(text)));
+    callback && btn.on("pointerdown", callback);
     return btn;
   }
 
