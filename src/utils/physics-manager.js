@@ -5,7 +5,9 @@ import { Config } from "@config";
 import { ExplosionPhysics } from "@weapons";
 
 class PhysicsManager {
-  static CATEGORIES = { TERRAIN: 1, PLAYERS: 2, PROJECTILES: 4 };
+  // Expose ExplosionPhysics for debug instrumentation (see ExplosionSystem logs)
+  static ExplosionPhysics = ExplosionPhysics;
+  static CATEGORIES = { TERRAIN: 1, PLAYERS: 2, PROJECTILES: 4, HEALTH_PACKS: 8 };
   static CONFIG = {
     GRAVITY: 1,
     FRICTION: { PLAYER: 0.1, PROJECTILE: 0.1, TERRAIN: 1.0 },

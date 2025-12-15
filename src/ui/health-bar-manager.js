@@ -46,22 +46,44 @@ class HealthBarManager {
       bar.clear().setVisible(true);
       label.setVisible(true);
 
-      const maxHp = player.maxHealth || 100;
-      const totalWidth = Math.min(maxHp, 200);
-      const fillWidth = (hp / maxHp) * totalWidth;
-      const baseW = Math.min(fillWidth, 100);
-      const bonusW = Math.max(0, fillWidth - 100);
+      // Base health is always rendered at fixed width; bonus health is appended.
+      const baseMax = 100;
+      const baseWidth = 100;
+      const bonusMax = 100; // cap visual bonus segment at +100
+      const bonusWidthMax = 100;
+      const barHeight = 12;
 
-      bar.fillStyle(player.color & 0x7f7f7f).fillRect(0, 0, totalWidth, 12);
-      if (baseW > 0) bar.fillStyle(player.color).fillRect(0, 0, baseW, 12);
-      if (bonusW > 0) {
+      const baseHp = Math.min(hp, baseMax);
+      const bonusHp = Math.min(Math.max(0, hp - baseMax), bonusMax);
+
+      const baseFillW = (baseHp / baseMax) * baseWidth;
+      const bonusFillW = (bonusHp / bonusMax) * bonusWidthMax;
+
+      // Background for base segment
+      bar.fillStyle(player.color & 0x7f7f7f).fillRect(0, 0, baseWidth, barHeight);
+      if (baseFillW > 0) bar.fillStyle(player.color).fillRect(0, 0, baseFillW, barHeight);
+
+      // Optional bonus segment (appended) with green border
+      if (bonusHp > 0) {
+        const bonusX = baseWidth;
+        const bonusSegmentW = bonusFillW; // segment width reflects current bonus HP only
+
+        // Slightly lighter fill for bonus
         const c = player.color;
         const r = Math.min(255, ((c >> 16) & 0xff) + Math.round((255 - ((c >> 16) & 0xff)) * 0.4));
         const g = Math.min(255, ((c >> 8) & 0xff) + Math.round((255 - ((c >> 8) & 0xff)) * 0.4));
         const b = Math.min(255, (c & 0xff) + Math.round((255 - (c & 0xff)) * 0.4));
-        bar.fillStyle((r << 16) | (g << 8) | b).fillRect(100, 0, bonusW, 12);
+
+        // Bonus background + fill (only as wide as the current bonus)
+        bar.fillStyle(0x1b1b1b).fillRect(bonusX, 0, bonusSegmentW, barHeight);
+        bar.fillStyle((r << 16) | (g << 8) | b).fillRect(bonusX, 0, bonusSegmentW, barHeight);
+
+        // Green outline around the bonus segment
+        bar.lineStyle(2, 0x00ff00).strokeRect(bonusX, 0, bonusSegmentW, barHeight);
       }
-      bar.lineStyle(1, 0x000000).strokeRect(0, 0, totalWidth, 12);
+
+      // Outline only the base (so it never looks like there's an empty gap)
+      bar.lineStyle(1, 0x000000).strokeRect(0, 0, baseWidth, barHeight);
     });
   }
 

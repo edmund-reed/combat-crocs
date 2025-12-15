@@ -1,7 +1,19 @@
 class ExplosionPhysics {
   static isExplosionBlockedByTerrain(explosionX, explosionY, playerX, playerY, platforms) {
     if (!platforms?.length) return false;
-    return platforms.some(platform => this.platformBlocksPath(platform, explosionX, explosionY, playerX, playerY));
+    return platforms.some(platform =>
+      this.platformBlocksPath(platform, explosionX, explosionY, playerX, playerY),
+    );
+  }
+
+  // Debug helper: return the first platform that blocks LOS (or null)
+  static getBlockingPlatform(explosionX, explosionY, playerX, playerY, platforms) {
+    if (!platforms?.length) return null;
+    return (
+      platforms.find(platform =>
+        this.platformBlocksPath(platform, explosionX, explosionY, playerX, playerY),
+      ) || null
+    );
   }
 
   static platformBlocksPath(platform, explosionX, explosionY, playerX, playerY) {

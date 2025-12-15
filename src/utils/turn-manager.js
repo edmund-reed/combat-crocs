@@ -36,6 +36,7 @@ class TurnManager {
     this.currentPlayer = this.getNextPlayerIndex();
 
     if (Math.random() < (Config.HEALTH_CRATE_CHANCE || 0)) {
+      console.log("🎁 Health pack spawn chance triggered");
       this.scene.spawnHealthCrate?.();
     }
 
