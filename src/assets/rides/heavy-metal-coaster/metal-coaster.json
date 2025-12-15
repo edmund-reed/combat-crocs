@@ -3,7 +3,7 @@
 	"metal-coaster": {
 		"type": "fromPhysicsEditor",
 		"label": "metal-coaster",
-		"isStatic": false,
+		"isStatic": true,
 		"density": 0.1,
 		"restitution": 0,
 		"friction": 1,

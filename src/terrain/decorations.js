@@ -57,6 +57,15 @@ class DecorationsManager {
     if (sprite.body) {
       sprite.body.isTerrain = true;
       sprite.body.terrainName = `PhysicsEditor (${decor.sprite})`;
+
+      // CRITICAL: Tag all parts of compound body for raycast detection
+      // PhysicsEditor bodies have multiple parts, and raycasts hit individual parts
+      if (sprite.body.parts) {
+        sprite.body.parts.forEach(part => {
+          part.isTerrain = true;
+          part.terrainName = sprite.body.terrainName;
+        });
+      }
     }
 
     sprite.setScale(this.#calculateScale(decor, sprite));

@@ -3,7 +3,7 @@
 	"palm-tree": {
 		"type": "fromPhysicsEditor",
 		"label": "palm-tree",
-		"isStatic": false,
+		"isStatic": true,
 		"density": 0.1,
 		"restitution": 0,
 		"friction": 1,
