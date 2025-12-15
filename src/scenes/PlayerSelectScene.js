@@ -44,7 +44,7 @@ class PlayerSelectScene extends Phaser.Scene {
       .setScale(Math.max(layout.width / bgImage.width, layout.height / bgImage.height))
       .setOrigin(0.5, 1);
 
-    const mapInfo = MapManager.getMapDisplayInfo(MapManager.getCurrentMap().id);
+    const mapInfo = MapManager.getCurrentMap();
 
     UISceneHelpers.styledText(this, layout.centerX, 60, "CHOOSE YOUR CROCODILES", 32, 4);
     UISceneHelpers.styledText(this, layout.centerX, 98, `Map: ${mapInfo.name}`, 18, 3);

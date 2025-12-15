@@ -37,9 +37,16 @@ class TerrainManager {
     );
   }
 
+  static resolveY(pos) {
+    if (typeof pos?.y === "number") return pos.y;
+    if (typeof pos?.bottom === "number") return Config.GAME_HEIGHT - pos.bottom;
+    if (typeof pos?.top === "number") return pos.top;
+    return 0;
+  }
+
   static createPlatforms(scene, mapConfig) {
     return (mapConfig.terrain.platforms || []).map((platformData, index) => {
-      const yPos = this.parseYPosition(platformData.y);
+      const yPos = this.resolveY(platformData);
       const platX = platformData.x - platformData.width / 2;
       const platY = yPos - platformData.height / 2;
 
@@ -65,14 +72,6 @@ class TerrainManager {
         name: `Platform ${index + 1}`,
       };
     });
-  }
-
-  static parseYPosition(y) {
-    if (typeof y === "string" && y.includes("GAME_HEIGHT")) {
-      const match = y.replace(/GAME_HEIGHT/g, String(Config.GAME_HEIGHT)).match(/(\d+)\s*-\s*(\d+)/);
-      return match ? Number(match[1]) - Number(match[2]) : Config.GAME_HEIGHT;
-    }
-    return typeof y === "string" ? Number(y) : y;
   }
 
   static getSafeSpawnPositions = () => ({ player1: { x: 150 }, player2: { x: 1000 } });

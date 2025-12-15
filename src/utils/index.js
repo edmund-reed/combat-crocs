@@ -1,7 +1,7 @@
 // Barrel exports for all utils modules
 export { default as StateManager } from "./state-manager.js";
 export { default as InputManager } from "./input-manager.js";
-export { default as Maps } from "./maps.js";
+export { default as Maps } from "./map-manager.js";
 export { default as PhysicsManager } from "./physics-manager.js";
 export { default as PlayerManager } from "./player.js";
 export { default as TurnManager } from "./turn-manager.js";

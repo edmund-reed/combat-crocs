@@ -34,11 +34,11 @@ class ThemeParkSelectScene extends Phaser.Scene {
     };
 
     // Create theme park options
-    MapManager.getThemeParkIds().forEach(id => {
+    Object.keys(MapManager.themeParks).forEach(id => {
       UIButtonHelpers.createInteractiveImage(this, positions[id].x, positions[id].y, id, 250, {
         onClick: () => {
           MapManager.setSelectedThemePark(id);
-          console.log(`Selected theme park: ${MapManager.getThemePark(id).name} (${id})`);
+          console.log(`Selected theme park: ${MapManager.themeParks[id].name} (${id})`);
           this.scene.start("MapSelectScene");
         },
       });

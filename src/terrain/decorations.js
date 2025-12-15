@@ -5,7 +5,7 @@ import TerrainManager from "./terrain-manager.js";
 class DecorationsManager {
   static createDecorations(scene, mapConfig) {
     return (mapConfig.terrain?.decorations ?? []).flatMap(decor => {
-      const yPos = TerrainManager.parseYPosition(decor.y);
+      const yPos = TerrainManager.resolveY(decor);
       if (!scene.textures.exists(decor.sprite)) return console.warn(`Missing texture: ${decor.sprite}`) || [];
 
       const baseSprite = decor.physicsJson

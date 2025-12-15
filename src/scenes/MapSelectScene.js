@@ -30,8 +30,8 @@ class MapSelectScene extends Phaser.Scene {
     // Get maps for selected theme park
     const selectedThemePark = MapManager.getSelectedThemePark();
     const mapIds = selectedThemePark
-      ? MapManager.getMapsForThemePark(selectedThemePark)
-      : MapManager.getMapIds();
+      ? MapManager.themeParks[selectedThemePark]?.maps ?? []
+      : Object.keys(MapManager.maps);
 
     // Create ride options in horizontal grid
     const spacing = 280;
@@ -43,7 +43,7 @@ class MapSelectScene extends Phaser.Scene {
         onClick: () => {
           MapManager.setCurrentMap(mapId);
           window.CombatCrocs.gameState.game.selectedMap = mapId;
-          console.log(`Selected map: ${MapManager.getMapDisplayInfo(mapId).name} (${mapId})`);
+          console.log(`Selected map: ${MapManager.maps[mapId].name} (${mapId})`);
           this.scene.start("PlayerSelectScene");
         },
       });

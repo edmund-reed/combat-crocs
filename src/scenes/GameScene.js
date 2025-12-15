@@ -61,7 +61,7 @@ class GameScene extends Phaser.Scene {
   create() {
     const selectedMapId = window.CombatCrocs?.gameState?.game?.selectedMap || MapManager.getCurrentMap().id;
     console.log("[GameScene] Using map for background:", selectedMapId);
-    const bgKey = selectedMapId === "heavyMetalCoaster" ? "heavy-metal-coaster-bg" : "generic-map";
+    const bgKey = MapManager.getCurrentMap().backgroundKey || "generic-map";
     const bg = this.add.image(Config.GAME_WIDTH / 2, Config.GAME_HEIGHT, bgKey);
     const bgScale = Math.max(Config.GAME_WIDTH / bg.width, Config.GAME_HEIGHT / bg.height);
     bg.setOrigin(0.5, 1).setScale(bgScale).setDepth(-100);
