@@ -1,5 +1,5 @@
 import { Config } from "@config";
-import { UITextHelpers, UIButtonHelpers, UISceneHelpers } from "@ui";
+import { UIButtonHelpers, UISceneHelpers } from "@ui";
 import { Maps as MapManager } from "@utils";
 
 class MapSelectScene extends Phaser.Scene {
@@ -8,11 +8,13 @@ class MapSelectScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("mapBg", "src/assets/map-bg.png");
-    this.load.image("magnificentBulk", "src/assets/rides/magnificent-bulk.png");
-    this.load.image("dinocoaster", "src/assets/rides/dinocoaster.png");
-    this.load.image("hotelOfHorror", "src/assets/rides/hotel-of-horror.png");
-    this.load.image("heavyMetalCoaster", "src/assets/rides/heavy-metal-coaster.png");
+    this.load.image("mapBg", "src/assets/backgrounds/map-bg.png");
+
+    // Each ride provides src/assets/rides/<rideFolder>/logo.png
+    Object.values(MapManager.maps).forEach(map => {
+      if (!map?.id || !map?.rideFolder) return;
+      this.load.image(map.id, `src/assets/rides/${map.rideFolder}/logo.png`);
+    });
   }
 
   create() {
@@ -30,8 +32,8 @@ class MapSelectScene extends Phaser.Scene {
     // Get maps for selected theme park
     const selectedThemePark = MapManager.getSelectedThemePark();
     const mapIds = selectedThemePark
-      ? MapManager.getMapsForThemePark(selectedThemePark)
-      : MapManager.getMapIds();
+      ? MapManager.themeParks[selectedThemePark]?.maps ?? []
+      : Object.keys(MapManager.maps);
 
     // Create ride options in horizontal grid
     const spacing = 280;
@@ -43,7 +45,7 @@ class MapSelectScene extends Phaser.Scene {
         onClick: () => {
           MapManager.setCurrentMap(mapId);
           window.CombatCrocs.gameState.game.selectedMap = mapId;
-          console.log(`Selected map: ${MapManager.getMapDisplayInfo(mapId).name} (${mapId})`);
+          console.log(`Selected map: ${MapManager.maps[mapId].name} (${mapId})`);
           this.scene.start("PlayerSelectScene");
         },
       });

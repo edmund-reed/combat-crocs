@@ -31,13 +31,28 @@ class ExplosionSystem {
 
     scene.players.forEach(player => {
       const distance = Phaser.Math.Distance.Between(x, y, player.x, player.y);
-      if (
-        distance < radius &&
-        !PhysicsManager.isExplosionBlocked(x, y, player.x, player.y, scene.currentMapPlatforms)
-      ) {
+      const inRadius = distance < radius;
+
+      // New LOS check: raycast against actual Matter bodies (PhysicsEditor polygons etc.)
+      const blocked = PhysicsManager.isExplosionBlocked(x, y, player.x, player.y, scene);
+
+      if (inRadius && blocked) {
+        console.log(
+          `💥 Explosion(${weaponType}) BLOCKED for P${player.id}: dist=${distance.toFixed(1)}/${radius} ` +
+            `exp=(${x.toFixed(1)},${y.toFixed(1)}) player=(${player.x.toFixed(1)},${player.y.toFixed(1)})`,
+        );
+      }
+
+      if (inRadius && !blocked) {
         const damage =
           Math.max(0, maxDamage * (1 - (distance / radius) * 0.75)) *
           (attackingPlayer?.ability?.damageMultiplier ?? 1);
+
+        console.log(
+          `💥 Explosion(${weaponType}) hits P${player.id}: dist=${distance.toFixed(
+            1,
+          )}/${radius}, dmg=${damage.toFixed(1)}`,
+        );
 
         const { actualDamage } = DamageManager.applyDamage(scene, player, damage);
 

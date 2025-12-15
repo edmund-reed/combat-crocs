@@ -8,7 +8,7 @@ class PlayerSelectScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("mapBg", "src/assets/map-bg.png");
+    this.load.image("mapBg", "src/assets/backgrounds/map-bg.png");
 
     // Load all colored character sprites
     Object.values(Config.CHARACTER_TYPES).forEach(({ baseName }) =>
@@ -44,7 +44,7 @@ class PlayerSelectScene extends Phaser.Scene {
       .setScale(Math.max(layout.width / bgImage.width, layout.height / bgImage.height))
       .setOrigin(0.5, 1);
 
-    const mapInfo = MapManager.getMapDisplayInfo(MapManager.getCurrentMap().id);
+    const mapInfo = MapManager.getCurrentMap();
 
     UISceneHelpers.styledText(this, layout.centerX, 60, "CHOOSE YOUR CROCODILES", 32, 4);
     UISceneHelpers.styledText(this, layout.centerX, 98, `Map: ${mapInfo.name}`, 18, 3);

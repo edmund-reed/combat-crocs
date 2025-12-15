@@ -1,0 +1,6 @@
+# Ignore generated / vendor
+node_modules
+/dist
+
+# Ignore JSON assets (PhysicsEditor shapes etc.)
+**/*.json

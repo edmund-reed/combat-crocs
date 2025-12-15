@@ -11,8 +11,8 @@ const Config = {
   BOUNCE: 0.2,
 
   // Player settings
-  PLAYER_SPEED: 10,
-  PLAYER_JUMP_FORCE: 15, // Even higher for very noticeable jumping
+  PLAYER_SPEED: 5,
+  PLAYER_JUMP_FORCE: 15,
 
   // Behavior-driven weapon configurations - eliminates weapon name references
   WEAPON_CONFIGS: {
@@ -82,6 +82,10 @@ const Config = {
 
   // Turn settings
   TURN_TIME_LIMIT: 30000, // 30 seconds in milliseconds
+
+  // Health crate settings
+  HEALTH_CRATE_CHANCE: 0.25,
+  HEALTH_CRATE_AMOUNT: 25,
 
   // Last Stand ability settings
   LAST_STAND: {
@@ -158,9 +162,9 @@ const PhaserConfig = {
     default: "matter",
     matter: {
       gravity: {
-        y: Config.GRAVITY, // Direct use of final gravity value
+        y: Config.GRAVITY,
       },
-      debug: false, // Disable physics debug - we'll add manual debug for projectiles
+      debug: false,
       enableSleeping: false,
     },
   },

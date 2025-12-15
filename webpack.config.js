@@ -34,8 +34,10 @@ module.exports = {
   resolve: {
     alias: {
       "@config": path.resolve(__dirname, "src/config.js"),
+      "@maps": path.resolve(__dirname, "src/maps"),
       "@player": path.resolve(__dirname, "src/player"),
       "@scenes": path.resolve(__dirname, "src/scenes"),
+      "@terrain": path.resolve(__dirname, "src/terrain"),
       "@ui": path.resolve(__dirname, "src/ui"),
       "@utils": path.resolve(__dirname, "src/utils"),
       "@weapons": path.resolve(__dirname, "src/weapons"),

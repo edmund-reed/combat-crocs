@@ -1,16 +1,18 @@
 import { Config } from "@config";
 import {
   TurnManager,
-  TerrainManager,
   PlayerManager,
   PhysicsManager,
   InputManager,
   StateManager,
   LastStandManager,
+  Maps as MapManager,
+  HealthPackManager,
 } from "@utils";
 import { UIManager, HealthBarManager } from "@ui";
 import { MovementManager } from "@player";
 import { WeaponSpriteManager } from "@weapons";
+import { TerrainManager } from "@terrain";
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -30,21 +32,53 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("croc-1", "src/assets/players/croc-1.png");
-    this.load.image("croc-2", "src/assets/players/croc-2.png");
-    this.load.image("chameleon-1", "src/assets/players/chameleon-1.png");
-    this.load.image("gecko-1", "src/assets/players/gecko-1.png");
+    // Weapons
     this.load.image("grenade-l1", "src/assets/weapons/orange-grenade/orange-grenade-level-1.png");
     this.load.image("bazooka-l1", "src/assets/weapons/bazooka/bazooka-level-1.png");
     this.load.image("shotgun-l1", "src/assets/weapons/shotgun/shotgun-level-1.png");
+
+    // UI / environment
+    this.load.image("health-pack", "src/assets/health-pack.png");
+    this.load.image("generic-map", "src/assets/backgrounds/generic-map.png");
+    this.load.image("terrain", "src/assets/textures/ground-terrain.png");
+    this.load.image("terrain-2", "src/assets/textures/ground-terrain-2.png");
+    this.load.image("brick", "src/assets/textures/brick.png");
+
+    // Ride backgrounds (optional): src/assets/rides/<rideFolder>/background.png
+    // We register them as `${mapId}-bg` and fall back to `generic-map` if missing.
+    Object.values(MapManager.maps).forEach(map => {
+      if (!map?.id || !map?.rideFolder) return;
+      this.load.image(`${map.id}-bg`, `src/assets/rides/${map.rideFolder}/background.png`);
+    });
+
+    // Ride / map-specific sprites (still explicitly loaded for now)
+    this.load.image("hotel-horror", "src/assets/rides/hotel-of-horror/hotel.png");
+    this.load.image("elevator-horror", "src/assets/rides/hotel-of-horror/elevator.png");
+
+    this.load.image("metal-coaster", "src/assets/rides/heavy-metal-coaster/metal-coaster.png");
+    this.load.json("metal-coaster-physics", "src/assets/rides/heavy-metal-coaster/metal-coaster.json");
+    this.load.image("donut-coaster", "src/assets/rides/heavy-metal-coaster/donut.png");
+    this.load.json("donut-coaster-physics", "src/assets/rides/heavy-metal-coaster/donut.json");
+    this.load.image("palm-tree-coaster", "src/assets/rides/heavy-metal-coaster/palm-tree.png");
+    this.load.json("palm-tree-coaster-physics", "src/assets/rides/heavy-metal-coaster/palm-tree.json");
   }
 
   create() {
+    const selectedMapId = window.CombatCrocs?.gameState?.game?.selectedMap || MapManager.getCurrentMap().id;
+    console.log("[GameScene] Using map for background:", selectedMapId);
+    const preferredBgKey = `${selectedMapId}-bg`;
+    const bgKey = this.textures.exists(preferredBgKey) ? preferredBgKey : "generic-map";
+    const bg = this.add.image(Config.GAME_WIDTH / 2, Config.GAME_HEIGHT, bgKey);
+    const bgScale = Math.max(Config.GAME_WIDTH / bg.width, Config.GAME_HEIGHT / bg.height);
+    bg.setOrigin(0.5, 1).setScale(bgScale).setDepth(-100);
+
     TerrainManager.createGameTerrain(this);
     PlayerManager.createGamePlayers(this);
     PhysicsManager.initializePhysics(this);
     UIManager.createGameUI(this);
     InputManager.setupInput(this);
+
+    this.healthCrates = [];
 
     this.turnManager.initializeTeams();
     this.turnManager.startTurn();
@@ -59,7 +93,7 @@ class GameScene extends Phaser.Scene {
     console.log("🎮 GameScene initialization complete");
   }
 
-  update(delta) {
+  update() {
     UIManager.checkAndHandleGameEnd(this);
 
     const timer = this.turnManager.currentTurnTimer;
@@ -90,9 +124,14 @@ class GameScene extends Phaser.Scene {
     const isMoving = cursors.left.isDown || cursors.right.isDown;
     InputManager.handleAimingInput(this, currentPlayer, cursors, isMoving);
 
-    PhysicsManager.updateProjectiles(this);
+    PhysicsManager.updatePhysicsBodies(this);
     HealthBarManager.updateHealthBarPositions(this);
     HealthBarManager.updateHealthBars(this);
+    HealthPackManager.update(this);
+  }
+
+  spawnHealthCrate(amount = Config.HEALTH_CRATE_AMOUNT) {
+    HealthPackManager.spawn(this);
   }
 
   endProjectileTurn() {
