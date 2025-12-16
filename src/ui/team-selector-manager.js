@@ -9,20 +9,16 @@ class TeamSelectorManager {
     c.add(scene.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(-20, -20, 40, 40, 8));
     c.add(UITextHelpers.primaryText(scene, 0, 0, label, 36));
     c.on("pointerdown", onClick);
-    return UIButtonHelpers.addHoverEffect(c, 1.2), c;
+    UIButtonHelpers.addHoverEffect(c, 1.2);
+    return c;
   };
 
   static updateTeamsForCount = scene => {
     const { teams, teamCount, availableColors } = scene;
     while (teams.length < teamCount) {
       const id = teams.length + 1;
-      teams.push({
-        id,
-        name: `Team ${id}`,
-        crocCount: 1,
-        color: availableColors[(id - 1) % availableColors.length],
-        players: [{ characterType: "CROCODILE" }],
-      });
+      const color = availableColors[(id - 1) % availableColors.length];
+      teams.push({ id, name: `Team ${id}`, crocCount: 1, color, players: [{ characterType: "CROCODILE" }] });
     }
     while (teams.length > teamCount) teams.pop();
   };
@@ -32,10 +28,8 @@ class TeamSelectorManager {
     const { teamCount, teams } = scene;
     const width = Math.min(teamCount * 200, 1000);
     for (let i = 0; i < teamCount; i++) {
-      const x =
-        teamCount === 1
-          ? Config.GAME_WIDTH / 2
-          : Config.GAME_WIDTH / 2 - width / 2 + i * (width / (teamCount - 1));
+      const multiTeams = Config.GAME_WIDTH / 2 - width / 2 + i * (width / (teamCount - 1));
+      const x = teamCount === 1 ? Config.GAME_WIDTH / 2 : multiTeams;
       this._createTeamPanel(scene, x, 210, teams[i], i);
     }
   }
@@ -61,17 +55,8 @@ class TeamSelectorManager {
     const spacing = 35;
     const start = -((scene.availableColors.length - 1) * spacing) / 2;
     scene.availableColors.forEach((col, i) => {
-      const btn = UIComponents.createColorButton(
-        scene,
-        col,
-        team.color?.hex === col.hex,
-        start + i * spacing,
-        0,
-      );
-      btn.on("pointerdown", () => {
-        team.color = col;
-        this.refreshTeamSelection(scene);
-      });
+      const btn = UIComponents.colorButton(scene, col, team.color?.hex === col.hex, start + i * spacing, 0);
+      btn.on("pointerdown", () => ((team.color = col), this.refreshTeamSelection(scene)));
       colorContainer.add(btn);
     });
     if (!team.color) team.color = scene.availableColors[(team.id - 1) % scene.availableColors.length];
@@ -83,16 +68,22 @@ class TeamSelectorManager {
 
   static refreshTeamSelection = scene => this.createTeamSelection(scene);
 
+  static _destroyAndClear = arr => {
+    arr?.forEach(item => item?.destroy());
+    if (arr) arr.length = 0;
+  };
+
   static clearExistingTeamUI = scene => {
     scene.teamUIElements?.forEach(el => el.destroy());
     scene.teamUIElements = [];
-    Array.from(
-      { length: Math.max(scene.spriteArrays?.length || 0, scene.tooltipArrays?.length || 0) },
-      (_, i) =>
-        [scene.spriteArrays?.[i], scene.tooltipArrays?.[i]].forEach(
-          arr => arr?.forEach(item => item?.destroy()) || (arr.length = 0),
-        ),
-    );
+    [scene.spriteArrays, scene.tooltipArrays].forEach(arrays => arrays?.forEach(this._destroyAndClear));
+  };
+
+  static _clearArrays = arrays => arrays?.forEach(this._destroyAndClear);
+
+  static _getNextCharacterType = current => {
+    const types = Object.keys(Config.CHARACTER_TYPES);
+    return types[(types.indexOf(current) + 1) % types.length];
   };
 
   static updateCrocPreview = (scene, x, y, count, teamIdx) => {
@@ -100,15 +91,14 @@ class TeamSelectorManager {
 
     const sprites = ((scene.spriteArrays ||= [])[teamIdx] ||= []);
     const tooltips = ((scene.tooltipArrays ||= [])[teamIdx] ||= []);
-    [sprites, tooltips].forEach(arr => (arr.forEach(i => i?.destroy()), (arr.length = 0)));
+    this._clearArrays([sprites, tooltips]);
 
     const team = scene.teams[teamIdx];
     const spacing = Math.max(25, 45 - Math.max(0, count - 2) * 5);
     const startX = x - ((count - 1) * spacing) / 2;
-    const types = Object.keys(Config.CHARACTER_TYPES);
     const { width, height } = Config.SPRITE_SIZES.UI_CHARACTER;
 
-    Array.from({ length: count }, (_, i) => {
+    for (let i = 0; i < count; i++) {
       const charType = team.players?.[i]?.characterType || "CROCODILE";
       const sprite = scene.add
         .sprite(startX + i * spacing, y, CharacterHelper.getSpriteKey(charType, team.color?.hex))
@@ -116,25 +106,19 @@ class TeamSelectorManager {
         .setInteractive();
 
       sprite.on("pointerover", () =>
-        UIComponents.createTooltip(
-          scene,
-          sprite.x,
-          sprite.y,
-          UIComponents.getAbilityName(charType),
-          tooltips,
-        ),
+        UIComponents.tooltip(scene, sprite.x, sprite.y, UIComponents.getAbilityName(charType), tooltips),
       );
-      sprite.on("pointerout", () => (tooltips.forEach(t => t.destroy()), (tooltips.length = 0)));
+      sprite.on("pointerout", () => this._clearArrays([tooltips]));
       sprite.on("pointerdown", () => {
         const current = team.players?.[i]?.characterType || "CROCODILE";
-        const next = types[(types.indexOf(current) + 1) % types.length];
+        const next = this._getNextCharacterType(current);
         (team.players ||= [])[i] = { ...(team.players[i] || {}), characterType: next };
         sprite.setTexture(CharacterHelper.getSpriteKey(next, team.color?.hex)).setDisplaySize(width, height);
         tooltips[0]?.setText(UIComponents.getAbilityName(next));
       });
 
       sprites.push(sprite);
-    });
+    }
   };
 }
 

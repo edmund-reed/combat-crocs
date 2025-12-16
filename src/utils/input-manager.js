@@ -18,74 +18,59 @@ class InputManager {
     const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
     const player = scene.players[currentPlayerIndex];
     if (!player?.canShoot) return;
-
     player.aimAngle = Phaser.Math.Angle.Between(player.x, player.y, pointer.worldX, pointer.worldY);
     this.updateAimIndicator(scene);
   }
 
   static handleAimingInput(scene, currentPlayer, cursors, isMoving) {
-    if (!currentPlayer?.canShoot) {
-      this.clearAimIndicator(scene);
-      return;
-    }
-
-    // Keyboard aiming adjustments
+    if (!currentPlayer?.canShoot) return this.clearAimIndicator(scene);
     if (cursors.up.isDown) currentPlayer.aimAngle -= 0.026;
     if (cursors.down.isDown) currentPlayer.aimAngle += 0.026;
-
-    // Update player direction when not moving
-    if (!isMoving) {
-      const aimTargetX = currentPlayer.x + Math.cos(currentPlayer.aimAngle) * 100;
-      const shouldFaceLeft = aimTargetX < currentPlayer.x;
-      if (shouldFaceLeft !== currentPlayer.facingLeft) {
-        currentPlayer.facingLeft = shouldFaceLeft;
-        currentPlayer.graphics.setFlipX(shouldFaceLeft);
-      }
-    }
-
+    if (!isMoving) this._updatePlayerFacing(currentPlayer);
     this.updateAimIndicator(scene);
+  }
+
+  static _updatePlayerFacing(player) {
+    const aimTargetX = player.x + Math.cos(player.aimAngle) * 100;
+    const shouldFaceLeft = aimTargetX < player.x;
+    if (shouldFaceLeft !== player.facingLeft) {
+      player.facingLeft = shouldFaceLeft;
+      player.graphics.setFlipX(shouldFaceLeft);
+    }
   }
 
   static handleShooting(scene) {
     if (UIManager.isModalOpen(scene)) return;
 
-    const currentPlayerIndex = scene.turnManager.getCurrentPlayerIndex();
-    const player = scene.players[currentPlayerIndex];
-    const currentWeapon = scene.turnManager.getCurrentWeapon();
+    const player = scene.players[scene.turnManager.getCurrentPlayerIndex()];
+    const weapon = scene.turnManager.getCurrentWeapon();
+    const isInProgress = scene.turnManager.isTurnInProgress();
 
-    if (
-      !player.canShoot ||
-      scene.turnManager.isTurnInProgress() ||
-      scene.turnManager.weaponAmmo[currentWeapon] <= 0
-    )
+    if (!player.canShoot || isInProgress || scene.turnManager.weaponAmmo[weapon] <= 0) {
       return;
+    }
 
-    // Calculate target position from aim angle (supports both mouse and keyboard aiming)
-    const shootDistance = 500;
-    const targetX = player.x + Math.cos(player.aimAngle) * shootDistance;
-    const targetY = player.y + Math.sin(player.aimAngle) * shootDistance;
+    const targetX = player.x + Math.cos(player.aimAngle) * 500;
+    const targetY = player.y + Math.sin(player.aimAngle) * 500;
+    this._executeShot(scene, player, weapon, targetX, targetY);
+  }
 
-    scene.turnManager.weaponAmmo[currentWeapon]--;
+  static _executeShot(scene, player, weapon, targetX, targetY) {
+    scene.turnManager.weaponAmmo[weapon]--;
     scene.turnManager.weaponLocked = true;
     scene.canReviveThisTurn = false;
 
-    WeaponManager.fireWeapon(scene, player, targetX, targetY, currentWeapon);
+    WeaponManager.fireWeapon(scene, player, targetX, targetY, weapon);
 
-    const { behaviorFlags } = Config.WEAPON_CONFIGS[currentWeapon];
-
-    // Cancel turn timer for delayed explosion weapons to prevent race condition
-    if (behaviorFlags.includes("timerExplosion")) {
+    if (Config.WEAPON_CONFIGS[weapon].behaviorFlags.includes("timerExplosion")) {
       scene.turnManager.currentTurnTimer?.destroy();
       scene.turnManager.currentTurnTimer = null;
-    } else if (scene.turnManager.weaponAmmo[currentWeapon] <= 0) {
+    } else if (scene.turnManager.weaponAmmo[weapon] <= 0) {
       scene.turnManager.endCurrentTurn();
     }
 
     this.clearAimIndicator(scene);
   }
-
-  static getCursors = scene => scene.cursors;
-  static getSpaceKey = scene => scene.spaceKey;
 
   static updateAimIndicator(scene) {
     this.clearAimIndicator(scene);
@@ -93,20 +78,15 @@ class InputManager {
     const player = scene.players[scene.turnManager.getCurrentPlayerIndex()];
     if (!player.canShoot) return;
 
-    const { x, y } = player;
-    const angle = player.aimAngle; // Use player's aim angle (set by mouse or keyboard)
+    const distance = Math.max(110, 220 - Math.abs(player.body.velocity.y) * 3 - 40);
+    const endX = player.x + Math.cos(player.aimAngle) * distance;
+    const endY = player.y + Math.sin(player.aimAngle) * distance;
 
-    // Place crosshair closer than max firing distance for a more Worms-like feel
-    // (and slightly closer still per tuning)
-    const crosshairDistance = Math.max(110, 220 - Math.abs(player.body.velocity.y) * 3 - 40);
-    const endX = x + Math.cos(angle) * crosshairDistance;
-    const endY = y + Math.sin(angle) * crosshairDistance;
-
-    // Worms-style crosshair at the end of the aim line
-    const crosshair = scene.add.image(endX, endY, "crosshair").setOrigin(0.5).setDepth(200);
-    const targetSizePx = 41;
-    crosshair.setScale(targetSizePx / crosshair.width);
-    scene.aimIndicator = crosshair;
+    scene.aimIndicator = scene.add
+      .image(endX, endY, "crosshair")
+      .setOrigin(0.5)
+      .setDepth(200)
+      .setScale(41 / scene.textures.get("crosshair").source[0].width);
   }
 
   static clearAimIndicator(scene) {
@@ -124,8 +104,7 @@ class InputManager {
             x: projectileBody.position.x,
             y: projectileBody.position.y,
           });
-          trail.fillStyle(0xff4500);
-          trail.fillCircle(0, 0, 2);
+          trail.fillStyle(0xff4500).fillCircle(0, 0, 2);
           scene.tweens.add({
             targets: trail,
             alpha: 0,

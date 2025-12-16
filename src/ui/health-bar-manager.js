@@ -1,6 +1,18 @@
 import { UITextHelpers } from "./ui-helpers.js";
 import { PlayerManager, StateManager } from "@utils";
 
+// Health bar constants
+const BAR = { width: 100, height: 12, offsetY: -60, labelOffsetY: -46 };
+
+// Lighten a packed 0xRRGGBB color by interpolating toward white.
+// Uses Phaser helpers for readability.
+const lighten = (colorInt, t = 0.4) => {
+  const c = Phaser.Display.Color.IntegerToColor(colorInt);
+  const white = new Phaser.Display.Color(255, 255, 255);
+  const out = Phaser.Display.Color.Interpolate.ColorWithColor(c, white, 100, Math.round(t * 100));
+  return Phaser.Display.Color.GetColor(out.r, out.g, out.b);
+};
+
 class HealthBarManager {
   static createHealthBars(scene) {
     scene.healthBars = scene.players.map(p => ({
@@ -16,72 +28,57 @@ class HealthBarManager {
       const alive = PlayerManager.isPlayerAlive(scene, idx);
       bar.setVisible(alive);
       label.setVisible(alive);
-      if (alive) {
-        const p = scene.players[idx];
-        bar.setPosition(p.x - 50, p.y - 60);
-        label.setPosition(p.x, p.y - 46);
-      }
+      if (!alive) return;
+      const p = scene.players[idx];
+      bar.setPosition(p.x - BAR.width / 2, p.y + BAR.offsetY);
+      label.setPosition(p.x, p.y + BAR.labelOffsetY);
     });
   }
 
   static updateHealthBars(scene) {
-    scene.healthBars.forEach(data => {
-      const player = scene.players.find(p => p.id === data.playerId);
+    scene.healthBars.forEach(({ bar, label, playerId }) => {
+      const player = scene.players.find(p => p.id === playerId);
       if (!player) return;
 
-      const { bar, label } = data;
       const hp = Math.max(0, player.health || 0);
-
       if (hp <= 0) {
         bar.setVisible(false).clear();
         label.setVisible(false);
-        player.body?.isRemoved || (scene.matter?.world?.remove(player.body), (player.body.isRemoved = true));
-        this._showGravestone(scene, player);
-        return;
+        if (!player.body?.isRemoved) {
+          scene.matter?.world?.remove(player.body);
+          player.body.isRemoved = true;
+        }
+        return this._showGravestone(scene, player);
       }
 
       bar.clear().setVisible(true);
       label.setVisible(true);
 
-      const [baseMax, barHeight] = [100, 12];
-      const baseHp = Math.min(hp, baseMax);
-      const bonusHp = Math.min(Math.max(0, hp - baseMax), baseMax);
-      const baseFillW = baseHp;
-      const bonusFillW = bonusHp;
+      const baseHp = Math.min(hp, BAR.width);
+      const bonusHp = Math.min(Math.max(0, hp - BAR.width), BAR.width);
 
-      bar.fillStyle(player.color & 0x7f7f7f).fillRect(0, 0, baseMax, barHeight);
-      baseFillW > 0 && bar.fillStyle(player.color).fillRect(0, 0, baseFillW, barHeight);
+      // Background + base health fill
+      bar.fillStyle(player.color & 0x7f7f7f).fillRect(0, 0, BAR.width, BAR.height);
+      baseHp > 0 && bar.fillStyle(player.color).fillRect(0, 0, baseHp, BAR.height);
 
+      // Bonus health (HP > 100) as extension
       if (bonusHp > 0) {
-        const lighten = (color, factor = 0.4) =>
-          [16, 8, 0].reduce((acc, shift) => {
-            const channel = (color >> shift) & 0xff;
-            return acc | (Math.min(255, channel + Math.round((255 - channel) * factor)) << shift);
-          }, 0);
-
-        bar.fillStyle(0x1b1b1b).fillRect(baseMax, 0, bonusFillW, barHeight);
-        bar.fillStyle(lighten(player.color)).fillRect(baseMax, 0, bonusFillW, barHeight);
-        bar.lineStyle(2, 0x00ff00).strokeRect(baseMax, 0, bonusFillW, barHeight);
+        bar.fillStyle(0x1b1b1b).fillRect(BAR.width, 0, bonusHp, BAR.height);
+        bar.fillStyle(lighten(player.color)).fillRect(BAR.width, 0, bonusHp, BAR.height);
+        bar.lineStyle(2, 0x00ff00).strokeRect(BAR.width, 0, bonusHp, BAR.height);
       }
 
-      bar.lineStyle(1, 0x000000).strokeRect(0, 0, baseMax, barHeight);
+      bar.lineStyle(1, 0x000000).strokeRect(0, 0, BAR.width, BAR.height);
     });
   }
 
   static _showGravestone(scene, player) {
-    const { x, y } = player;
-
-    // Old gravestone marker was ~35px tall; keep similar on-screen sizing
-    const targetHeight = 40;
-
-    const gravestone = scene.add.image(x, y, "rip").setOrigin(0.5, 1).setDepth(5);
-    const scale = targetHeight / gravestone.height;
-    gravestone.setScale(scale);
-
+    if (player.gravestoneShown) return;
+    player.gravestoneShown = true;
     player.graphics.setVisible(false);
-
-    // Register in the shape expected by StateManager cleanup
-    StateManager.registerCleanup(scene, { gravestone }, "effects");
+    const g = scene.add.image(player.x, player.y, "rip").setOrigin(0.5, 1).setDepth(5);
+    g.setScale(40 / g.height);
+    StateManager.registerCleanup(scene, { gravestone: g }, "effects");
   }
 }
 

@@ -14,13 +14,14 @@ class TurnManager {
       currentTurnTimer: null,
       turnInProgress: false,
       weaponByTeam: {},
-      weaponAmmo: Object.fromEntries(
-        Object.entries(Config.WEAPON_CONFIGS).map(([k, v]) => [k, v.shotsPerTurn]),
-      ),
+      weaponAmmo: this.constructor.freshAmmo(),
       turnCount: 0,
       teamTurnCounters: {},
     });
   }
+
+  static freshAmmo = () =>
+    Object.fromEntries(Object.entries(Config.WEAPON_CONFIGS).map(([k, v]) => [k, v.shotsPerTurn]));
 
   initializeTeams = () => {
     const teams = StateManager.getTeams();
@@ -31,37 +32,29 @@ class TurnManager {
   startTurn = () => {
     this.currentTurnTimer?.destroy();
     this.turnCount++;
-    this.scene.hasAttackedThisTurn = false;
-    this.scene.canReviveThisTurn = true;
+    Object.assign(this.scene, { hasAttackedThisTurn: false, canReviveThisTurn: true });
     this.currentPlayer = this.getNextPlayerIndex();
 
-    if (Math.random() < (Config.HEALTH_CRATE_CHANCE || 0)) {
-      console.log("🎁 Health pack spawn chance triggered");
-      this.scene.spawnHealthCrate?.();
-    }
+    if (Math.random() < (Config.HEALTH_CRATE_CHANCE || 0)) this.scene.spawnHealthCrate?.();
 
-    const currentTeamId = this.getCurrentTeam();
-    this.teamTurnCounters[currentTeamId] = (this.teamTurnCounters[currentTeamId] || 0) + 1;
-
+    const teamId = this.getCurrentTeam();
+    this.teamTurnCounters[teamId] = (this.teamTurnCounters[teamId] || 0) + 1;
     Logger.gameEvent(
-      `TURN: Player ${this.currentPlayer}, Team ${currentTeamId} Turn #${this.teamTurnCounters[currentTeamId]}`,
+      `TURN: Player ${this.currentPlayer}, Team ${teamId} Turn #${this.teamTurnCounters[teamId]}`,
     );
 
     this.scene.players.forEach((p, i) =>
-      i === this.currentPlayer ? PlayerManager.activateForTurn(p) : PlayerManager.resetForTurn(p),
+      (i === this.currentPlayer ? PlayerManager.activateForTurn : PlayerManager.resetForTurn)(p),
     );
 
-    this.weaponAmmo = Object.fromEntries(
-      Object.entries(Config.WEAPON_CONFIGS).map(([k, v]) => [k, v.shotsPerTurn]),
-    );
-
+    this.weaponAmmo = TurnManager.freshAmmo();
     this.weaponLocked = false;
+
     this.currentTurnTimer = this.scene.time.delayedCall(Config.TURN_TIME_LIMIT, () => {
-      if (!this.turnInProgress) {
-        Logger.gameEvent("TIMEOUT → next turn");
-        this.currentTurnTimer = null;
-        this.startTurn();
-      }
+      if (this.turnInProgress) return;
+      Logger.gameEvent("TIMEOUT → next turn");
+      this.currentTurnTimer = null;
+      this.startTurn();
     });
 
     UIManager.updateTurnIndicator(this.scene, this.scene.players[this.currentPlayer]);
@@ -71,46 +64,35 @@ class TurnManager {
     WeaponSpriteManager.updateWeaponSpritesForTurn(this.scene, this.getCurrentWeapon(), this.currentPlayer);
   };
 
-  findNextLivingPlayerInTeam = team => {
-    const teams = StateManager.getTeams();
-    const teamIndex = teams.findIndex(t => t.id === team.id);
-
+  findNextLivingPlayerInTeam = (team, teamIndex) => {
     for (let offset = 0; offset < team.crocCount; offset++) {
       const playerNum = ((this.playerIndices[teamIndex] + offset) % team.crocCount) + 1;
       const playerIndex = PlayerManager.getPlayerIndexById(this.scene, `${team.id}${playerNum}`);
       const player = this.scene.players[playerIndex];
-
       if (PlayerManager.isPlayerAlive(this.scene, playerIndex) && !player?.inLastStand) {
         this.playerIndices[teamIndex] = (this.playerIndices[teamIndex] + offset + 1) % team.crocCount;
         return playerIndex;
       }
     }
-
     return -1;
   };
 
   getNextPlayerIndex = () => {
     const teams = StateManager.getTeams();
-
-    for (let attempts = 0; attempts < teams.length; attempts++) {
-      const playerIndex = this.findNextLivingPlayerInTeam(teams[this.currentTeamIndex]);
+    for (let i = 0; i < teams.length; i++) {
+      const idx = (this.currentTeamIndex + i) % teams.length;
+      const playerIndex = this.findNextLivingPlayerInTeam(teams[idx], idx);
       if (playerIndex >= 0) {
-        this.currentTeamId = teams[this.currentTeamIndex].id;
-        this.currentTeamIndex = (this.currentTeamIndex + 1) % teams.length;
+        this.currentTeamId = teams[idx].id;
+        this.currentTeamIndex = (idx + 1) % teams.length;
         return playerIndex;
       }
-      this.currentTeamIndex = (this.currentTeamIndex + 1) % teams.length;
     }
-
     Logger.warn("No living players found");
     return 0;
   };
 
-  endCurrentTurn = () => {
-    Logger.gameEvent("Projectile turn ended");
-    this.turnInProgress = false;
-    return true;
-  };
+  endCurrentTurn = () => ((Logger.gameEvent("Projectile turn ended"), (this.turnInProgress = false)), true);
 
   markPlayerAttacked = player => {
     Object.assign(this.scene, { hasAttackedThisTurn: true, canReviveThisTurn: false });
@@ -123,10 +105,9 @@ class TurnManager {
   getCurrentWeapon = () => this.weaponByTeam[this.getCurrentTeam()] ?? "BAZOOKA";
 
   setCurrentWeapon = weaponType => {
-    if (Config.WEAPON_CONFIGS[weaponType]) {
-      this.weaponByTeam[this.getCurrentTeam()] = weaponType;
-      Logger.weaponEvent(`Team ${this.getCurrentTeam()} → ${weaponType}`);
-    }
+    if (!Config.WEAPON_CONFIGS[weaponType]) return;
+    this.weaponByTeam[this.getCurrentTeam()] = weaponType;
+    Logger.weaponEvent(`Team ${this.getCurrentTeam()} → ${weaponType}`);
   };
 }
 

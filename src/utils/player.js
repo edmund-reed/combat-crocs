@@ -61,12 +61,6 @@ class PlayerManager {
     player.ability = ability;
   }
 
-  static updatePositionSync = player => {
-    const { x, y } = player.body.position;
-    Object.assign(player, { x, y });
-    player.graphics.setPosition(x, y);
-  };
-
   static updateHitAreaMarker = player =>
     player.hitAreaMarker
       ?.setPosition(player.x, player.y)
@@ -75,19 +69,19 @@ class PlayerManager {
       .strokeCircle(0, 0, 25);
 
   static updatePlayerPhysics = (scene, player) => {
-    this.updatePositionSync(player);
-    const clampedX = Math.max(35, Math.min(Config.GAME_WIDTH - 35, player.x));
-    if (clampedX !== player.x) {
-      scene.matter.body.setPosition(player.body, { x: clampedX, y: player.y });
-      Object.assign(player, { x: clampedX });
-      player.graphics.setPosition(clampedX, player.y);
-    }
+    // Sync player object + sprite to physics body, while clamping to screen
+    const { x: bodyX, y: bodyY } = player.body.position;
+    const x = Math.max(35, Math.min(Config.GAME_WIDTH - 35, bodyX));
+    const y = bodyY;
+
+    if (x !== bodyX) scene.matter.body.setPosition(player.body, { x, y });
+
+    Object.assign(player, { x, y });
+    player.graphics.setPosition(x, y);
   };
 
   static resetForTurn = player => Object.assign(player, { canMove: false, canShoot: false });
   static activateForTurn = player => Object.assign(player, { canMove: true, canShoot: true });
-  static assignRandomSpawnPositions = (scene, players) =>
-    SpawnManager.assignRandomSpawnPositions(scene, players);
   static isPlayerAlive = (scene, i) => i >= 0 && i < scene.players.length && scene.players[i].health > 0;
   static getPlayerIndexById = (scene, id) => scene.players.findIndex(p => p.id === id);
 
@@ -115,7 +109,7 @@ class PlayerManager {
 
     Object.assign(scene, { players: [], playerSprites: {}, playerBodies: {} });
     teams.forEach((team, i) => this.createTeamPlayers(scene, team, i, Config.GAME_HEIGHT - 110));
-    this.assignRandomSpawnPositions(scene, scene.players);
+    SpawnManager.assignRandomSpawnPositions(scene, scene.players);
 
     scene.players.forEach(p => {
       scene.playerSprites[p.id] = p.graphics;

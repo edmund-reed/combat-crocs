@@ -5,22 +5,20 @@ import PlayerManager from "./player.js";
 class HealthPackManager {
   static spawn(scene) {
     const x = Phaser.Math.Between(50, Config.GAME_WIDTH - 50);
-    const texture = scene.textures.get("health-pack");
-    const scale = Math.min(1, 32 / texture.source[0].width);
+    const scale = Math.min(1, 32 / scene.textures.get("health-pack").source[0].width);
 
-    const crate = scene.matter.add
-      .image(x, 10, "health-pack")
-      .setDepth(900)
-      .setFriction(0.8)
-      .setFrictionAir(0.02)
-      .setBounce(0.1)
-      .setScale(scale);
+    const crate = scene.matter.add.image(x, 10, "health-pack", null, {
+      friction: 0.8,
+      frictionAir: 0.02,
+      restitution: 0.1,
+    });
 
+    crate.setDepth(900).setScale(scale);
     crate.setRectangle(crate.displayWidth, crate.displayHeight);
     crate.setCollisionCategory(PhysicsManager.CATEGORIES.HEALTH_PACKS);
     crate.setCollidesWith(PhysicsManager.CATEGORIES.TERRAIN | PhysicsManager.CATEGORIES.PLAYERS);
-
     crate.healAmount = Config.HEALTH_CRATE_AMOUNT;
+
     (scene.healthCrates ||= []).push(crate);
   }
 
@@ -37,16 +35,11 @@ class HealthPackManager {
       );
 
       if (player) {
-        const heal = crate.healAmount || Config.HEALTH_CRATE_AMOUNT;
-
-        // Add temporary bonus health (do not permanently raise maxHealth)
-        // Health bar renders base (0-100) plus appended bonus.
-        player.health = (player.health || 0) + heal;
-
+        player.health = (player.health || 0) + (crate.healAmount || Config.HEALTH_CRATE_AMOUNT);
         crate.destroy();
+        return false;
       }
-
-      return !player;
+      return true;
     });
   }
 }
