@@ -77,8 +77,6 @@ class UIManager {
       .on("pointerdown", back);
   }
 
-  static updateAimIndicator = scene => InputManager.updateAimIndicator(scene);
-  static clearAimIndicator = scene => InputManager.clearAimIndicator(scene);
   static updateWeaponDisplay = scene =>
     scene.weaponText?.setText(`Weapon: ${scene.turnManager.getCurrentWeapon()}`);
 

@@ -105,8 +105,6 @@ class WeaponManager {
     projectileBody.projectileGraphics?.destroy?.();
     projectileBody.debugOutline?.destroy?.();
   };
-
-  static getCurrentWeapon = () => "BAZOOKA";
 }
 
 export default WeaponManager;

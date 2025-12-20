@@ -1,5 +1,5 @@
 import { Config, Logger } from "@config";
-import { StateManager, PlayerManager } from "@utils";
+import { StateManager, PlayerManager, InputManager } from "@utils";
 import { UIManager } from "@ui";
 import { WeaponSpriteManager } from "@weapons";
 
@@ -60,7 +60,7 @@ class TurnManager {
     UIManager.updateTurnIndicator(this.scene, this.scene.players[this.currentPlayer]);
     UIManager.updatePlayerHighlighting(this.scene, this.currentPlayer);
     UIManager.updateWeaponDisplay(this.scene);
-    UIManager.clearAimIndicator(this.scene);
+    InputManager.clearAimIndicator(this.scene);
     WeaponSpriteManager.updateWeaponSpritesForTurn(this.scene, this.getCurrentWeapon(), this.currentPlayer);
   };
 
