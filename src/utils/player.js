@@ -13,6 +13,7 @@ class PlayerManager {
     const player = {
       id,
       teamId,
+      team: teamId, // Add this for compatibility with code that checks .team
       characterType,
       color,
       x,
