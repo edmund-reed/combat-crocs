@@ -59,11 +59,15 @@ class DecorationsManager {
       return null;
     }
 
+    const shapeData = shapes[key];
+
     const sprite = scene.matter.add.sprite(0, 0, decor.sprite, null, {
-      shape: shapes[key],
+      shape: shapeData,
       isStatic: !decor.rotating,
-      friction: 1.0,
-      frictionStatic: 1.0,
+      // Use friction values from PhysicsEditor JSON, with grippy defaults
+      friction: shapeData.friction ?? 1.0,
+      frictionStatic: shapeData.frictionStatic ?? 3.0, // Higher = grippier (2-3 is very grippy)
+      frictionAir: shapeData.frictionAir ?? 0.01,
       collisionFilter: { category: PhysicsManager.CATEGORIES.TERRAIN },
     });
 

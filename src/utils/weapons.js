@@ -43,7 +43,7 @@ class WeaponManager {
 
     Object.assign(body, { projectileOwner: player.id, projectileGraphics: projectile, weaponConfig: config });
 
-    PhysicsManager.applyProjectileVelocity(scene, body, angle, 25);
+    PhysicsManager.applyProjectileVelocity(scene, body, angle, 20); // Reduced from 25 to give physics more time
     InputManager.addProjectileTrail(scene, body);
 
     const { behaviorFlags } = Config.WEAPON_CONFIGS[weaponType];

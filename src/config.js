@@ -17,7 +17,7 @@ const Config = {
   // Behavior-driven weapon configurations - eliminates weapon name references
   WEAPON_CONFIGS: {
     BAZOOKA: {
-      damage: 50,
+      damage: 40,
       radius: 140,
       shotsPerTurn: 1,
       behaviorFlags: ["projectile", "explodesOnImpact"],
@@ -30,12 +30,12 @@ const Config = {
       upgrades: {
         maxLevel: 3,
         xpThresholds: [30, 80],
-        damagePerLevel: [50, 65, 80],
+        damagePerLevel: [40, 60, 80],
         radiusPerLevel: [140, 165, 190],
       },
     },
     GRENADE: {
-      damage: 50,
+      damage: 40,
       radius: 140,
       shotsPerTurn: 1,
       behaviorFlags: ["projectile", "timerExplosion", "bounces"],
@@ -50,12 +50,12 @@ const Config = {
       upgrades: {
         maxLevel: 3,
         xpThresholds: [30, 80],
-        damagePerLevel: [50, 65, 80],
+        damagePerLevel: [40, 60, 80],
         radiusPerLevel: [140, 165, 190],
       },
     },
     SHOTGUN: {
-      damage: 12,
+      damage: 20,
       radius: 35,
       shotsPerTurn: 2,
       behaviorFlags: ["hitscan", "multiShot"],
@@ -68,7 +68,7 @@ const Config = {
       upgrades: {
         maxLevel: 3,
         xpThresholds: [30, 80],
-        damagePerLevel: [12, 16, 20],
+        damagePerLevel: [20, 27, 35],
       },
     },
   },
