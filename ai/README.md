@@ -1,13 +1,29 @@
 # Combat Crocs AI Training System
 
+**Status:** ✅ **Phase 1 Complete - Puppeteer System Functional**  
+**Latest Update:** December 20, 2025
+
 This directory contains the machine learning training infrastructure for Combat Crocs AI opponents.
+
+## 🎉 Current Status
+
+**The Puppeteer browser automation system is complete and working!**
+
+- ✅ Browser launches and controls game automatically
+- ✅ Games complete successfully with winners determined
+- ✅ AI fires weapons and deals damage
+- ✅ Ready for neural network integration
+
+**See [STATUS.md](STATUS.md) for complete implementation details.**
 
 ## 🧬 Architecture
 
-The AI uses **Neuroevolution** (genetic algorithms + neural networks) with a hybrid training approach:
+The AI uses **Neuroevolution** (genetic algorithms + neural networks) powered by **Puppeteer browser automation**:
 
-1. **Imitation Learning**: AI learns from recorded human gameplay
-2. **Evolutionary Training**: AI improves through self-play and evolution
+1. **Browser Automation**: Puppeteer controls the real game in Chrome
+2. **Turn Detection**: Hooks into game's turn manager
+3. **Weapon Firing**: Uses actual game WeaponManager (no simulation needed)
+4. **Evolutionary Training**: Networks compete and evolve over generations
 
 ## 📁 Directory Structure
 
@@ -29,14 +45,21 @@ cd ai
 npm install
 ```
 
-### 2. Record Gameplay Data
+### 2. Test the System
 
-- Run the game with recording mode
-- Press `K` to start/stop recording
-- Play 30-50 games to create training dataset
-- Recordings saved to `data/gameplay-recordings/`
+```bash
+# Terminal 1 - Start game server
+cd src
+npm run dev
 
-### 3. Train AI Models
+# Terminal 2 - Test AI automation
+cd ai
+npm test
+```
+
+**Expected Result:** Browser opens, navigates menus, plays a complete game, shows winner!
+
+### 3. Train AI Models (Coming Soon)
 
 ```bash
 npm run train
@@ -44,17 +67,20 @@ npm run train
 
 Training will:
 
-- Phase 1: Learn from recorded games (imitation)
-- Phase 2: Evolve through self-play (200+ generations)
+- Create population of 50 neural networks
+- Evolve through self-play (200+ generations)
 - Export models to `models/` directory
 
-### 4. Monitor Training (Optional)
+**Note:** Neural network integration is next on the roadmap. See [STATUS.md](STATUS.md) for details.
 
-```bash
-npm run train-ui
-```
+### 4. What Works Now
 
-Open http://localhost:3001 for live training dashboard
+✅ **Puppeteer automation** - Launches and controls game  
+✅ **Turn detection** - Hooks into game's turn manager  
+✅ **Weapon firing** - AI fires bazookas and deals damage  
+✅ **Game completion** - Plays until winner determined
+
+🚧 **In Progress:** Neural network decision making (currently uses random aim)
 
 ## 📊 Model Outputs
 

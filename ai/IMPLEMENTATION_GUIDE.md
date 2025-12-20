@@ -1,6 +1,22 @@
 # Combat Crocs AI - Implementation Guide
 
-## ✅ COMPLETED: Phase 1 - Data Collection Infrastructure
+**Last Updated:** December 20, 2025  
+**Status:** Phase 1 Complete, Phase 2 Ready
+
+## 🎉 BREAKTHROUGH: Puppeteer System Complete!
+
+**We chose a different path and it worked!** Instead of building a headless simulator, we use **Puppeteer to control the real game in a browser**. This approach:
+
+- ✅ Uses 100% accurate game physics (no approximation needed)
+- ✅ Reduces implementation complexity significantly
+- ✅ Makes debugging easier (can watch the AI play)
+- ✅ Already complete and functional!
+
+**See [STATUS.md](STATUS.md) for complete technical details.**
+
+---
+
+## ✅ COMPLETED: Phase 1 - Puppeteer Game Automation
 
 ### What's Been Built
 
@@ -49,48 +65,38 @@ ai/data/gameplay-recordings/gameplay-1234567890.json
 
 ## 🚧 TODO: Remaining Implementation
 
-### Phase 2: Training System (Est. 2-3 weeks)
+### Phase 2: Neural Network Integration (Est. 2-3 days)
 
-#### A. Install Dependencies
+#### A. Replace Random Decisions with Networks
 
-```bash
-cd ai
-npm install
-```
+**Current State:** AI makes random decisions in `puppeteer-game-runner.js`
 
-This will install:
+**Goal:** Use neural networks to make intelligent decisions
 
-- `neataptic` - Neuroevolution library
-- `express` - Training UI server
-- `ws` - WebSocket for live updates
-
-#### B. Build Headless Simulator (`ai/training/simulator.js`)
-
-**Purpose:** Run game logic without Phaser rendering (100-1000x faster)
-
-**Key Components:**
+**Implementation:**
 
 ```javascript
-class HeadlessSimulator {
-  // Simplified game state
-  - Players (health, position, team)
-  - Physics (basic projectile trajectories)
-  - Damage calculations
-  - Win conditions
+// In puppeteer-game-runner.js
+makeAIDecision(gameState, network) {
+  // 1. Encode game state (24 inputs)
+  const inputs = encodeGameState(gameState);
 
-  // Fast simulation
-  simulateGame(network1, network2) {
-    // Run entire game in <1 second
-    // Return: winner, damage stats, survival time
-  }
+  // 2. Run through network
+  const outputs = network.activate(inputs);
+
+  // 3. Decode to actions
+  return decodeNetworkOutput(outputs, gameState);
 }
 ```
 
-**Complexity:** ~500 lines
-**Time:** 1 week
-**Note:** Can simplify physics - just need reasonable approximations
+**Dependencies:** Already installed!
 
-#### C. Implement Neuroevolution (`ai/training/trainer.js`)
+- `neataptic` - ✅ In package.json
+
+**Complexity:** ~100 lines
+**Time:** 1-2 hours
+
+#### B. Implement Evolutionary Training (`ai/training/trainer.js`)
 
 **Hybrid Training Approach:**
 
@@ -258,6 +264,76 @@ class RuleBasedAI {
 - Want to test AI gameplay first
 - Can add ML later as upgrade
 
+## 🎯 Tactical Training Objectives
+
+### Strategic Depth Goals
+
+The AI should learn **tactical decision-making** beyond basic gameplay:
+
+#### 1. **Character Type Strategy**
+
+- Learn effectiveness of each character type (Croc/Gecko/Chameleon/Dino)
+- Discover optimal character matchups
+- Identify "meta" character choices through evolution
+
+#### 2. **Weapon Choice Tactics**
+
+- **Optimal Play**: Choose best weapon for each situation
+- **Upgrade Farming**: Use suboptimal weapons to gain XP/upgrades
+- Balance short-term effectiveness vs long-term power
+
+#### 3. **Weapon Upgrade Decisions**
+
+- Prioritize which weapons to upgrade first
+- Learn when upgrade investment pays off
+- Discover optimal upgrade paths
+
+#### 4. **Emergent Strategy Discovery**
+
+Through 200-500 generations of evolution, the AI will discover:
+
+- Best character + weapon combinations
+- Optimal upgrade strategies
+- Trade-offs between immediate damage and long-term power
+- Meta strategies not obvious to human players
+
+### Enhanced Fitness Function
+
+```javascript
+fitness =
+  (damageDealt × 2) +           // Reward effectiveness
+  (kills × 25) +                // Reward eliminations
+  (survivalTime) +              // Reward longevity
+  (weaponVariety × 10) +        // NEW: Encourage using all weapons
+  (upgradeProgress × 15) +      // NEW: Reward weapon upgrades
+  (characterEffectiveness × 20) // NEW: Reward good character picks
+  + (win ? 100 : 0);            // Reward victory
+```
+
+### Extended Neural Network Inputs
+
+**Enhanced Architecture (32 inputs):**
+
+- Self state: health, position (2)
+- Enemy states: health, distance, angle, threat ×4 (16)
+- Weapon ammo: bazooka, grenade, shotgun (3)
+- **Character type: one-hot encoded ×4** (4) **NEW**
+- **Weapon upgrade levels: bazooka, grenade, shotgun** (3) **NEW**
+- **XP progress to next upgrade** (1) **NEW**
+- Context: turn number, time remaining (3)
+
+This allows AI to learn: _"Gecko + upgraded shotgun = powerful combo"_
+
+### Post-Training Analysis
+
+After training completes, analyze results to discover:
+
+- Win rate by character type
+- Most successful weapon combinations
+- Optimal upgrade paths
+- Character effectiveness rankings
+- Emergent tactical patterns
+
 ## 📝 Notes
 
 - Recording system is production-ready
@@ -266,6 +342,7 @@ class RuleBasedAI {
 - ML training is one-time cost
 - Trained models are tiny (~5KB)
 - AI runs offline, no API calls needed
+- **AI will teach us about optimal game strategy!**
 
 ## 🤔 Questions?
 
