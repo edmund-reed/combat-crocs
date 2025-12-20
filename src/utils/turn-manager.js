@@ -43,6 +43,9 @@ class TurnManager {
       `TURN: Player ${this.currentPlayer}, Team ${teamId} Turn #${this.teamTurnCounters[teamId]}`,
     );
 
+    // Record turn start for AI training
+    this.scene.recorder?.recordTurnStart(this.scene);
+
     this.scene.players.forEach((p, i) =>
       (i === this.currentPlayer ? PlayerManager.activateForTurn : PlayerManager.resetForTurn)(p),
     );

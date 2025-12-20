@@ -1,0 +1,12 @@
+# Training Data Directory
+
+Place recorded gameplay JSON files here.
+
+Files should be named: `gameplay-<timestamp>.json`
+
+Example:
+
+- gameplay-1703086400000.json
+- gameplay-1703086500000.json
+
+These files are used for imitation learning in Phase 1 of training.

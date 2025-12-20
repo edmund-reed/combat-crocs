@@ -27,11 +27,22 @@ class HitscanWeapon {
     // Check terrain using WeaponMath
     const terrainBlocks = WeaponMath.terrainBlocksPath(scene, player.x, player.y, hitPlayer.x, hitPlayer.y);
     if (terrainBlocks) {
-      console.log(`🏔️ TERRAIN BLOCK: Player ${hitPlayer.id} path blocked`);
+      console.log(
+        `🏔️ TERRAIN BLOCK: Shot to Player ${hitPlayer.id} blocked at (${terrainBlocks.x.toFixed(
+          1,
+        )}, ${terrainBlocks.y.toFixed(1)})`,
+      );
+      console.log(
+        `   Shot path: (${player.x.toFixed(1)}, ${player.y.toFixed(1)}) → (${hitPlayer.x.toFixed(
+          1,
+        )}, ${hitPlayer.y.toFixed(1)})`,
+      );
       this.showShotgunTrail(scene, player.x, player.y, terrainBlocks.x, terrainBlocks.y);
       scene.turnManager.markPlayerAttacked(player);
       return this.endTurn(scene, player, weapon);
     }
+
+    console.log(`✅ CLEAR SHOT: Hit Player ${hitPlayer.id} at distance ${hitDist?.toFixed(1)}`);
 
     // Apply damage via central DamageManager (with Last Stand support)
     const damageResult = DamageManager.applyDamage(scene, hitPlayer, damage);

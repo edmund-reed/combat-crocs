@@ -27,6 +27,8 @@ class ExplosionSystem {
 
     let totalDamage = 0;
     const attackerTeamId = attackingPlayer?.teamId ?? null;
+    const enemiesHit = [];
+    let enemiesKilled = 0;
 
     scene.players.forEach(player => {
       const distance = Phaser.Math.Distance.Between(x, y, player.x, player.y);
@@ -37,7 +39,11 @@ class ExplosionSystem {
         (attackingPlayer?.ability?.damageMultiplier ?? 1);
 
       const { actualDamage } = DamageManager.applyDamage(scene, player, damage);
-      if (attackerTeamId !== null && player.teamId !== attackerTeamId) totalDamage += actualDamage;
+      if (attackerTeamId !== null && player.teamId !== attackerTeamId) {
+        totalDamage += actualDamage;
+        enemiesHit.push(player.id);
+        if (player.health <= 0) enemiesKilled++;
+      }
       scene.checkGameEnd?.();
     });
 
@@ -45,6 +51,15 @@ class ExplosionSystem {
     attackingPlayer && totalDamage > 0 && awardXP(attackingPlayer, weaponType, totalDamage, scene);
     scene.cameras.main.shake(200, 0.02);
     attackingPlayer && scene.turnManager.markPlayerAttacked(attackingPlayer);
+
+    // Record result for AI training
+    scene.recorder?.recordResult(scene, {
+      damageDealt: totalDamage,
+      enemiesHit: enemiesHit,
+      enemiesKilled: enemiesKilled,
+      hitSuccess: totalDamage > 0,
+      selfDamage: 0, // TODO: Track self damage
+    });
 
     return projectileOwner;
   }

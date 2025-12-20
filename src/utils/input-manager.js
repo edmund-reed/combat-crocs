@@ -60,6 +60,18 @@ class InputManager {
     scene.turnManager.weaponLocked = true;
     scene.canReviveThisTurn = false;
 
+    // Record action for AI training
+    scene.recorder?.recordAction(scene, {
+      weapon: weapon,
+      aimAngle: player.aimAngle,
+      targetX: targetX,
+      targetY: targetY,
+      movementUsed: {
+        left: scene.cursors?.left?.isDown ? 1 : 0,
+        right: scene.cursors?.right?.isDown ? 1 : 0,
+      },
+    });
+
     WeaponManager.fireWeapon(scene, player, targetX, targetY, weapon);
 
     if (Config.WEAPON_CONFIGS[weapon].behaviorFlags.includes("timerExplosion")) {
