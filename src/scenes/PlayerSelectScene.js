@@ -9,14 +9,11 @@ class PlayerSelectScene extends Phaser.Scene {
 
   preload() {
     this.load.image("mapBg", "src/assets/backgrounds/map-bg.png");
-
-    // Load all colored character sprites
     Object.values(Config.CHARACTER_TYPES).forEach(({ baseName }) =>
       Config.COLOR_NAMES.forEach(({ key }) =>
         this.load.image(`${baseName}-${key}`, `src/assets/characters/${baseName}/${baseName}-${key}.png`),
       ),
     );
-
     this.load.audio("introMusic", "src/assets/intro.mp3");
   }
 
@@ -26,33 +23,23 @@ class PlayerSelectScene extends Phaser.Scene {
     Object.assign(this, {
       teamCount: 2,
       availableColors: Config.COLOR_NAMES,
-    });
-
-    this.teams = Array.from({ length: this.teamCount }, (_, index) => {
-      const id = index + 1;
-      return {
-        id,
-        name: `Team ${id}`,
+      teams: Array.from({ length: 2 }, (_, i) => ({
+        id: i + 1,
+        name: `Team ${i + 1}`,
         crocCount: 1,
-        color: this.availableColors[index],
+        color: Config.COLOR_NAMES[i],
         players: [{ characterType: "CROCODILE" }],
-      };
+      })),
     });
 
-    const bgImage = this.add.image(layout.centerX, layout.height, "mapBg");
-    bgImage
-      .setScale(Math.max(layout.width / bgImage.width, layout.height / bgImage.height))
-      .setOrigin(0.5, 1);
-
-    const mapInfo = MapManager.getCurrentMap();
-
+    UISceneHelpers.setupScaledBackground(this, "mapBg", layout);
     UISceneHelpers.styledText(this, layout.centerX, 60, "CHOOSE YOUR CROCODILES", 32, 4);
-    UISceneHelpers.styledText(this, layout.centerX, 98, `Map: ${mapInfo.name}`, 18, 3);
+    UISceneHelpers.styledText(this, layout.centerX, 98, `Map: ${MapManager.getCurrentMap().name}`, 18, 3);
     UIManager.createTeamCountSelector(this);
     TeamSelectorManager.createTeamSelection(this);
 
-    this.createAbilitiesDisplay();
-    this.createActionButtons();
+    this.createAbilitiesDisplay(layout);
+    this.createActionButtons(layout);
 
     if (this.cache.audio.exists("introMusic")) {
       this.introMusic = this.sound.add("introMusic").setLoop(true).setVolume(0.2);
@@ -60,57 +47,45 @@ class PlayerSelectScene extends Phaser.Scene {
     }
   }
 
-  _stopIntroMusic = () => this.introMusic?.isPlaying && this.introMusic.stop();
+  stopIntroMusic = () => this.introMusic?.stop?.();
   clearExistingTeamUI = () => TeamSelectorManager.clearExistingTeamUI(this);
 
-  createAbilitiesDisplay() {
-    const layout = UISceneHelpers.getSceneLayout(Config);
-    const yPosition = 470;
+  createAbilitiesDisplay(layout) {
+    const y = 470;
+    UISceneHelpers.styledText(this, layout.centerX, y, "ABILITIES", 20, 3);
 
-    UISceneHelpers.styledText(this, layout.centerX, yPosition, "ABILITIES", 20, 3);
+    const types = Object.keys(Config.CHARACTER_TYPES);
+    const colors = Phaser.Utils.Array.Shuffle([...Config.COLOR_NAMES]);
+    const startX = layout.centerX - 300;
+    const spacing = 600 / (types.length - 1);
 
-    const types = ["CROCODILE", "DINOSAUR", "GECKO", "CHAMELEON"];
-    const colors = Phaser.Utils.Array.Shuffle(Config.COLOR_NAMES.map(c => c.key));
-    const characters = types.map((type, index) => ({
-      type,
-      color: colors[index % colors.length],
-    }));
-
-    const totalWidth = 600;
-    const spacing = totalWidth / (characters.length - 1);
-    const startX = layout.centerX - totalWidth / 2;
-
-    characters.forEach((char, index) => {
-      const x = startX + index * spacing;
-      const charConfig = Config.CHARACTER_TYPES[char.type];
-      const spriteKey = `${charConfig.baseName}-${char.color}`;
+    types.forEach((type, i) => {
+      const x = startX + i * spacing;
+      const cfg = Config.CHARACTER_TYPES[type];
+      const key = `${cfg.baseName}-${colors[i % colors.length].key}`;
 
       this.add
-        .sprite(x - 60, yPosition + 50, spriteKey)
+        .sprite(x - 60, y + 50, key)
         .setDisplaySize(32, 40)
         .setOrigin(0.5);
-
-      UISceneHelpers.styledText(this, x - 25, yPosition + 50, charConfig.ability.name, 16, 2).setOrigin(
-        0,
-        0.5,
-      );
+      UISceneHelpers.styledText(this, x - 25, y + 50, cfg.ability.name, 16, 2).setOrigin(0, 0.5);
     });
   }
 
-  createActionButtons() {
-    const layout = UISceneHelpers.getSceneLayout(Config);
-    const buttonY = layout.height - 100;
+  createActionButtons(layout) {
+    const y = layout.height - 100;
+    const nav =
+      (scene, stop = true) =>
+      () => {
+        if (stop) this.stopIntroMusic();
+        this.scene.start(scene);
+      };
 
-    UIButtonHelpers.createStyledButton(this, layout.centerX, buttonY, "START BATTLE", [28, 32], () => {
+    UIButtonHelpers.createStyledButton(this, layout.centerX, y, "START BATTLE", [28, 32], () => {
       StateManager.storeTeams(this.teams);
-      this._stopIntroMusic();
-      this.scene.start("GameScene");
+      nav("GameScene")();
     });
-
-    UIButtonHelpers.createStyledButton(this, layout.centerX, buttonY + 60, "Back", [24, 28], () => {
-      this._stopIntroMusic();
-      this.scene.start("MapSelectScene");
-    });
+    UIButtonHelpers.createStyledButton(this, layout.centerX, y + 60, "Back", [24, 28], nav("MapSelectScene"));
   }
 }
 

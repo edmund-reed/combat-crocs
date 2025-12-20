@@ -42,17 +42,13 @@ class UIButtonHelpers {
   static createStyledButton(scene, x, y, text, sizes = [20, 22], callback) {
     const [defaultSize, hoverSize] = sizes;
     const btn = UISceneHelpers.styledText(scene, x, y, text, defaultSize, 4).setInteractive();
-    btn.setData("originalText", text);
-    btn.setData("hoverText", text === "START GAME" ? "▶ START GAME ◀" : text);
-    btn.on("pointerover", () => {
-      btn.setStyle({ font: `bold ${hoverSize}px Arial` });
-      btn.setText(btn.getData("hoverText"));
-    });
-    btn.on("pointerout", () => {
-      btn.setStyle({ font: `bold ${defaultSize}px Arial` });
-      btn.setText(btn.getData("originalText"));
-    });
-    if (callback) btn.on("pointerdown", callback);
+    const hoverText = text === "START GAME" ? "▶ START GAME ◀" : text;
+    btn.on(
+      "pointerover",
+      () => (btn.setStyle({ font: `bold ${hoverSize}px Arial` }), btn.setText(hoverText)),
+    );
+    btn.on("pointerout", () => (btn.setStyle({ font: `bold ${defaultSize}px Arial` }), btn.setText(text)));
+    callback && btn.on("pointerdown", callback);
     return btn;
   }
 
@@ -80,6 +76,12 @@ class UISceneHelpers {
     centerY: config.GAME_HEIGHT / 2,
   });
 
+  static setupScaledBackground = (scene, imageKey, layout) => {
+    const bg = scene.add.image(layout.centerX, layout.height, imageKey);
+    bg.setScale(Math.max(layout.width / bg.width, layout.height / bg.height)).setOrigin(0.5, 1);
+    return bg;
+  };
+
   static createBackground(scene, config, layout) {
     const bg = scene.add.image(
       layout.centerX + (config.offsetX || 0),
@@ -90,6 +92,11 @@ class UISceneHelpers {
     if (config.scale) bg.setScale(config.scale);
     return bg;
   }
+
+  static createSceneHeader = (scene, layout, title, subtitle, titleY = 80, subtitleY = 130) => {
+    this.styledText(scene, layout.centerX, titleY, title, 36, 4);
+    subtitle && this.styledText(scene, layout.centerX, subtitleY, subtitle, 18, 2);
+  };
 
   static styledText = (scene, x, y, text, fontSize = 18, strokeW = 4) =>
     scene.add

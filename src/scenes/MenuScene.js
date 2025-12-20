@@ -13,28 +13,26 @@ class MenuScene extends Phaser.Scene {
   }
 
   create() {
-    const { centerX, centerY, height, width } = UISceneHelpers.getSceneLayout(Config);
+    const layout = UISceneHelpers.getSceneLayout(Config);
 
-    const bgImage = this.add.image(centerX, height, "map-bg");
-    bgImage.setScale(Math.max(width / bgImage.width, height / bgImage.height)).setOrigin(0.5, 1);
+    UISceneHelpers.setupScaledBackground(this, "map-bg", layout);
 
-    if (this.cache.audio?.get("introMusic")) {
-      this.introMusic = this.sound.add("introMusic", { loop: true, volume: 0.3 });
-      this.introMusic.play();
-    }
+    this.cache.audio?.get("introMusic") &&
+      (this.introMusic = this.sound.add("introMusic", { loop: true, volume: 0.3 })).play();
 
-    // Logo - 70% bigger
-    const logo = this.add.image(centerX, centerY - 180, "logo");
-    if (logo.width > 680) logo.setScale(680 / logo.width);
+    const logo = this.add.image(layout.centerX, layout.centerY - 180, "logo");
+    logo.width > 680 && logo.setScale(680 / logo.width);
 
-    // Subtitle
-    UISceneHelpers.styledText(this, centerX, centerY - 92, "Orlando vs. Crocodiles!", 24, 4);
+    UISceneHelpers.styledText(this, layout.centerX, layout.centerY - 92, "Orlando vs. Crocodiles!", 24, 4);
 
-    // Start button
-    const startBtnCallback = () => (
-      this.introMusic?.stop(), this.introMusic?.destroy(), this.scene.start("ThemeParkSelectScene")
+    UIButtonHelpers.createStyledButton(
+      this,
+      layout.centerX,
+      layout.centerY,
+      "START GAME",
+      [32, 36],
+      () => (this.introMusic?.stop(), this.introMusic?.destroy(), this.scene.start("ThemeParkSelectScene")),
     );
-    UIButtonHelpers.createStyledButton(this, centerX, centerY, "START GAME", [32, 36], startBtnCallback);
   }
 
   showTutorial() {

@@ -15,7 +15,7 @@ class CombatCrocsGame {
     window.CombatCrocs = {
       config: Config,
       gameState: {
-        game: { teamACount: 1, teamBCount: 1 },
+        game: { teams: [] },
         musicOn: true,
         soundOn: true,
         difficulty: "normal",

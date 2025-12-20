@@ -1,22 +1,16 @@
-// Last Stand ability management for Combat Crocs
-
 import { Config, Logger } from "@config";
 
 export class LastStandManager {
-  static #hasLivingTeammates(scene, player) {
-    return scene.players.some(p => p.teamId === player.teamId && p.id !== player.id && p.health > 0);
-  }
+  static #hasLivingTeammates = (scene, player) =>
+    scene.players.some(p => p.teamId === player.teamId && p.id !== player.id && p.health > 0);
 
-  static #hasExpired(scene, player) {
+  static #hasExpired = (scene, player) => {
     const currentCounter = scene.turnManager.teamTurnCounters[player.teamId] || 0;
-    const requiredTurn = (player.lastStandTeamTurn ?? 0) + 1; // their next team turn
-    const hasHadNextTurn = currentCounter >= requiredTurn;
-    const isPlayersTeamTurnNow = scene.turnManager.currentTeamId === player.teamId;
-    return hasHadNextTurn && !isPlayersTeamTurnNow;
-  }
+    const hasHadNextTurn = currentCounter >= (player.lastStandTeamTurn ?? 0) + 1;
+    return hasHadNextTurn && scene.turnManager.currentTeamId !== player.teamId;
+  };
 
-  // Entry point used by DamageManager to allow Last Stand to intercept lethal hits
-  static tryEnterLastStand(scene, player, finalHealth) {
+  static tryEnterLastStand = (scene, player, finalHealth) => {
     if (
       finalHealth <= 0 &&
       player.ability?.reviveHealthPercent &&
@@ -28,7 +22,7 @@ export class LastStandManager {
       return true;
     }
     return false;
-  }
+  };
 
   static handleRevivalInput(scene, currentPlayer, rKeyPressed) {
     if (!rKeyPressed || !scene.canReviveThisTurn) return false;

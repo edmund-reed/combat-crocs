@@ -1,11 +1,7 @@
-// Centralized Physics Manager for Combat Crocs
-// Single source of truth for all physics behavior and collision handling
-
 import { Config } from "@config";
 import { ExplosionPhysics } from "@weapons";
 
 class PhysicsManager {
-  // Expose ExplosionPhysics for debug instrumentation (see ExplosionSystem logs)
   static ExplosionPhysics = ExplosionPhysics;
   static CATEGORIES = { TERRAIN: 1, PLAYERS: 2, PROJECTILES: 4, HEALTH_PACKS: 8 };
   static CONFIG = {
@@ -18,23 +14,16 @@ class PhysicsManager {
 
   static initializePhysics = scene => {
     scene.matter.world.setBounds(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
-    scene.matter.world.setGravity(0, Config.GRAVITY); // Direct use of final gravity value
+    scene.matter.world.setGravity(0, Config.GRAVITY);
 
-    // Ground contact tracking for jump lockout
-    // Tracks collisions between player bodies and terrain bodies.
-    scene.matter.world.on("collisionstart", event => {
-      event.pairs.forEach(({ bodyA, bodyB }) => {
-        this.#handleGroundContact(scene, bodyA, bodyB, +1);
-        this.#handleGroundContact(scene, bodyB, bodyA, +1);
-      });
-    });
-
-    scene.matter.world.on("collisionend", event => {
-      event.pairs.forEach(({ bodyA, bodyB }) => {
-        this.#handleGroundContact(scene, bodyA, bodyB, -1);
-        this.#handleGroundContact(scene, bodyB, bodyA, -1);
-      });
-    });
+    ["collisionstart", "collisionend"].forEach((event, delta) =>
+      scene.matter.world.on(event, e =>
+        e.pairs.forEach(({ bodyA, bodyB }) => {
+          this.#handleGroundContact(scene, bodyA, bodyB, delta ? -1 : 1);
+          this.#handleGroundContact(scene, bodyB, bodyA, delta ? -1 : 1);
+        }),
+      ),
+    );
   };
 
   static #handleGroundContact(scene, maybePlayerBody, maybeTerrainBody, delta) {

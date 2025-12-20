@@ -8,13 +8,13 @@ class HitscanWeapon {
   // Streamlined hitscan with generic utilities
   static createShotgunHitscan = (scene, player, targetX, targetY) => {
     const weaponType = "SHOTGUN"; // Default for hitscan weapons
-    Logger.weaponEvent(`Player ${player.id} firing hitscan at (${targetX}, ${targetY})`);
-
     const weapon = Config.WEAPON_CONFIGS[weaponType];
     const damage = getWeaponDamage(player, "SHOTGUN") * (player.ability?.damageMultiplier ?? 1);
     const targets = scene.players.filter(p => p.id !== player.id && p.health > 0);
     const { player: hitPlayer, distance: hitDist } =
       WeaponMath.hitscanAlongLine(targets, player.x, player.y, targetX, targetY) || {};
+
+    Logger.weaponEvent(`Player ${player.id} firing hitscan at (${targetX}, ${targetY})`);
 
     // Handle outcomes
     if (!hitPlayer) {
@@ -62,7 +62,9 @@ class HitscanWeapon {
       weaponAmmo[Object.keys(Config.WEAPON_CONFIGS).find(key => Config.WEAPON_CONFIGS[key] === weapon)];
 
     if (weapon.behaviorFlags.includes("multiShot") && weaponShellAmmo >= 1) {
+      // Multi-shot continuation (shotgun): allow the player to reposition between shots.
       player.canShoot = true;
+      player.canMove = true;
       scene.turnManager.turnInProgress = false;
     } else {
       scene.turnManager.turnInProgress = false;

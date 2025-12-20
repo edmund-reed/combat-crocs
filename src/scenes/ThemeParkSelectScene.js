@@ -16,16 +16,18 @@ class ThemeParkSelectScene extends Phaser.Scene {
   create() {
     const layout = UISceneHelpers.getSceneLayout(Config);
 
-    // Florida map background
     UISceneHelpers.createBackground(
       this,
       { type: "image", key: "floridaMap", scale: 1.5, offsetX: -325, offsetY: 0 },
       layout,
     );
 
-    // Title and subtitle
-    UISceneHelpers.styledText(this, layout.centerX, 80, "CHOOSE YOUR THEME PARK", 36, 6);
-    UISceneHelpers.styledText(this, layout.centerX, 130, "Select a theme park to explore", 18, 4);
+    UISceneHelpers.createSceneHeader(
+      this,
+      layout,
+      "CHOOSE YOUR THEME PARK",
+      "Select a theme park to explore",
+    );
 
     // Theme park positions
     const positions = {

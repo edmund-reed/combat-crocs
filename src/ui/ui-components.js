@@ -3,7 +3,7 @@ import { Config } from "@config";
 class UIComponents {
   static getAbilityName = charType => Config.CHARACTER_TYPES[charType]?.ability?.name || "Unknown";
 
-  static createTooltip(scene, x, y, text, tooltipArray) {
+  static tooltip(scene, x, y, text, tooltipArray) {
     const tooltip = scene.add
       .text(x + 3, y - 42, text, {
         font: "12px Arial",
@@ -21,7 +21,7 @@ class UIComponents {
     return tooltip;
   }
 
-  static createColorButton = (scene, color, isSelected, x, y) =>
+  static colorButton = (scene, color, isSelected, x, y) =>
     scene.add
       .graphics()
       .fillStyle(color.hex)

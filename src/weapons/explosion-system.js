@@ -12,7 +12,6 @@ class ExplosionSystem {
     const radius = attackingPlayer ? getWeaponRadius(attackingPlayer, weaponType) : config.radius;
     const weaponLevel = attackingPlayer?.weaponStats?.[weaponType]?.level || 1;
 
-    // Create explosion visual
     const explosion = scene.add
       .graphics({ x, y })
       .fillStyle(getExplosionColor(weaponLevel), 0.8)
@@ -27,49 +26,25 @@ class ExplosionSystem {
     });
 
     let totalDamage = 0;
-    const attackerTeamId = attackingPlayer ? attackingPlayer.teamId : null;
+    const attackerTeamId = attackingPlayer?.teamId ?? null;
 
     scene.players.forEach(player => {
       const distance = Phaser.Math.Distance.Between(x, y, player.x, player.y);
-      const inRadius = distance < radius;
+      if (distance >= radius || PhysicsManager.isExplosionBlocked(x, y, player.x, player.y, scene)) return;
 
-      // New LOS check: raycast against actual Matter bodies (PhysicsEditor polygons etc.)
-      const blocked = PhysicsManager.isExplosionBlocked(x, y, player.x, player.y, scene);
+      const damage =
+        Math.max(0, maxDamage * (1 - (distance / radius) * 0.75)) *
+        (attackingPlayer?.ability?.damageMultiplier ?? 1);
 
-      if (inRadius && blocked) {
-        console.log(
-          `💥 Explosion(${weaponType}) BLOCKED for P${player.id}: dist=${distance.toFixed(1)}/${radius} ` +
-            `exp=(${x.toFixed(1)},${y.toFixed(1)}) player=(${player.x.toFixed(1)},${player.y.toFixed(1)})`,
-        );
-      }
-
-      if (inRadius && !blocked) {
-        const damage =
-          Math.max(0, maxDamage * (1 - (distance / radius) * 0.75)) *
-          (attackingPlayer?.ability?.damageMultiplier ?? 1);
-
-        console.log(
-          `💥 Explosion(${weaponType}) hits P${player.id}: dist=${distance.toFixed(
-            1,
-          )}/${radius}, dmg=${damage.toFixed(1)}`,
-        );
-
-        const { actualDamage } = DamageManager.applyDamage(scene, player, damage);
-
-        if (attackerTeamId !== null && player.teamId !== attackerTeamId) {
-          totalDamage += actualDamage;
-        }
-
-        scene.checkGameEnd?.();
-      }
+      const { actualDamage } = DamageManager.applyDamage(scene, player, damage);
+      if (attackerTeamId !== null && player.teamId !== attackerTeamId) totalDamage += actualDamage;
+      scene.checkGameEnd?.();
     });
 
     HealthBarManager.updateHealthBars(scene);
-    if (attackingPlayer && totalDamage > 0) awardXP(attackingPlayer, weaponType, totalDamage, scene);
+    attackingPlayer && totalDamage > 0 && awardXP(attackingPlayer, weaponType, totalDamage, scene);
     scene.cameras.main.shake(200, 0.02);
-
-    // Mark that player has attacked this turn and disable further actions
-    if (attackingPlayer) scene.turnManager.markPlayerAttacked(attackingPlayer);
+    attackingPlayer && scene.turnManager.markPlayerAttacked(attackingPlayer);
 
     return projectileOwner;
   }
