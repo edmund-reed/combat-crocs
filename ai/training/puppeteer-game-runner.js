@@ -769,7 +769,9 @@ class PuppeteerGameRunner {
       window.__AI_TURN_DATA__ = null;
     }, action);
 
-    await this.delay(1500); // Wait for weapon to fire and projectile to travel
+    // PHASE 2a: Reduced delay for faster training (1500ms → 500ms)
+    // Still allows projectile travel time, but reduces waiting
+    await this.delay(500);
   }
 
   async makeAIDecision(gameState, team) {

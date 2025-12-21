@@ -39,6 +39,64 @@ class AITrainer {
     // PHASE 1: Map rotation for diverse training
     this.availableMaps = ["dinocoaster", "heavyMetalCoaster", "hotelOfHorror", "magnificentBulk"];
     this.currentMapIndex = 0;
+
+    // PHASE 2.5: Progress tracking
+    this.trainingStartTime = null;
+    this.totalGames = 0;
+    this.gamesCompleted = 0;
+
+    // PHASE 2.5: Fixed baseline opponents
+    this.baselinePopulation = null;
+
+    // PHASE 2b: Parallel browser workers
+    this.workers = [];
+    this.numWorkers = options.workers || 1;
+  }
+
+  // PHASE 2.5: Load baseline opponents for fixed difficulty training
+  async loadBaseline(baselinePath) {
+    console.log(`\n🎯 Loading baseline opponents: ${baselinePath}`);
+
+    const baselineData = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
+
+    // Load baseline population
+    this.baselinePopulation = baselineData.population.map(member => ({
+      network: neataptic.Network.fromJSON(member.network),
+    }));
+
+    console.log(`  ✅ Loaded ${this.baselinePopulation.length} baseline opponents`);
+    console.log(`  📊 Baseline from Generation ${baselineData.generation}`);
+    console.log(`  🎯 Your networks will compete against this fixed difficulty\n`);
+  }
+
+  // PHASE 2.5: Load from checkpoint to resume training
+  async loadFromCheckpoint(checkpointPath) {
+    console.log(`\n📂 Loading checkpoint: ${checkpointPath}`);
+
+    const checkpointData = JSON.parse(fs.readFileSync(checkpointPath, "utf8"));
+
+    // Restore generation counter
+    this.generation = checkpointData.generation;
+    console.log(`  ✅ Resuming from Generation ${this.generation}`);
+
+    // Restore population
+    this.population = checkpointData.population.map(member => ({
+      network: neataptic.Network.fromJSON(member.network),
+      fitness: 0, // Reset for new training
+      wins: 0,
+      losses: 0,
+      totalDamage: 0,
+      gamesPlayed: 0,
+    }));
+    console.log(`  ✅ Loaded ${this.population.length} networks`);
+
+    // Restore stats
+    this.stats = checkpointData.stats;
+    this.bestFitness = checkpointData.bestFitness;
+    this.bestNetwork = neataptic.Network.fromJSON(this.population[0].network.toJSON());
+    console.log(`  ✅ Best fitness: ${this.bestFitness.toFixed(2)}`);
+
+    console.log(`\n🚀 Ready to continue training...\n`);
   }
 
   async initialize() {
@@ -48,19 +106,37 @@ class AITrainer {
     console.log(`Target Generations: ${this.options.generations}`);
     console.log(`Games per Network: ${this.options.gamesPerNetwork}`);
     console.log(`Elite Percentage: ${this.options.elitePercentage * 100}%`);
+    // PHASE 2b: Show parallel workers info
+    if (this.numWorkers > 1) {
+      console.log(`🚀 Parallel Workers: ${this.numWorkers} (${this.numWorkers}x speedup!)`);
+    }
     console.log("=".repeat(50) + "\n");
 
-    // Initialize Puppeteer game runner
-    this.gameRunner = new PuppeteerGameRunner({
-      headless: this.options.headless,
-      devServerUrl: "http://localhost:3001",
-    });
-
-    await this.gameRunner.initialize();
-    await this.gameRunner.loadGame();
-
-    // Set game speed to 2x for faster training
-    await this.gameRunner.setGameSpeed(2.0);
+    // PHASE 2b: Initialize multiple browser workers for parallel training
+    if (this.numWorkers > 1) {
+      console.log(`🚀 Initializing ${this.numWorkers} parallel browser workers...`);
+      for (let i = 0; i < this.numWorkers; i++) {
+        const worker = new PuppeteerGameRunner({
+          headless: this.options.headless,
+          devServerUrl: "http://localhost:3001",
+        });
+        await worker.initialize();
+        await worker.loadGame();
+        await worker.setGameSpeed(2.0);
+        this.workers.push(worker);
+        console.log(`  ✅ Worker ${i + 1}/${this.numWorkers} ready`);
+      }
+      console.log(`✅ All ${this.numWorkers} workers initialized!\n`);
+    } else {
+      // Single worker mode (original behavior)
+      this.gameRunner = new PuppeteerGameRunner({
+        headless: this.options.headless,
+        devServerUrl: "http://localhost:3001",
+      });
+      await this.gameRunner.initialize();
+      await this.gameRunner.loadGame();
+      await this.gameRunner.setGameSpeed(2.0);
+    }
 
     // Create initial population
     console.log("🌱 Creating initial population...");
@@ -92,8 +168,23 @@ class AITrainer {
   async train() {
     console.log("🏋️  Starting training...\n");
 
+    // PHASE 2.5: Initialize progress tracking
+    this.trainingStartTime = Date.now();
+    const startGeneration = this.generation + 1; // Next generation after checkpoint
+    this.totalGames =
+      (this.options.generations - this.generation) *
+      this.options.populationSize *
+      this.options.gamesPerNetwork;
+    this.gamesCompleted = 0;
+
+    console.log(`📊 Total games to play: ${this.totalGames}\n`);
+
     try {
-      for (this.generation = 1; this.generation <= this.options.generations; this.generation++) {
+      for (
+        this.generation = startGeneration;
+        this.generation <= this.options.generations;
+        this.generation++
+      ) {
         console.log(`\n📊 Generation ${this.generation}/${this.options.generations}`);
         console.log("-".repeat(50));
 
@@ -149,28 +240,52 @@ class AITrainer {
       member.gamesPlayed = 0;
     });
 
-    // Each network plays multiple games
+    // PHASE 2b: Parallel or sequential execution
+    if (this.numWorkers > 1) {
+      await this.evaluatePopulationParallel();
+    } else {
+      await this.evaluatePopulationSequential();
+    }
+  }
+
+  async evaluatePopulationSequential() {
+    // Original sequential execution (single browser)
     for (let i = 0; i < this.population.length; i++) {
       const member = this.population[i];
-      console.log(`  Network ${i + 1}/${this.population.length}:`);
 
       for (let game = 0; game < this.options.gamesPerNetwork; game++) {
-        // Pick a random opponent (excluding self)
-        let opponentIndex;
-        do {
-          opponentIndex = Math.floor(Math.random() * this.population.length);
-        } while (opponentIndex === i);
+        // PHASE 2.5: Progress counter
+        this.gamesCompleted++;
+        const progressPercent = ((this.gamesCompleted / this.totalGames) * 100).toFixed(1);
+        console.log(
+          `  Network ${i + 1}/${this.population.length} [Game ${this.gamesCompleted}/${
+            this.totalGames
+          } - ${progressPercent}%]:`,
+        );
 
-        const opponent = this.population[opponentIndex];
+        // PHASE 2.5: Pick opponent - use baseline if available, otherwise self-play
+        let opponent;
+        if (this.baselinePopulation) {
+          // Use fixed baseline opponent
+          const baselineIndex = Math.floor(Math.random() * this.baselinePopulation.length);
+          opponent = this.baselinePopulation[baselineIndex];
+        } else {
+          // Use self-play opponent (excluding self)
+          let opponentIndex;
+          do {
+            opponentIndex = Math.floor(Math.random() * this.population.length);
+          } while (opponentIndex === i);
+          opponent = this.population[opponentIndex];
+        }
 
-        // Restart browser every 20 games to prevent memory leaks
+        // PHASE 2a: Restart browser every 50 games (was 20) to reduce overhead
         const gamesCompleted =
           (this.generation - 1) * this.options.populationSize * this.options.gamesPerNetwork +
           i * this.options.gamesPerNetwork +
           game +
           1;
 
-        if (gamesCompleted % 20 === 0) {
+        if (gamesCompleted % 50 === 0) {
           console.log(`    🔄 Restarting browser (${gamesCompleted} games played)...`);
           await this.gameRunner.close();
           await this.gameRunner.initialize();
@@ -212,6 +327,100 @@ class AITrainer {
           member.totalDamage / member.gamesPlayed
         ).toFixed(1)}`,
       );
+    }
+  }
+
+  // PHASE 2b: Parallel evaluation - distribute games across workers
+  async evaluatePopulationParallel() {
+    // Build queue of all games to play
+    const gameQueue = [];
+    for (let i = 0; i < this.population.length; i++) {
+      for (let game = 0; game < this.options.gamesPerNetwork; game++) {
+        // Pick opponent
+        let opponent;
+        if (this.baselinePopulation) {
+          const baselineIndex = Math.floor(Math.random() * this.baselinePopulation.length);
+          opponent = this.baselinePopulation[baselineIndex];
+        } else {
+          let opponentIndex;
+          do {
+            opponentIndex = Math.floor(Math.random() * this.population.length);
+          } while (opponentIndex === i);
+          opponent = this.population[opponentIndex];
+        }
+
+        gameQueue.push({
+          networkIndex: i,
+          network: this.population[i].network,
+          opponent: opponent.network,
+        });
+      }
+    }
+
+    console.log(`  🚀 Playing ${gameQueue.length} games across ${this.numWorkers} workers...`);
+
+    // Process games in parallel batches
+    let gamesProcessed = 0;
+    while (gamesProcessed < gameQueue.length) {
+      // Create batch for parallel execution
+      const batchSize = this.numWorkers;
+      const batch = gameQueue.slice(gamesProcessed, gamesProcessed + batchSize);
+
+      // Play games in parallel
+      const promises = batch.map((gameData, workerIndex) => {
+        const worker = this.workers[workerIndex];
+        return this.playGameWithWorker(worker, gameData.network, gameData.opponent);
+      });
+
+      const results = await Promise.all(promises);
+
+      // Update fitness for completed games
+      results.forEach((result, batchIndex) => {
+        const gameData = batch[batchIndex];
+        const member = this.population[gameData.networkIndex];
+
+        if (!result.error) {
+          this.updateFitness(member, result, 1);
+          member.gamesPlayed++;
+        }
+
+        this.gamesCompleted++;
+      });
+
+      // Progress update
+      const progressPercent = ((this.gamesCompleted / this.totalGames) * 100).toFixed(1);
+      console.log(`  Progress: ${this.gamesCompleted}/${this.totalGames} (${progressPercent}%)`);
+
+      gamesProcessed += batch.length;
+    }
+
+    // Print final stats for each network
+    this.population.forEach((member, i) => {
+      console.log(
+        `  Network ${i + 1}: Fitness ${member.fitness.toFixed(2)} | W/L: ${member.wins}/${
+          member.losses
+        } | Avg Damage: ${(member.totalDamage / member.gamesPlayed).toFixed(1)}`,
+      );
+    });
+  }
+
+  async playGameWithWorker(worker, network1, network2) {
+    // PHASE 1: Rotate through different maps
+    const selectedMap = this.availableMaps[this.currentMapIndex];
+    this.currentMapIndex = (this.currentMapIndex + 1) % this.availableMaps.length;
+
+    try {
+      const result = await worker.startNewGame(network1, network2, {
+        mode: "1v1",
+        map: selectedMap,
+      });
+      return result;
+    } catch (error) {
+      return {
+        error: error.message,
+        winner: null,
+        stats: null,
+      };
     }
   }
 
@@ -368,14 +577,64 @@ class AITrainer {
     console.log(`  Worst Fitness:   ${minFitness.toFixed(2)}`);
     console.log(`  Win Rate:        ${winRate.toFixed(1)}%`);
 
+    // PHASE 2.5: Learning insights - human-readable analysis
+    if (this.stats.bestFitness.length > 0) {
+      console.log(`\n🧠 Learning Insights:`);
+      const lastBest = this.stats.bestFitness[this.stats.bestFitness.length - 1];
+      const change = maxFitness - lastBest;
+      const changePercent = lastBest > 0 ? ((change / lastBest) * 100).toFixed(1) : 0;
+
+      if (change > 50) {
+        console.log(
+          `  ✓ Major breakthrough! Fitness jumped ${change.toFixed(0)} points (+${changePercent}%)`,
+        );
+      } else if (change > 0) {
+        console.log(`  ⬆ Improving: +${change.toFixed(0)} points (+${changePercent}%)`);
+      } else if (change < -50) {
+        console.log(`  ⚠ Significant regression: ${change.toFixed(0)} points (${changePercent}%)`);
+      } else if (change < 0) {
+        console.log(
+          `  ⬇ Slight decline: ${change.toFixed(0)} points (${changePercent}%) - exploring new strategies`,
+        );
+      } else {
+        console.log(`  → Plateau: No improvement this generation`);
+      }
+
+      if (winRate > 70) {
+        console.log(`  ✓ Strong win rate (${winRate.toFixed(1)}%) - AI is dominating`);
+      } else if (winRate > 55) {
+        console.log(`  → Good win rate (${winRate.toFixed(1)}%) - competitive AI`);
+      } else if (winRate < 40) {
+        console.log(`  ⚠ Low win rate (${winRate.toFixed(1)}%) - still learning fundamentals`);
+      }
+
+      const avgDamage =
+        this.population.reduce((sum, m) => sum + m.totalDamage / m.gamesPlayed, 0) / this.population.length;
+      if (avgDamage > 80) {
+        console.log(`  ✓ High damage output (${avgDamage.toFixed(1)}) - accurate shots`);
+      } else if (avgDamage < 40) {
+        console.log(`  → Low damage (${avgDamage.toFixed(1)}) - working on accuracy`);
+      }
+    }
+
     this.stats.generations.push(this.generation);
     this.stats.bestFitness.push(maxFitness);
     this.stats.avgFitness.push(avgFitness);
   }
 
   async exportCheckpoints() {
-    // Save auto-checkpoint every 5 generations
-    if (this.generation % 5 === 0) {
+    // PHASE 2.5: Adaptive checkpoint strategy
+    let checkpointFrequency;
+
+    if (this.generation <= 20) {
+      checkpointFrequency = 1; // Every generation for early training (critical phase)
+    } else if (this.generation <= 100) {
+      checkpointFrequency = 5; // Every 5 for medium training
+    } else {
+      checkpointFrequency = 10; // Every 10 for long runs
+    }
+
+    if (this.generation % checkpointFrequency === 0) {
       await this.saveCheckpoint();
     }
   }
@@ -460,6 +719,14 @@ class AITrainer {
 
   async cleanup() {
     console.log("\n🧹 Cleaning up...");
+    // PHASE 2b: Close all worker browsers
+    if (this.workers.length > 0) {
+      console.log(`🔒 Closing ${this.workers.length} browser workers...`);
+      for (const worker of this.workers) {
+        await worker.close();
+      }
+    }
+    // Close single browser if in single-worker mode
     if (this.gameRunner) {
       await this.gameRunner.close();
     }
@@ -476,6 +743,10 @@ async function main() {
     headless: args.includes("--headless"),
   };
 
+  // PHASE 2.5: Parse resume checkpoint and baseline paths
+  let resumeCheckpoint = null;
+  let baselineCheckpoint = null;
+
   // Parse command line arguments
   args.forEach((arg, i) => {
     if (arg === "--generations" && args[i + 1]) {
@@ -487,6 +758,18 @@ async function main() {
     if (arg === "--games" && args[i + 1]) {
       options.gamesPerNetwork = parseInt(args[i + 1]);
     }
+    // PHASE 2.5: Resume from checkpoint
+    if (arg === "--resume" && args[i + 1]) {
+      resumeCheckpoint = args[i + 1];
+    }
+    // PHASE 2.5: Use baseline opponents
+    if (arg === "--baseline" && args[i + 1]) {
+      baselineCheckpoint = args[i + 1];
+    }
+    // PHASE 2b: Number of parallel workers
+    if (arg === "--workers" && args[i + 1]) {
+      options.workers = parseInt(args[i + 1]);
+    }
   });
 
   console.log("\n🎮 Combat Crocs AI Trainer");
@@ -496,6 +779,18 @@ async function main() {
   const trainer = new AITrainer(options);
 
   try {
+    // PHASE 2.5: Load checkpoint if resuming
+    if (resumeCheckpoint) {
+      const checkpointPath = path.join(__dirname, "../checkpoints", resumeCheckpoint);
+      await trainer.loadFromCheckpoint(checkpointPath);
+    }
+
+    // PHASE 2.5: Load baseline opponents if specified
+    if (baselineCheckpoint) {
+      const baselinePath = path.join(__dirname, "../baselines", baselineCheckpoint);
+      await trainer.loadBaseline(baselinePath);
+    }
+
     await trainer.initialize();
     await trainer.train();
   } catch (error) {
