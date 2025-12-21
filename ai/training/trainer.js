@@ -458,7 +458,9 @@ class AITrainer {
     // Calculate fitness based on config weights
     let fitness = 0;
 
-    // Win bonus
+    // === CORE REWARDS ===
+
+    // Win bonus (primary goal)
     if (won) {
       fitness += NETWORK_CONFIG.fitness.winBonus;
       member.wins++;
@@ -466,11 +468,10 @@ class AITrainer {
       member.losses++;
     }
 
-    // Survival time
+    // Survival time (stay alive longer)
     fitness += survivalTime * NETWORK_CONFIG.fitness.survivalWeight;
 
-    // FIXED: Calculate actual damage dealt to enemies
-    // Damage dealt = enemy's initial health - enemy's final health
+    // Damage dealt to enemies (offensive power)
     const enemyTeam = team === 1 ? 2 : 1;
     const initialHealth = gameResult.stats.initialHealth;
 
@@ -483,6 +484,43 @@ class AITrainer {
 
     fitness += damageDealt * NETWORK_CONFIG.fitness.damageDealtWeight;
     member.totalDamage += damageDealt;
+
+    // === PENALTIES (CRITICAL for learning safe play) ===
+
+    // Self-damage penalty (punish reckless shots)
+    // Calculate self-damage as health lost beyond enemy damage
+    let selfDamage = 0;
+    if (initialHealth && initialHealth[team]) {
+      const myInitialHealth = initialHealth[team].totalHealth;
+      const myFinalHealth = teamStats.totalHealth;
+      const totalHealthLost = Math.max(0, myInitialHealth - myFinalHealth);
+
+      // Damage taken from enemy
+      const damageTakenFromEnemy = damageDealt > 0 ? Math.min(totalHealthLost, damageDealt * 0.5) : 0;
+
+      // Remaining health loss is likely self-damage
+      selfDamage = Math.max(0, totalHealthLost - damageTakenFromEnemy);
+
+      // Apply self-damage penalty (1.5x weight - significant but less than damage dealt)
+      if (selfDamage > 0) {
+        fitness -= selfDamage * 1.5;
+      }
+
+      // Apply damage taken penalty (0.8x weight - enemy damage is expected in combat)
+      if (damageTakenFromEnemy > 0) {
+        fitness -= damageTakenFromEnemy * 0.8;
+      }
+    }
+
+    // === BONUSES (Encourage smart play) ===
+
+    // Health efficiency bonus (reward winning with HP remaining)
+    if (won && initialHealth && initialHealth[team]) {
+      const myInitialHealth = initialHealth[team].totalHealth;
+      const myFinalHealth = teamStats.totalHealth;
+      const healthRatio = myFinalHealth / myInitialHealth;
+      fitness += healthRatio * 50; // Up to +50 for perfect health preservation
+    }
 
     member.fitness += fitness;
   }
