@@ -4,7 +4,7 @@
 import puppeteer from "puppeteer";
 import path from "path";
 import { fileURLToPath } from "url";
-import { encodeGameState, decodeNetworkOutput } from "./network-config.js";
+import { encodeGameState, decodeNetworkOutput, logGameStateInputs } from "./network-config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +21,10 @@ class PuppeteerGameRunner {
     this.browser = null;
     this.page = null;
     this.gameInProgress = false;
+    this.currentNetworks = {
+      team1: null,
+      team2: null,
+    };
   }
 
   async initialize() {
@@ -81,6 +85,19 @@ class PuppeteerGameRunner {
     await this.page.waitForFunction(() => window.Phaser && window.CombatCrocs, { timeout: 30000 });
 
     console.log("✅ Game loaded");
+  }
+
+  async setGameSpeed(multiplier = 2.0) {
+    console.log(`⚡ Setting game speed to ${multiplier}x...`);
+
+    await this.page.evaluate(speed => {
+      // Store speed multiplier globally for game scenes to use
+      window.__TRAINING_SPEED_MULTIPLIER__ = speed;
+
+      console.log(`[AI] Game speed multiplier set to ${speed}x`);
+    }, multiplier);
+
+    console.log(`✅ Game speed set to ${multiplier}x`);
   }
 
   async startNewGame(network1, network2, gameConfig = {}) {
@@ -253,6 +270,19 @@ class PuppeteerGameRunner {
         { timeout: 30000 },
       );
 
+      // Apply speed multiplier if set
+      await this.page.evaluate(() => {
+        const speedMultiplier = window.__TRAINING_SPEED_MULTIPLIER__;
+        if (speedMultiplier) {
+          const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+          if (scene?.physics?.world) {
+            scene.physics.world.timeScale = speedMultiplier;
+            scene.time.timeScale = speedMultiplier;
+            console.log(`[AI] Applied ${speedMultiplier}x speed to game physics`);
+          }
+        }
+      });
+
       console.log("  ✅ Game started successfully!");
     } catch (error) {
       console.error("  ❌ Navigation error:", error.message);
@@ -287,33 +317,24 @@ class PuppeteerGameRunner {
   async injectAIControllers(network1, network2) {
     console.log("  🧠 Injecting AI controllers...");
 
-    // Inject the AI decision-making logic into the browser
-    await this.page.evaluateOnNewDocument(
+    // Inject the AI controller that will make decisions each turn
+    await this.page.evaluate(
       (net1JSON, net2JSON) => {
+        // Store networks
         window.__AI_NETWORKS__ = {
           team1: net1JSON,
           team2: net2JSON,
         };
-        console.log("[AI] Networks injected");
-      },
-      network1 ? network1.toJSON() : null,
-      network2 ? network2.toJSON() : null,
-    );
 
-    // Inject the AI controller that will make decisions each turn
-    await this.page.evaluate(() => {
-      if (!window.__AI_CONTROLLER_INJECTED__) {
-        window.__AI_CONTROLLER_INJECTED__ = true;
-
-        // Hook into the turn manager's startTurn function
+        // Always re-hook (don't check the flag)
         const gameScene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
 
         if (gameScene?.turnManager) {
-          const originalStartTurn = gameScene.turnManager.startTurn;
+          const originalStartTurn = gameScene.turnManager.startTurn.bind(gameScene.turnManager);
 
           gameScene.turnManager.startTurn = function (...args) {
             // Call original startTurn first
-            originalStartTurn.apply(this, args);
+            originalStartTurn(...args);
 
             // Immediately signal that AI should act
             const playerIndex = this.getCurrentPlayerIndex();
@@ -336,8 +357,10 @@ class PuppeteerGameRunner {
         } else {
           console.log("[AI] Warning: Could not hook into TurnManager");
         }
-      }
-    });
+      },
+      network1 ? network1.toJSON() : null,
+      network2 ? network2.toJSON() : null,
+    );
 
     console.log("  ✅ AI controllers ready");
   }
@@ -348,11 +371,54 @@ class PuppeteerGameRunner {
 
     let turnCount = 0;
     const maxTurns = 200; // Safety limit
+
+    // Track initial health for damage calculation & initialize shot history and feedback
+    const initialHealth = await this.page.evaluate(() => {
+      const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+      if (!scene) return null;
+
+      const teams = {};
+      scene.players.forEach(p => {
+        if (!teams[p.team]) {
+          teams[p.team] = { totalHealth: 0, playerCount: 0 };
+        }
+        teams[p.team].totalHealth += p.health;
+        teams[p.team].playerCount++;
+      });
+
+      // Initialize shot history for this game
+      window.__AI_SHOT_HISTORY__ = { recent: [] };
+
+      // Initialize shot feedback tracking (CRITICAL for learning)
+      window.__AI_LAST_TURN_STATE__ = {};
+      window.__AI_SHOT_FEEDBACK__ = {
+        team1: {
+          didDamageEnemy: false,
+          damageDealt: 0,
+          didDamageSelf: false,
+          damageTaken: 0,
+          myHealthDelta: 0,
+          enemyHealthDelta: 0,
+        },
+        team2: {
+          didDamageEnemy: false,
+          damageDealt: 0,
+          didDamageSelf: false,
+          damageTaken: 0,
+          myHealthDelta: 0,
+          enemyHealthDelta: 0,
+        },
+      };
+
+      return teams;
+    });
+
     const stats = {
       turns: 0,
       team1Damage: 0,
       team2Damage: 0,
       startTime: Date.now(),
+      initialHealth,
     };
 
     try {
@@ -426,9 +492,13 @@ class PuppeteerGameRunner {
 
       console.log(`  ✅ Game complete: Winner = Team ${result.winner || "Draw"} (${turnCount} turns)`);
 
+      // FIXED: Include initialHealth in the returned stats
       return {
         winner: result.winner,
-        stats: result,
+        stats: {
+          ...result,
+          initialHealth: stats.initialHealth, // CRITICAL: Add initial health for damage calculation
+        },
         error: null,
       };
     } catch (error) {
@@ -459,14 +529,159 @@ class PuppeteerGameRunner {
       return;
     }
 
-    // Get game state
-    const gameState = await this.page.evaluate(() => {
+    // Get game state and team info with ENHANCED data
+    const { gameState, team } = await this.page.evaluate(() => {
       const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
       const playerIndex = scene.turnManager.getCurrentPlayerIndex();
       const currentPlayer = scene.players[playerIndex];
 
       // Extract game state (similar to gameplay recorder)
       const enemies = scene.players.filter(p => p.team !== currentPlayer.team && p.health > 0);
+      const targetEnemy = enemies[0]; // Primary target
+
+      // ENHANCED: Calculate ballistics data
+      const weapon = scene.turnManager.getCurrentWeapon();
+      const weaponConfig = window.CombatCrocs?.config?.WEAPON_CONFIGS?.[weapon] || {};
+
+      const distance = targetEnemy
+        ? Phaser.Math.Distance.Between(currentPlayer.x, currentPlayer.y, targetEnemy.x, targetEnemy.y)
+        : 500;
+
+      const angle = targetEnemy
+        ? Phaser.Math.Angle.Between(currentPlayer.x, currentPlayer.y, targetEnemy.x, targetEnemy.y)
+        : 0;
+
+      // Calculate optimal ballistic angle using physics
+      const velocity = weaponConfig.initialVelocity || 500;
+      const gravity = 981; // Phaser default gravity
+      const heightDiff = targetEnemy ? currentPlayer.y - targetEnemy.y : 0;
+
+      // Ballistic trajectory formula: angle = atan((v² ± sqrt(v⁴ - g(gx² + 2yv²))) / (gx))
+      let optimalAngle = angle; // Fallback to direct angle
+
+      if (targetEnemy && distance > 0) {
+        const v2 = velocity * velocity;
+        const g = gravity;
+        const x = distance;
+        const y = heightDiff;
+
+        // Discriminant to check if target is reachable
+        const discriminant = v2 * v2 - g * (g * x * x + 2 * y * v2);
+
+        if (discriminant >= 0) {
+          // Two possible angles - use the lower one (more direct shot)
+          const sqrtDiscriminant = Math.sqrt(discriminant);
+          const angle1 = Math.atan((v2 + sqrtDiscriminant) / (g * x));
+          const angle2 = Math.atan((v2 - sqrtDiscriminant) / (g * x));
+
+          // Adjust for Phaser's coordinate system and direction
+          optimalAngle = angle2; // Lower arc
+
+          // Convert to proper angle based on target direction
+          if (targetEnemy.x < currentPlayer.x) {
+            optimalAngle = Math.PI - optimalAngle; // Flip for left-facing shots
+          }
+        }
+      }
+
+      const ballistics = {
+        projectileSpeed: velocity,
+        gravity: gravity,
+        timeToImpact: distance / velocity,
+        optimalAngle: optimalAngle, // Physics-calculated optimal angle!
+        powerNeeded: 1.0,
+        windEffect: 0,
+        arcHeight: (velocity * velocity * Math.sin(2 * optimalAngle)) / (2 * gravity),
+        collisionPredicted: false,
+      };
+
+      // ENHANCED: Sample terrain along trajectory (10 points)
+      const terrain = [];
+      if (targetEnemy) {
+        for (let i = 0; i < 10; i++) {
+          const t = i / 9; // 0 to 1
+          const x = currentPlayer.x + (targetEnemy.x - currentPlayer.x) * t;
+          const y = currentPlayer.y + (targetEnemy.y - currentPlayer.y) * t;
+
+          // Get terrain height at this point (if terrain manager exists)
+          let terrainHeight = 0;
+          if (scene.terrainManager?.getTerrainHeightAt) {
+            terrainHeight = scene.terrainManager.getTerrainHeightAt(x);
+          }
+          terrain.push(terrainHeight);
+        }
+      } else {
+        // No target, fill with zeros
+        for (let i = 0; i < 10; i++) terrain.push(0);
+      }
+
+      // ENHANCED: Obstacle detection
+      const obstacles = {
+        lineOfSight: true, // Simplified - would need raycasting
+        nearestDistance: 1000,
+        obstacleHeight: 0,
+        terrainType: 0,
+      };
+
+      // Check if there are obstacles between player and target
+      if (targetEnemy && scene.terrainManager) {
+        // Simplified obstacle check
+        const midX = (currentPlayer.x + targetEnemy.x) / 2;
+        const midY = (currentPlayer.y + targetEnemy.y) / 2;
+
+        // Check if terrain blocks shot (very simplified)
+        const terrainAtMid = scene.terrainManager.getTerrainHeightAt
+          ? scene.terrainManager.getTerrainHeightAt(midX)
+          : 0;
+
+        if (terrainAtMid > midY) {
+          obstacles.lineOfSight = false;
+          obstacles.obstacleHeight = terrainAtMid - midY;
+        }
+      }
+
+      // ENHANCED: Shot history (retrieve from window storage)
+      const shotHistory = window.__AI_SHOT_HISTORY__ || { recent: [] };
+
+      // CRITICAL: Calculate shot feedback from last turn
+      const lastState = window.__AI_LAST_TURN_STATE__[`team${currentPlayer.team}`];
+      let shotFeedback = {
+        didDamageEnemy: false,
+        damageDealt: 0,
+        didDamageSelf: false,
+        damageTaken: 0,
+        myHealthDelta: 0,
+        enemyHealthDelta: 0,
+      };
+
+      if (lastState) {
+        // Calculate health changes
+        const myHealthDelta = currentPlayer.health - lastState.myHealth;
+        shotFeedback.myHealthDelta = myHealthDelta;
+
+        // Calculate enemy health changes
+        const currentEnemyHealth = enemies.reduce((sum, e) => sum + e.health, 0);
+        const enemyHealthDelta = currentEnemyHealth - lastState.enemyHealth;
+        shotFeedback.enemyHealthDelta = enemyHealthDelta;
+
+        // Determine what happened
+        if (enemyHealthDelta < 0) {
+          shotFeedback.didDamageEnemy = true;
+          shotFeedback.damageDealt = Math.abs(enemyHealthDelta);
+        }
+
+        if (myHealthDelta < 0) {
+          shotFeedback.didDamageSelf = true;
+          shotFeedback.damageTaken = Math.abs(myHealthDelta);
+        }
+      }
+
+      // Store current state for next turn's feedback
+      window.__AI_LAST_TURN_STATE__[`team${currentPlayer.team}`] = {
+        myHealth: currentPlayer.health,
+        enemyHealth: enemies.reduce((sum, e) => sum + e.health, 0),
+        turnNumber: scene.turnManager.turnCount,
+      };
 
       const state = {
         self: {
@@ -490,14 +705,19 @@ class PuppeteerGameRunner {
           turnNumber: scene.turnManager.turnCount,
           timeRemaining: 30,
         },
+        // NEW ENHANCED DATA:
+        ballistics,
+        terrain,
+        obstacles,
+        shotHistory,
+        shotFeedback, // CRITICAL: Immediate feedback from last turn!
       };
 
-      return state;
+      return { gameState: state, team: currentPlayer.team };
     });
 
-    // For now, make random decisions
-    // In the trainer, we'll feed this to the neural network
-    const action = this.makeRandomDecision(gameState);
+    // Use neural network decision if available, otherwise random
+    const action = await this.makeAIDecision(gameState, team);
 
     // Execute the action in the game
     await this.page.evaluate(action => {
@@ -552,9 +772,63 @@ class PuppeteerGameRunner {
     await this.delay(1500); // Wait for weapon to fire and projectile to travel
   }
 
+  async makeAIDecision(gameState, team) {
+    // Get the neural network for this team from the browser
+    const networkJSON = await this.page.evaluate(teamNum => {
+      return window.__AI_NETWORKS__?.[`team${teamNum}`];
+    }, team);
+
+    // If no network available, use random decision
+    if (!networkJSON) {
+      return this.makeRandomDecision(gameState);
+    }
+
+    // Encode game state
+    const inputs = encodeGameState(gameState);
+
+    // VALIDATION: Log inputs for first few turns (verbose mode)
+    if (this.options.verboseLogging && gameState.context.turnNumber <= 3) {
+      console.log(`\n🔍 INPUT VALIDATION - Team ${team}, Turn ${gameState.context.turnNumber}`);
+      logGameStateInputs(gameState, inputs, true);
+    }
+
+    // Run through network (in Node.js context)
+    const outputs = await this.page.evaluate(
+      (netJSON, inputArray) => {
+        // Reconstruct network from JSON
+        if (!window.neataptic) {
+          // Network not available in browser, return null
+          return null;
+        }
+        const { Network } = window.neataptic;
+        const network = Network.fromJSON(netJSON);
+
+        // Activate network
+        return network.activate(inputArray);
+      },
+      networkJSON,
+      inputs,
+    );
+
+    // If browser evaluation failed, use random
+    if (!outputs) {
+      return this.makeRandomDecision(gameState);
+    }
+
+    // Decode outputs to actions
+    const decision = decodeNetworkOutput(outputs);
+
+    return {
+      weapon: decision.weapon,
+      aimAngle: decision.aimAngle,
+      targetIndex: decision.targetIndex,
+      power: decision.power,
+      movement: decision.movement,
+    };
+  }
+
   makeRandomDecision(gameState) {
-    // Placeholder: Random decision
-    // In trainer.js, this will be replaced with neural network inference
+    // Fallback: Random decision when no network available
     return {
       weapon: "BAZOOKA",
       aimAngle: (Math.random() - 0.5) * Math.PI,

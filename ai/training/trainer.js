@@ -1,7 +1,7 @@
 // Main AI Training System using Neuroevolution
 // Uses Puppeteer to run games and evolve neural networks
 
-import { Architect, Network } from "neataptic";
+import neataptic from "neataptic";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -35,6 +35,10 @@ class AITrainer {
     };
 
     this.gameRunner = null;
+
+    // PHASE 1: Map rotation for diverse training
+    this.availableMaps = ["dinocoaster", "heavyMetalCoaster", "hotelOfHorror", "magnificentBulk"];
+    this.currentMapIndex = 0;
   }
 
   async initialize() {
@@ -55,6 +59,9 @@ class AITrainer {
     await this.gameRunner.initialize();
     await this.gameRunner.loadGame();
 
+    // Set game speed to 2x for faster training
+    await this.gameRunner.setGameSpeed(2.0);
+
     // Create initial population
     console.log("🌱 Creating initial population...");
     this.createInitialPopulation();
@@ -65,7 +72,7 @@ class AITrainer {
     this.population = [];
     for (let i = 0; i < this.options.populationSize; i++) {
       // Create a simple feedforward network
-      const network = new Architect.Perceptron(
+      const network = new neataptic.architect.Perceptron(
         NETWORK_CONFIG.inputs,
         Math.floor(NETWORK_CONFIG.inputs * 0.75), // Hidden layer
         NETWORK_CONFIG.outputs,
@@ -92,6 +99,12 @@ class AITrainer {
 
         // Evaluate all networks in the population
         await this.evaluatePopulation();
+
+        // Check if all networks failed (fitness = 0)
+        const allZero = this.population.every(m => m.fitness === 0);
+        if (allZero && this.generation > 1) {
+          throw new Error(`Generation ${this.generation}: All fitness = 0. Training failure detected.`);
+        }
 
         // Sort by fitness
         this.population.sort((a, b) => b.fitness - a.fitness);
@@ -142,21 +155,54 @@ class AITrainer {
       console.log(`  Network ${i + 1}/${this.population.length}:`);
 
       for (let game = 0; game < this.options.gamesPerNetwork; game++) {
-        // Pick a random opponent
-        const opponentIndex = Math.floor(Math.random() * this.population.length);
+        // Pick a random opponent (excluding self)
+        let opponentIndex;
+        do {
+          opponentIndex = Math.floor(Math.random() * this.population.length);
+        } while (opponentIndex === i);
+
         const opponent = this.population[opponentIndex];
 
+        // Restart browser every 20 games to prevent memory leaks
+        const gamesCompleted =
+          (this.generation - 1) * this.options.populationSize * this.options.gamesPerNetwork +
+          i * this.options.gamesPerNetwork +
+          game +
+          1;
+
+        if (gamesCompleted % 20 === 0) {
+          console.log(`    🔄 Restarting browser (${gamesCompleted} games played)...`);
+          await this.gameRunner.close();
+          await this.gameRunner.initialize();
+          await this.gameRunner.loadGame();
+          await this.gameRunner.setGameSpeed(2.0);
+        }
+
         // Play game
-        const result = await this.playGame(member.network, opponent.network, i, opponentIndex);
+        let result = await this.playGame(member.network, opponent.network, i, opponentIndex);
 
         // Update fitness based on result
         if (result.error) {
           console.log(`    ⚠️  Game ${game + 1} error: ${result.error}`);
-          continue;
+
+          // Try restarting browser once
+          console.log(`    🔄 Attempting browser restart...`);
+          await this.gameRunner.close();
+          await this.gameRunner.initialize();
+          await this.gameRunner.loadGame();
+          await this.gameRunner.setGameSpeed(2.0);
+
+          // Retry the game once
+          const retryResult = await this.playGame(member.network, opponent.network, i, opponentIndex);
+          if (retryResult.error) {
+            throw new Error(`Game failed after browser restart: ${retryResult.error}`);
+          }
+          result = retryResult; // Use retry result
         }
 
-        this.updateFitness(member, result, 1); // Team 1
-        this.updateFitness(opponent, result, 2); // Team 2
+        // CRITICAL FIX: Only update current player's fitness, not opponent's
+        // Opponent will get evaluated during its own turn
+        this.updateFitness(member, result, 1); // Team 1 (current player)
 
         member.gamesPlayed++;
       }
@@ -170,11 +216,14 @@ class AITrainer {
   }
 
   async playGame(network1, network2, id1, id2) {
-    // For now, we'll use a simple wrapper that uses the game runner
-    // In the future, this will inject the actual networks into the game
+    // PHASE 1: Rotate through different maps for diverse training
+    const selectedMap = this.availableMaps[this.currentMapIndex];
+    this.currentMapIndex = (this.currentMapIndex + 1) % this.availableMaps.length;
+
     try {
       const result = await this.gameRunner.startNewGame(network1, network2, {
         mode: "1v1",
+        map: selectedMap,
       });
 
       return result;
@@ -211,11 +260,17 @@ class AITrainer {
     // Survival time
     fitness += survivalTime * NETWORK_CONFIG.fitness.survivalWeight;
 
-    // Damage dealt (estimated from remaining health)
-    const maxHealth = 100; // Placeholder
-    const healthRemaining = teamStats.totalHealth;
-    const damageTaken = maxHealth - healthRemaining;
-    const damageDealt = 100 - damageTaken; // Rough estimate
+    // FIXED: Calculate actual damage dealt to enemies
+    // Damage dealt = enemy's initial health - enemy's final health
+    const enemyTeam = team === 1 ? 2 : 1;
+    const initialHealth = gameResult.stats.initialHealth;
+
+    let damageDealt = 0;
+    if (initialHealth && initialHealth[enemyTeam] && gameResult.stats.teams[enemyTeam]) {
+      const enemyInitialHealth = initialHealth[enemyTeam].totalHealth;
+      const enemyFinalHealth = gameResult.stats.teams[enemyTeam].totalHealth;
+      damageDealt = Math.max(0, enemyInitialHealth - enemyFinalHealth);
+    }
 
     fitness += damageDealt * NETWORK_CONFIG.fitness.damageDealtWeight;
     member.totalDamage += damageDealt;
@@ -232,7 +287,7 @@ class AITrainer {
     // Keep elite networks
     for (let i = 0; i < eliteCount; i++) {
       newPopulation.push({
-        network: Network.fromJSON(this.population[i].network.toJSON()),
+        network: neataptic.Network.fromJSON(this.population[i].network.toJSON()),
         fitness: 0,
         wins: 0,
         losses: 0,
@@ -252,20 +307,23 @@ class AITrainer {
       let offspring;
       if (Math.random() < 0.5) {
         // Crossover
-        offspring = Network.crossOver(parent1.network, parent2.network);
+        offspring = neataptic.Network.crossOver(parent1.network, parent2.network);
       } else {
         // Clone and mutate
-        offspring = Network.fromJSON(parent1.network.toJSON());
+        offspring = neataptic.Network.fromJSON(parent1.network.toJSON());
       }
 
-      // Mutate
-      offspring.mutate(Network.mutation.ADD_NODE);
-      offspring.mutate(Network.mutation.SUB_NODE);
-      offspring.mutate(Network.mutation.ADD_CONN);
-      offspring.mutate(Network.mutation.SUB_CONN);
-      offspring.mutate(Network.mutation.MOD_WEIGHT);
-      offspring.mutate(Network.mutation.MOD_BIAS);
-      offspring.mutate(Network.mutation.MOD_ACTIVATION);
+      // FIXED: Apply mutations probabilistically, not all at once
+      // This prevents destroying good networks
+      const mutationRate = this.options.mutationRate;
+
+      if (Math.random() < mutationRate * 0.2) offspring.mutate(neataptic.methods.mutation.ADD_NODE);
+      if (Math.random() < mutationRate * 0.2) offspring.mutate(neataptic.methods.mutation.SUB_NODE);
+      if (Math.random() < mutationRate * 0.3) offspring.mutate(neataptic.methods.mutation.ADD_CONN);
+      if (Math.random() < mutationRate * 0.3) offspring.mutate(neataptic.methods.mutation.SUB_CONN);
+      if (Math.random() < mutationRate) offspring.mutate(neataptic.methods.mutation.MOD_WEIGHT);
+      if (Math.random() < mutationRate * 0.5) offspring.mutate(neataptic.methods.mutation.MOD_BIAS);
+      if (Math.random() < mutationRate * 0.1) offspring.mutate(neataptic.methods.mutation.MOD_ACTIVATION);
 
       newPopulation.push({
         network: offspring,
@@ -316,30 +374,64 @@ class AITrainer {
   }
 
   async exportCheckpoints() {
-    const checkpoints = [
-      { gen: NETWORK_CONFIG.training.easyAI, name: "easy" },
-      { gen: NETWORK_CONFIG.training.mediumAI, name: "medium" },
-      { gen: NETWORK_CONFIG.training.hardAI, name: "hard" },
-    ];
-
-    for (const checkpoint of checkpoints) {
-      if (this.generation === checkpoint.gen) {
-        await this.exportModel(this.population[0].network, `${checkpoint.name}-ai.json`);
-        console.log(`\n💾 Checkpoint: Exported ${checkpoint.name} AI model`);
-      }
+    // Save auto-checkpoint every 5 generations
+    if (this.generation % 5 === 0) {
+      await this.saveCheckpoint();
     }
   }
 
-  async exportFinalModels() {
-    console.log("\n💾 Exporting final models...");
+  async saveCheckpoint() {
+    const checkpointsDir = path.join(__dirname, "../checkpoints");
+    if (!fs.existsSync(checkpointsDir)) {
+      fs.mkdirSync(checkpointsDir, { recursive: true });
+    }
 
-    // Export best models at different difficulty levels
-    const modelsToExport = [
-      { index: 0, name: "nightmare-ai.json", desc: "Best overall" },
-      { index: Math.floor(this.population.length * 0.2), name: "hard-ai.json", desc: "Top 20%" },
-      { index: Math.floor(this.population.length * 0.5), name: "medium-ai.json", desc: "Top 50%" },
-      { index: Math.floor(this.population.length * 0.8), name: "easy-ai.json", desc: "Top 80%" },
-    ];
+    const checkpointData = {
+      generation: this.generation,
+      population: this.population.map(member => ({
+        network: member.network.toJSON(),
+        fitness: member.fitness,
+        wins: member.wins,
+        losses: member.losses,
+        totalDamage: member.totalDamage,
+        gamesPlayed: member.gamesPlayed,
+      })),
+      bestFitness: this.bestFitness,
+      stats: this.stats,
+      options: this.options,
+    };
+
+    const checkpointPath = path.join(checkpointsDir, `checkpoint-gen${this.generation}.json`);
+    fs.writeFileSync(checkpointPath, JSON.stringify(checkpointData, null, 2));
+    console.log(`\n💾 Auto-checkpoint saved: Generation ${this.generation}`);
+
+    // Keep only last 3 checkpoints
+    this.cleanupOldCheckpoints(checkpointsDir);
+  }
+
+  cleanupOldCheckpoints(checkpointsDir) {
+    const files = fs
+      .readdirSync(checkpointsDir)
+      .filter(f => f.startsWith("checkpoint-gen") && f.endsWith(".json"))
+      .map(f => ({
+        name: f,
+        gen: parseInt(f.match(/checkpoint-gen(\d+)\.json/)?.[1] || "0"),
+        path: path.join(checkpointsDir, f),
+      }))
+      .sort((a, b) => b.gen - a.gen);
+
+    // Delete all but the 3 most recent
+    files.slice(3).forEach(file => {
+      fs.unlinkSync(file.path);
+      console.log(`    🗑️  Removed old checkpoint: ${file.name}`);
+    });
+  }
+
+  async exportFinalModels() {
+    console.log("\n💾 Exporting final model...");
+
+    // Export the best network as a single model
+    const modelsToExport = [{ index: 0, name: "best-ai.json", desc: "Best AI from training" }];
 
     for (const model of modelsToExport) {
       await this.exportModel(this.population[model.index].network, model.name);
@@ -351,7 +443,7 @@ class AITrainer {
     fs.writeFileSync(statsPath, JSON.stringify(this.stats, null, 2));
     console.log(`  ✅ training-stats.json`);
 
-    console.log(`\n✨ All models exported to ai/models/`);
+    console.log(`\n✨ Model exported to ai/models/best-ai.json`);
   }
 
   async exportModel(network, filename) {

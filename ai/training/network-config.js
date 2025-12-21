@@ -2,15 +2,23 @@
 
 export const NETWORK_CONFIG = {
   // Network architecture
-  inputs: 24,
+  inputs: 66, // Enhanced from 58 to 66 (added temporal obstacles)
   outputs: 6,
 
-  // Input breakdown (24 total)
+  // Input breakdown (66 total)
   inputSchema: {
     self: 3, // health, x, y
     enemies: 16, // 4 enemies × (health, distance, angle, threat)
     weapons: 3, // bazooka, grenade, shotgun ammo
     context: 2, // turn number, time remaining
+
+    // ENHANCED INPUTS:
+    ballistics: 8, // projectile physics data
+    terrain: 10, // terrain height samples along trajectory
+    obstacles: 4, // static obstacle detection
+    temporalObstacles: 8, // PHASE 1: moving obstacles (elevators, coasters, etc.)
+    shotHistory: 6, // learning from previous shots (kept for compatibility)
+    shotFeedback: 6, // CRITICAL: immediate feedback from last turn
   },
 
   // Output breakdown (6 total)
@@ -115,5 +123,136 @@ export function encodeGameState(gameState) {
     Math.min(gameState.context.timeRemaining / 30, 1),
   );
 
+  // ENHANCED INPUTS:
+
+  // Ballistics data (8 values)
+  const ballistics = gameState.ballistics || {};
+  inputs.push(
+    ballistics.projectileSpeed ? Math.min(ballistics.projectileSpeed / 1000, 1) : 0,
+    ballistics.gravity ? Math.min(ballistics.gravity / 10, 1) : 0.5,
+    ballistics.timeToImpact ? Math.min(ballistics.timeToImpact / 5, 1) : 0,
+    ballistics.optimalAngle ? (ballistics.optimalAngle + Math.PI) / (Math.PI * 2) : 0.5,
+    ballistics.powerNeeded ? Math.min(ballistics.powerNeeded, 1) : 1,
+    ballistics.windEffect ? ballistics.windEffect : 0,
+    ballistics.arcHeight ? Math.min(ballistics.arcHeight / 700, 1) : 0,
+    ballistics.collisionPredicted ? 1 : 0,
+  );
+
+  // Terrain sampling (10 values) - height at 10 points along trajectory
+  const terrain = gameState.terrain || [];
+  for (let i = 0; i < 10; i++) {
+    if (i < terrain.length && terrain[i] !== undefined) {
+      inputs.push(Math.min(terrain[i] / 700, 1)); // Normalize to screen height
+    } else {
+      inputs.push(0);
+    }
+  }
+
+  // Obstacle detection (4 values)
+  const obstacles = gameState.obstacles || {};
+  inputs.push(
+    obstacles.lineOfSight ? 1 : 0,
+    obstacles.nearestDistance ? Math.min(obstacles.nearestDistance / 1000, 1) : 1,
+    obstacles.obstacleHeight ? Math.min(obstacles.obstacleHeight / 700, 1) : 0,
+    obstacles.terrainType || 0, // 0=none, 0.5=soft, 1=hard
+  );
+
+  // Temporal obstacles (8 values) - PHASE 1: moving/dynamic obstacles
+  const temporal = gameState.temporalObstacles || {};
+  inputs.push(
+    temporal.hasMovingObstacle ? 1 : 0, // Is there a moving obstacle nearby?
+    temporal.obstacleX ? Math.min(temporal.obstacleX / 1200, 1) : 0, // X position
+    temporal.obstacleY ? Math.min(temporal.obstacleY / 700, 1) : 0, // Y position
+    temporal.velocityX ? Math.max(Math.min(temporal.velocityX / 100, 1), -1) : 0, // X velocity (normalized)
+    temporal.velocityY ? Math.max(Math.min(temporal.velocityY / 100, 1), -1) : 0, // Y velocity (normalized)
+    temporal.obstacleSize ? Math.min(temporal.obstacleSize / 200, 1) : 0, // Size/radius
+    temporal.predictedIntersection ? 1 : 0, // Will it intersect trajectory?
+    temporal.timingWindow ? Math.min(temporal.timingWindow / 5, 1) : 0, // Time window to shoot
+  );
+
+  // Shot history (6 values) - last 2 shots
+  const history = gameState.shotHistory || { recent: [] };
+  for (let i = 0; i < 2; i++) {
+    if (i < history.recent.length) {
+      const shot = history.recent[i];
+      inputs.push(
+        shot.hit ? 1 : 0, // hit/miss
+        Math.min(shot.damage / 100, 1), // damage dealt
+        Math.min(Math.abs(shot.distanceError) / 500, 1), // accuracy
+      );
+    } else {
+      inputs.push(0, 0, 0); // No data for this shot
+    }
+  }
+
+  // Shot feedback (6 values) - CRITICAL: immediate turn-to-turn feedback
+  const feedback = gameState.shotFeedback || {};
+  inputs.push(
+    feedback.didDamageEnemy ? 1 : 0, // Did I hit enemy last turn?
+    feedback.damageDealt ? Math.min(feedback.damageDealt / 100, 1) : 0, // How much damage?
+    feedback.didDamageSelf ? 1 : 0, // Did I hurt myself?
+    feedback.damageTaken ? Math.min(feedback.damageTaken / 100, 1) : 0, // Self-damage amount
+    feedback.myHealthDelta ? Math.max(Math.min(feedback.myHealthDelta / 100, 1), -1) : 0, // My health change
+    feedback.enemyHealthDelta ? Math.max(Math.min(feedback.enemyHealthDelta / 100, 1), -1) : 0, // Enemy health change
+  );
+
   return inputs;
+}
+
+// PHASE 1: Comprehensive logging for debugging
+export function logGameStateInputs(gameState, inputs, verbose = false) {
+  if (!verbose) return;
+
+  console.log("\n🔍 INPUT VALIDATION:");
+  console.log(`  Total inputs: ${inputs.length} (expected: 66)`);
+
+  // Check for invalid values
+  const invalidInputs = inputs.filter((v, i) => isNaN(v) || v === undefined || v === null);
+  if (invalidInputs.length > 0) {
+    console.warn(`  ⚠️  Found ${invalidInputs.length} invalid inputs!`);
+  }
+
+  // Summary by category
+  let idx = 0;
+  console.log(
+    `  Self (3): health=${inputs[0].toFixed(2)}, x=${inputs[1].toFixed(2)}, y=${inputs[2].toFixed(2)}`,
+  );
+  idx += 3;
+
+  console.log(`  Enemies (16): ${gameState.enemies?.length || 0} active`);
+  idx += 16;
+
+  console.log(`  Weapons (3): B=${inputs[idx]}, G=${inputs[idx + 1]}, S=${inputs[idx + 2]}`);
+  idx += 3;
+
+  console.log(`  Context (2): turn=${inputs[idx].toFixed(2)}, time=${inputs[idx + 1].toFixed(2)}`);
+  idx += 2;
+
+  console.log(`  Ballistics (8): available=${gameState.ballistics ? "yes" : "no"}`);
+  idx += 8;
+
+  console.log(`  Terrain (10): sampled=${gameState.terrain?.length || 0} points`);
+  idx += 10;
+
+  console.log(`  Obstacles (4): LOS=${inputs[idx] === 1 ? "clear" : "blocked"}`);
+  idx += 4;
+
+  console.log(`  ✨ Temporal Obs (8): active=${inputs[idx] === 1 ? "YES" : "no"}`);
+  if (gameState.temporalObstacles?.hasMovingObstacle) {
+    console.log(`     → Position: (${inputs[idx + 1].toFixed(2)}, ${inputs[idx + 2].toFixed(2)})`);
+    console.log(`     → Velocity: (${inputs[idx + 3].toFixed(2)}, ${inputs[idx + 4].toFixed(2)})`);
+  }
+  idx += 8;
+
+  console.log(`  Shot History (6): available=${gameState.shotHistory?.recent?.length || 0} shots`);
+  idx += 6;
+
+  console.log(`  Shot Feedback (6): damaged=${inputs[idx] === 1 ? "YES" : "no"}`);
+
+  // Validate total
+  if (inputs.length !== 66) {
+    console.error(`  ❌ ERROR: Input length mismatch! Expected 66, got ${inputs.length}`);
+  } else {
+    console.log(`  ✅ Input length correct: 66`);
+  }
 }
