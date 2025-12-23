@@ -9,40 +9,39 @@ class TerrainScanner {
     }
 
     const angles = [
-      0, // RIGHT
-      Math.PI / 4, // UP-RIGHT
-      Math.PI / 2, // UP
-      (3 * Math.PI) / 4, // UP-LEFT
-      Math.PI, // LEFT
-      (5 * Math.PI) / 4, // DOWN-LEFT
-      (3 * Math.PI) / 2, // DOWN
-      (7 * Math.PI) / 4, // DOWN-RIGHT
+      0, // RIGHT (0°)
+      Math.PI / 4, // DOWN-RIGHT (45°) - Phaser Y-axis points DOWN!
+      Math.PI / 2, // DOWN (90°)
+      (3 * Math.PI) / 4, // DOWN-LEFT (135°)
+      Math.PI, // LEFT (180°)
+      (5 * Math.PI) / 4, // UP-LEFT (225°)
+      (3 * Math.PI) / 2, // UP (270°)
+      (7 * Math.PI) / 4, // UP-RIGHT (315°)
     ];
 
     const distances = [];
     const bodies = scene.matter.world.localWorld.bodies;
+    const Query = Phaser.Physics.Matter.Matter.Query;
 
     angles.forEach(angle => {
-      const endX = playerX + Math.cos(angle) * maxDistance;
-      const endY = playerY + Math.sin(angle) * maxDistance;
-
-      // Raycast from player position to far point
-      const hits = Phaser.Physics.Matter.Matter.Query.ray(
-        bodies,
-        { x: playerX, y: playerY },
-        { x: endX, y: endY },
-      );
-
-      // Find closest terrain hit
+      // FIXED: Use point sampling instead of raycast (more reliable!)
+      // Sample points along the ray direction until we hit terrain
       let closestDist = maxDistance;
-      hits.forEach(hit => {
-        if (hit.body && hit.body.isTerrain) {
-          const dist = Math.sqrt(Math.pow(hit.point.x - playerX, 2) + Math.pow(hit.point.y - playerY, 2));
-          if (dist < closestDist) {
-            closestDist = dist;
-          }
+      const stepSize = 10; // Check every 10 pixels
+
+      for (let dist = stepSize; dist <= maxDistance; dist += stepSize) {
+        const testX = playerX + Math.cos(angle) * dist;
+        const testY = playerY + Math.sin(angle) * dist;
+
+        // Check if this point collides with any terrain body
+        const hitBodies = Query.point(bodies, { x: testX, y: testY });
+
+        const terrainHit = hitBodies.find(body => body.isTerrain);
+        if (terrainHit) {
+          closestDist = dist;
+          break; // Found terrain, stop searching this direction
         }
-      });
+      }
 
       distances.push(closestDist);
     });

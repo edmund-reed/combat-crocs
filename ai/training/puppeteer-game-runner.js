@@ -305,14 +305,14 @@ class PuppeteerGameRunner {
             id: 1,
             name: "Team 1",
             crocCount: 1,
-            color: { name: "Blue", key: "blue", hex: "#0066CC" },
+            color: { name: "Blue", key: "blue", hex: 0x0066cc }, // FIXED: Integer not string!
             players: [{ characterType: "CROCODILE" }],
           },
           {
             id: 2,
             name: "Team 2",
             crocCount: 1,
-            color: { name: "Red", key: "red", hex: "#CC0000" },
+            color: { name: "Red", key: "red", hex: 0xcc0000 }, // FIXED: Integer not string!
             players: [{ characterType: "CROCODILE" }],
           },
         ];
@@ -348,14 +348,14 @@ class PuppeteerGameRunner {
               id: 1,
               name: "Team 1",
               crocCount: 1,
-              color: { name: "Blue", key: "blue", hex: "#0066CC" },
+              color: { name: "Blue", key: "blue", hex: 0x0066cc }, // FIXED: Integer not string!
               players: [{ characterType: "CROCODILE" }],
             },
             {
               id: 2,
               name: "Team 2",
               crocCount: 1,
-              color: { name: "Red", key: "red", hex: "#CC0000" },
+              color: { name: "Red", key: "red", hex: 0xcc0000 }, // FIXED: Integer not string!
               players: [{ characterType: "CROCODILE" }],
             },
           ];
@@ -527,6 +527,9 @@ class PuppeteerGameRunner {
         },
       };
 
+      // FIXED: Initialize turn data storage
+      window.__TURN_DATA__ = [];
+
       return teams;
     });
 
@@ -572,7 +575,7 @@ class PuppeteerGameRunner {
         await this.delay(betweenTurnsDelay);
       }
 
-      // Get final results
+      // Get final results AND turn data
       const result = await this.page.evaluate(() => {
         const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
         if (!scene) return null;
@@ -597,10 +600,12 @@ class PuppeteerGameRunner {
         const aliveTeams = Object.entries(teams).filter(([_, data]) => data.alive > 0);
         const winner = aliveTeams.length === 1 ? parseInt(aliveTeams[0][0]) : null;
 
+        // FIXED: Return turn data!
         return {
           winner,
           teams,
           turns: scene.turnManager.turnCount,
+          turnData: window.__TURN_DATA__ || [], // CRITICAL: Include turn-by-turn data
         };
       });
 
@@ -609,13 +614,15 @@ class PuppeteerGameRunner {
       stats.duration = stats.endTime - stats.startTime;
 
       console.log(`  ✅ Game complete: Winner = Team ${result.winner || "Draw"} (${turnCount} turns)`);
+      console.log(`  📊 Captured ${result.turnData.length} turns of input data`);
 
-      // FIXED: Include initialHealth in the returned stats
+      // FIXED: Include initialHealth AND turnData in the returned stats
       return {
         winner: result.winner,
         stats: {
           ...result,
           initialHealth: stats.initialHealth, // CRITICAL: Add initial health for damage calculation
+          turnData: result.turnData, // FIXED: Include turn-by-turn input data!
         },
         error: null,
       };
@@ -661,6 +668,24 @@ class PuppeteerGameRunner {
       const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
       const playerIndex = scene.turnManager.getCurrentPlayerIndex();
       const currentPlayer = scene.players[playerIndex];
+
+      // Use TerrainScanner for spatial awareness
+      let terrainDistances = [500, 500, 500, 500, 500, 500, 500, 500];
+
+      if (window.TerrainScanner && scene?.matter?.world?.localWorld?.bodies) {
+        const bodies = scene.matter.world.localWorld.bodies;
+        const terrainBodies = bodies.filter(b => b && b.isTerrain);
+
+        if (terrainBodies.length > 0) {
+          const terrainData = window.TerrainScanner.scanTerrainDistances(
+            scene,
+            currentPlayer.x,
+            currentPlayer.y,
+            500,
+          );
+          terrainDistances = terrainData.directions;
+        }
+      }
 
       // Extract game state (similar to gameplay recorder)
       const enemies = scene.players.filter(p => p.team !== currentPlayer.team && p.health > 0);
@@ -722,25 +747,8 @@ class PuppeteerGameRunner {
         collisionPredicted: false,
       };
 
-      // ENHANCED: Sample terrain along trajectory (10 points)
-      const terrain = [];
-      if (targetEnemy) {
-        for (let i = 0; i < 10; i++) {
-          const t = i / 9; // 0 to 1
-          const x = currentPlayer.x + (targetEnemy.x - currentPlayer.x) * t;
-          const y = currentPlayer.y + (targetEnemy.y - currentPlayer.y) * t;
-
-          // Get terrain height at this point (if terrain manager exists)
-          let terrainHeight = 0;
-          if (scene.terrainManager?.getTerrainHeightAt) {
-            terrainHeight = scene.terrainManager.getTerrainHeightAt(x);
-          }
-          terrain.push(terrainHeight);
-        }
-      } else {
-        // No target, fill with zeros
-        for (let i = 0; i < 10; i++) terrain.push(0);
-      }
+      // FIXED: Use TerrainScanner distances as terrain array (not trajectory sampling!)
+      const terrain = terrainDistances;
 
       // ENHANCED: Obstacle detection
       const obstacles = {
@@ -779,7 +787,20 @@ class PuppeteerGameRunner {
         damageTaken: 0,
         myHealthDelta: 0,
         enemyHealthDelta: 0,
+        explosionX: 0,
+        explosionY: 0,
+        explosionDistance: 1000,
       };
+
+      // Get explosion coordinates from last explosion
+      const lastExplosion = window.__LAST_EXPLOSION__;
+      if (lastExplosion) {
+        shotFeedback.explosionX = lastExplosion.x;
+        shotFeedback.explosionY = lastExplosion.y;
+        shotFeedback.explosionDistance = Math.sqrt(
+          Math.pow(currentPlayer.x - lastExplosion.x, 2) + Math.pow(currentPlayer.y - lastExplosion.y, 2),
+        );
+      }
 
       if (lastState) {
         // Calculate health changes
@@ -845,6 +866,23 @@ class PuppeteerGameRunner {
 
     // Use neural network decision if available, otherwise random
     const action = await this.makeAIDecision(gameState, team);
+
+    // FIXED: Store turn data BEFORE executing action
+    await this.page.evaluate(
+      (gs, act) => {
+        // Store turn data
+        if (window.__TURN_DATA__) {
+          window.__TURN_DATA__.push({
+            turnNumber: gs.context.turnNumber,
+            team: gs.self.team,
+            inputs: gs,
+            decision: act,
+          });
+        }
+      },
+      gameState,
+      action,
+    );
 
     // Execute the action in the game
     await this.page.evaluate(action => {

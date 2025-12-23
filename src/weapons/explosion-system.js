@@ -6,6 +6,16 @@ import { DamageManager } from "@utils";
 
 class ExplosionSystem {
   static createExplosion(scene, x, y, projectileOwner = null, weaponType = "BAZOOKA") {
+    // CRITICAL: Store explosion coordinates globally for AI training feedback
+    if (typeof window !== "undefined") {
+      window.__LAST_EXPLOSION__ = {
+        x: x,
+        y: y,
+        timestamp: Date.now(),
+        weaponType: weaponType,
+      };
+    }
+
     const attackingPlayer = projectileOwner ? scene.players.find(p => p.id === projectileOwner) : null;
     const config = Config.WEAPON_CONFIGS[weaponType];
     const maxDamage = attackingPlayer ? getWeaponDamage(attackingPlayer, weaponType) : config.damage;

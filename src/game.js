@@ -6,6 +6,7 @@ import PlayerSelectScene from "./scenes/PlayerSelectScene.js";
 import GameScene from "./scenes/GameScene.js";
 import { Maps as MapManager, WeaponManager } from "@utils";
 import StateManager from "./utils/state-manager.js";
+import TerrainScanner from "./utils/terrain-scanner.js";
 
 class CombatCrocsGame {
   constructor() {
@@ -34,6 +35,7 @@ class CombatCrocsGame {
     window.MapManager = MapManager;
     window.StateManager = StateManager;
     window.WeaponManager = WeaponManager;
+    window.TerrainScanner = TerrainScanner; // FIXED: Enable AI terrain vision!
 
     Logger.gameEvent("Combat Crocs Game Initialized!");
     Logger.gameEvent("Controls: Arrow keys to move/jump, SPACE to jump, Mouse click to shoot");
