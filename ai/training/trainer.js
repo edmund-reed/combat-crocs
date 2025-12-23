@@ -79,6 +79,12 @@ class AITrainer {
     this.generation = checkpointData.generation;
     console.log(`  ✅ Resuming from Generation ${this.generation}`);
 
+    // Store checkpoint baseline for progress comparison
+    this.checkpointGeneration = checkpointData.generation;
+    this.checkpointBestFitness = checkpointData.bestFitness;
+    const checkpointStats = checkpointData.stats;
+    this.checkpointAvgFitness = checkpointStats.avgFitness[checkpointStats.avgFitness.length - 1];
+
     // Restore population
     this.population = checkpointData.population.map(member => ({
       network: neataptic.Network.fromJSON(member.network),
@@ -169,6 +175,7 @@ class AITrainer {
     console.log("🏋️  Starting training...\n");
 
     // PHASE 2.5: Initialize progress tracking
+    const overallTrainingStart = Date.now();
     this.trainingStartTime = Date.now();
     const startGeneration = this.generation + 1; // Next generation after checkpoint
     this.totalGames =
@@ -222,6 +229,22 @@ class AITrainer {
       }
 
       console.log("\n✅ Training complete!");
+
+      // Calculate and display training duration
+      const trainingEndTime = Date.now();
+      const durationMs = trainingEndTime - overallTrainingStart;
+      const durationSec = Math.floor(durationMs / 1000);
+      const durationMin = Math.floor(durationSec / 60);
+      const remainingSec = durationSec % 60;
+      const generationsTrained = this.generation - startGeneration + 1;
+
+      console.log(`\n⏱️  Training Duration:`);
+      console.log(`  Total time: ${durationMin}m ${remainingSec}s`);
+      console.log(`  Generations trained: ${generationsTrained}`);
+      console.log(`  Avg time per generation: ${(durationSec / generationsTrained).toFixed(1)}s`);
+      console.log(`  Total games played: ${this.gamesCompleted}`);
+      console.log(`  Avg time per game: ${(durationMs / this.gamesCompleted / 1000).toFixed(2)}s`);
+
       await this.exportFinalModels();
     } finally {
       await this.cleanup();
@@ -485,7 +508,7 @@ class AITrainer {
     fitness += damageDealt * NETWORK_CONFIG.fitness.damageDealtWeight;
     member.totalDamage += damageDealt;
 
-    // === PENALTIES (CRITICAL for learning safe play) ===
+    // === PENALTIES (BALANCED for learning safe BUT aggressive play) ===
 
     // Self-damage penalty (punish reckless shots)
     // Calculate self-damage as health lost beyond enemy damage
@@ -501,18 +524,28 @@ class AITrainer {
       // Remaining health loss is likely self-damage
       selfDamage = Math.max(0, totalHealthLost - damageTakenFromEnemy);
 
-      // Apply self-damage penalty (1.5x weight - significant but less than damage dealt)
+      // Apply self-damage penalty (1.0x weight - REDUCED from 1.5 to encourage engagement)
       if (selfDamage > 0) {
-        fitness -= selfDamage * 1.5;
+        fitness -= selfDamage * 2.5; // INCREASED from 1.0 to punish self-harm harder
       }
 
-      // Apply damage taken penalty (0.8x weight - enemy damage is expected in combat)
+      // Apply damage taken penalty (0.5x weight - REDUCED from 0.8, combat expected)
       if (damageTakenFromEnemy > 0) {
-        fitness -= damageTakenFromEnemy * 0.8;
+        fitness -= damageTakenFromEnemy * 0.5;
       }
     }
 
     // === BONUSES (Encourage smart play) ===
+
+    // Combat engagement bonus (reward productive aggression)
+    if (damageDealt >= 60) {
+      fitness += 25; // Bonus for dealing significant damage
+    }
+
+    // Safe shot bonus (reward engagement without self-harm)
+    if (selfDamage === 0 && damageDealt > 0) {
+      fitness += 15; // Bonus for safe, productive combat
+    }
 
     // Health efficiency bonus (reward winning with HP remaining)
     if (won && initialHealth && initialHealth[team]) {
@@ -615,9 +648,32 @@ class AITrainer {
     console.log(`  Worst Fitness:   ${minFitness.toFixed(2)}`);
     console.log(`  Win Rate:        ${winRate.toFixed(1)}%`);
 
+    // Show progress since checkpoint (if loaded from checkpoint)
+    if (this.checkpointGeneration !== undefined) {
+      console.log(`\n📊 Progress Since Checkpoint (Gen ${this.checkpointGeneration}):`);
+
+      const bestChange = maxFitness - this.checkpointBestFitness;
+      const bestPercent =
+        this.checkpointBestFitness > 0 ? ((bestChange / this.checkpointBestFitness) * 100).toFixed(1) : "N/A";
+      const avgChange = avgFitness - this.checkpointAvgFitness;
+      const avgPercent =
+        this.checkpointAvgFitness > 0 ? ((avgChange / this.checkpointAvgFitness) * 100).toFixed(1) : "N/A";
+
+      console.log(
+        `  Best:    ${this.checkpointBestFitness.toFixed(2)} → ${maxFitness.toFixed(2)} (${
+          bestChange >= 0 ? "+" : ""
+        }${bestChange.toFixed(2)}, ${bestChange >= 0 ? "+" : ""}${bestPercent}%)`,
+      );
+      console.log(
+        `  Average: ${this.checkpointAvgFitness.toFixed(2)} → ${avgFitness.toFixed(2)} (${
+          avgChange >= 0 ? "+" : ""
+        }${avgChange.toFixed(2)}, ${avgChange >= 0 ? "+" : ""}${avgPercent}%)`,
+      );
+    }
+
     // PHASE 2.5: Learning insights - human-readable analysis
     if (this.stats.bestFitness.length > 0) {
-      console.log(`\n🧠 Learning Insights:`);
+      console.log(`\n🧠 Learning Insights (vs previous generation):`);
       const lastBest = this.stats.bestFitness[this.stats.bestFitness.length - 1];
       const change = maxFitness - lastBest;
       const changePercent = lastBest > 0 ? ((change / lastBest) * 100).toFixed(1) : 0;

@@ -94,7 +94,70 @@ class PuppeteerGameRunner {
       // Store speed multiplier globally for game scenes to use
       window.__TRAINING_SPEED_MULTIPLIER__ = speed;
 
+      // Set training mode flags for speed optimizations
+      window.__TRAINING_MODE__ = true;
+      window.__SKIP_ANIMATIONS__ = true;
+      window.__INSTANT_BAZOOKA__ = true;
+
+      // Inject instant bazooka resolver into window for weapon system to use
+      window.__simulateBazookaPhysics__ = function (scene, startX, startY, angle, velocity) {
+        // Create temporary ghost body for simulation
+        const tempBody = scene.matter.add.circle(startX, startY, 8, {
+          isSensor: true,
+          friction: 0.1,
+          restitution: 0.1,
+          mass: 1,
+        });
+
+        // Set initial velocity
+        const vx = Math.cos(angle) * velocity;
+        const vy = Math.sin(angle) * velocity;
+        scene.matter.body.setVelocity(tempBody, { x: vx, y: vy });
+
+        // Simulate physics steps until collision (max 300 steps)
+        const bodies = scene.matter.world.localWorld.bodies;
+        let lastValidPos = { x: tempBody.position.x, y: tempBody.position.y };
+
+        for (let steps = 0; steps < 300; steps++) {
+          // Store position BEFORE stepping
+          lastValidPos = { x: tempBody.position.x, y: tempBody.position.y };
+
+          // Step physics
+          scene.matter.world.step(1000 / 60);
+
+          // Check terrain collision AFTER step - if hit, return PREVIOUS position
+          const collisions = Phaser.Physics.Matter.Matter.Query.point(bodies, {
+            x: tempBody.position.x,
+            y: tempBody.position.y,
+          });
+
+          if (collisions.find(c => c.isTerrain)) {
+            // Return last valid position (before penetrating terrain)
+            scene.matter.world.remove(tempBody);
+            return lastValidPos;
+          }
+
+          // Check out of bounds
+          if (tempBody.position.y > scene.game.config.height + 100) {
+            scene.matter.world.remove(tempBody);
+            return lastValidPos;
+          }
+
+          // Check if velocity near zero
+          const speed = Math.sqrt(tempBody.velocity.x ** 2 + tempBody.velocity.y ** 2);
+          if (speed < 0.1 && steps > 10) {
+            scene.matter.world.remove(tempBody);
+            return lastValidPos;
+          }
+        }
+
+        // Timeout fallback
+        scene.matter.world.remove(tempBody);
+        return lastValidPos;
+      };
+
       console.log(`[AI] Game speed multiplier set to ${speed}x`);
+      console.log(`[AI] Training mode enabled: skip animations, instant shots`);
     }, multiplier);
 
     console.log(`✅ Game speed set to ${multiplier}x`);
@@ -109,37 +172,88 @@ class PuppeteerGameRunner {
 
     console.log(`\n🎲 Starting new game: ${config.mode} on ${config.map}`);
 
-    try {
-      // Navigate through menus
-      await this.navigateToGameStart(config);
+    // CRITICAL FIX: Add retry logic with exponential backoff
+    const maxRetries = 2;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Navigate through menus
+        await this.navigateToGameStart(config);
 
-      // Inject AI brains
-      await this.injectAIControllers(network1, network2);
+        // Inject AI brains
+        await this.injectAIControllers(network1, network2);
 
-      // Play the game
-      const result = await this.playGame();
+        // CRITICAL: Manually trigger first turn AFTER AI is loaded
+        await this.page.evaluate(() => {
+          const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+          if (scene?.turnManager) {
+            console.log("[AI] Manually triggering first turn with AI ready");
+            scene.turnManager.startTurn();
+          }
+        });
 
-      return result;
-    } catch (error) {
-      console.error("❌ Game error:", error.message);
-      return {
-        error: error.message,
-        winner: null,
-        stats: null,
-      };
+        // Brief delay to let first turn initialize
+        await this.delay(200);
+
+        // Play the game
+        const result = await this.playGame();
+
+        return result;
+      } catch (error) {
+        const isLastAttempt = attempt === maxRetries;
+        if (error.message.includes("main frame") || error.message.includes("Target closed")) {
+          if (isLastAttempt) {
+            console.error(`❌ Game error after ${maxRetries + 1} attempts:`, error.message);
+            return {
+              error: error.message,
+              winner: null,
+              stats: null,
+            };
+          }
+          // Retry with exponential backoff
+          const waitTime = Math.pow(2, attempt) * 1000;
+          console.log(
+            `  ⚠️ Frame error, retrying in ${waitTime}ms... (attempt ${attempt + 1}/${maxRetries + 1})`,
+          );
+          await this.delay(waitTime);
+        } else {
+          // Non-retryable error
+          console.error("❌ Game error:", error.message);
+          return {
+            error: error.message,
+            winner: null,
+            stats: null,
+          };
+        }
+      }
     }
   }
 
   async navigateToGameStart(config) {
     console.log("  📋 Navigating to game...");
 
-    // Wait for Phaser and CombatCrocs to be ready
-    await this.page.waitForFunction(
-      () => {
-        return window.Phaser && window.CombatCrocs;
-      },
-      { timeout: 15000 },
-    );
+    // CRITICAL FIX: Add delay to ensure page main frame is ready
+    // Reduce delay in headless mode for speed
+    const initDelay = this.options.headless ? 50 : 1000;
+    await this.delay(initDelay);
+
+    // Wait for Phaser and CombatCrocs to be ready with retry logic
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await this.page.waitForFunction(
+          () => {
+            return window.Phaser && window.CombatCrocs;
+          },
+          { timeout: 15000 },
+        );
+        break; // Success, exit retry loop
+      } catch (error) {
+        retries--;
+        if (retries === 0) throw error;
+        console.log(`  ⚠️ Page not ready, retrying... (${retries} attempts left)`);
+        await this.delay(2000);
+      }
+    }
 
     console.log("  ✅ Phaser ready");
 
@@ -160,8 +274,9 @@ class PuppeteerGameRunner {
 
     console.log("  📊 Game structure:", JSON.stringify(gameStructure, null, 2));
 
-    // Give the menu scene time to fully render
-    await this.delay(2000);
+    // Give the menu scene time to fully render (reduced in training mode)
+    const menuDelay = this.options.headless ? 50 : 2000;
+    await this.delay(menuDelay);
 
     console.log("  🔧 Attempting to navigate programmatically...");
 
@@ -218,7 +333,8 @@ class PuppeteerGameRunner {
       });
 
       console.log("  ⏳ Waiting for PlayerSelectScene to load...");
-      await this.delay(1000);
+      const sceneDelay = this.options.headless ? 50 : 1000;
+      await this.delay(sceneDelay);
 
       // Now transition to GameScene
       await this.page.evaluate(() => {
@@ -258,7 +374,8 @@ class PuppeteerGameRunner {
       });
 
       console.log("  ⏳ Waiting for GameScene to initialize...");
-      await this.delay(2000);
+      const gameSceneDelay = this.options.headless ? 100 : 2000;
+      await this.delay(gameSceneDelay);
 
       // Wait for game scene to be active and have players
       await this.page.waitForFunction(
@@ -450,8 +567,9 @@ class PuppeteerGameRunner {
         // Execute AI turn
         await this.executeAITurn();
 
-        // Brief delay between turns
-        await this.delay(100);
+        // Brief delay between turns (reduced in headless)
+        const betweenTurnsDelay = this.options.headless ? 10 : 100;
+        await this.delay(betweenTurnsDelay);
       }
 
       // Get final results
@@ -514,19 +632,28 @@ class PuppeteerGameRunner {
   }
 
   async executeAITurn() {
-    // Signal that AI should act
-    await this.page.evaluate(() => {
-      window.__AI_SHOULD_ACT__ = true;
-    });
+    // CRITICAL FIX: Wrap in try-catch to handle frame errors gracefully
+    try {
+      // Signal that AI should act
+      await this.page.evaluate(() => {
+        window.__AI_SHOULD_ACT__ = true;
+      });
 
-    // Wait for turn data to be ready
-    const turnData = await this.page
-      .waitForFunction(() => window.__AI_TURN_DATA__?.ready, { timeout: 5000 })
-      .catch(() => null);
+      // Wait for turn data to be ready
+      const turnData = await this.page
+        .waitForFunction(() => window.__AI_TURN_DATA__?.ready, { timeout: 5000 })
+        .catch(() => null);
 
-    if (!turnData) {
-      // No AI turn needed, probably between turns
-      return;
+      if (!turnData) {
+        // No AI turn needed, probably between turns
+        return;
+      }
+    } catch (error) {
+      if (error.message.includes("main frame") || error.message.includes("Target closed")) {
+        console.log("  ⚠️ Frame error during turn execution, skipping turn");
+        return;
+      }
+      throw error; // Re-throw if not a frame error
     }
 
     // Get game state and team info with ENHANCED data
@@ -769,9 +896,10 @@ class PuppeteerGameRunner {
       window.__AI_TURN_DATA__ = null;
     }, action);
 
-    // PHASE 2a: Reduced delay for faster training (1500ms → 500ms)
-    // Still allows projectile travel time, but reduces waiting
-    await this.delay(500);
+    // Training mode: minimal delay (projectile travel is instant)
+    // Normal mode: allow time for projectile travel
+    const turnDelay = this.options.headless ? 50 : 500;
+    await this.delay(turnDelay);
   }
 
   async makeAIDecision(gameState, team) {

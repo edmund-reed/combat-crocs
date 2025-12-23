@@ -107,6 +107,15 @@ class GameScene extends Phaser.Scene {
   }
 
   update() {
+    // Apply training speed multiplier if set
+    if (window.__TRAINING_SPEED_MULTIPLIER__ && this.physics && this.physics.world) {
+      const speed = window.__TRAINING_SPEED_MULTIPLIER__;
+      if (this.physics.world.timeScale !== speed) {
+        this.physics.world.timeScale = speed;
+        this.time.timeScale = speed;
+      }
+    }
+
     UIManager.checkAndHandleGameEnd(this);
 
     const timer = this.turnManager.currentTurnTimer;

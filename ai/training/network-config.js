@@ -34,8 +34,8 @@ export const NETWORK_CONFIG = {
   training: {
     populationSize: 50,
     tournamentSize: 10, // Games per network per generation
-    elitePercentage: 0.2, // Top 20% survive
-    mutationRate: 0.3,
+    elitePercentage: 0.3, // Top 30% survive (BALANCED: not too much, not too little)
+    mutationRate: 0.15, // REDUCED from 0.3 to allow refinement instead of destruction
     mutationAmount: 0.1,
     crossoverRate: 0.5,
 
@@ -50,7 +50,7 @@ export const NETWORK_CONFIG = {
   fitness: {
     damageDealtWeight: 2.0,
     survivalWeight: 1.0,
-    winBonus: 100,
+    winBonus: 200, // INCREASED from 100 to prioritize winning over damage
     accuracyWeight: 50,
     killBonus: 25,
   },

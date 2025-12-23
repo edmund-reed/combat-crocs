@@ -2,6 +2,7 @@
 // Records game states, player actions, and outcomes for machine learning
 
 import { Config, Logger } from "@config";
+import TerrainScanner from "@utils/terrain-scanner.js";
 
 class GameplayRecorder {
   constructor() {
@@ -73,6 +74,9 @@ class GameplayRecorder {
       enemiesKilled: result.enemiesKilled || 0,
       hitSuccess: result.hitSuccess || false,
       selfDamage: result.selfDamage || 0,
+      explosionX: result.explosionX || 0,
+      explosionY: result.explosionY || 0,
+      explosionBlocked: result.explosionBlocked || false,
     };
 
     // Save the completed turn
@@ -85,6 +89,9 @@ class GameplayRecorder {
     const teammates = scene.players.filter(
       p => p.team === currentPlayer.team && p.id !== currentPlayer.id && p.health > 0,
     );
+
+    // Scan terrain in 8 directions
+    const terrainData = TerrainScanner.scanTerrainDistances(scene, currentPlayer.x, currentPlayer.y);
 
     return {
       // Current player state
@@ -133,6 +140,11 @@ class GameplayRecorder {
         hasAttacked: scene.hasAttackedThisTurn,
         canRevive: scene.canReviveThisTurn,
       },
+
+      // Terrain awareness (NEW for AI spatial understanding)
+      terrainDistances: terrainData.directions,
+      minimumTerrainDistance: terrainData.minimum,
+      safetyMargin: terrainData.safetyMargin,
     };
   }
 
