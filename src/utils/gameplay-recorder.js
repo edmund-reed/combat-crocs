@@ -55,6 +55,7 @@ class GameplayRecorder {
   recordAction(scene, action) {
     if (!this.isRecording || !this.currentTurn) return;
 
+    // Pass through all action/decision properties for AI training analysis
     this.currentTurn.action = {
       weaponUsed: action.weapon,
       aimAngle: action.aimAngle,
@@ -62,6 +63,8 @@ class GameplayRecorder {
       targetY: action.targetY,
       movementUsed: action.movementUsed || { left: 0, right: 0 },
       timestamp: Date.now(),
+      // NEW: Include all additional properties (candidates, explorationUsed, etc.)
+      ...action,
     };
   }
 

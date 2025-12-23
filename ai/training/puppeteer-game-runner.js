@@ -4,6 +4,7 @@
 import puppeteer from "puppeteer";
 import path from "path";
 import { fileURLToPath } from "url";
+import neataptic from "neataptic";
 import { encodeGameState, decodeNetworkOutput, logGameStateInputs } from "./network-config.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,6 +17,7 @@ class PuppeteerGameRunner {
       slowMo: options.slowMo || 0, // Delay between actions (ms)
       timeout: options.timeout || 300000, // 5 minute timeout per game
       devServerUrl: options.devServerUrl || "http://localhost:3001",
+      verifyPhysics: options.verifyPhysics || false, // Debug mode: compare predicted vs actual landing
       ...options,
     };
     this.browser = null;
@@ -87,23 +89,20 @@ class PuppeteerGameRunner {
     console.log("✅ Game loaded");
   }
 
-  async setGameSpeed(multiplier = 2.0) {
-    console.log(`⚡ Setting game speed to ${multiplier}x...`);
+  async setGameSpeed(multiplier = 1.0) {
+    console.log(`⚡ Setting up training mode...`);
 
-    await this.page.evaluate(speed => {
-      // Store speed multiplier globally for game scenes to use
-      window.__TRAINING_SPEED_MULTIPLIER__ = speed;
-
+    await this.page.evaluate(() => {
       // Set training mode flags for speed optimizations
       window.__TRAINING_MODE__ = true;
       window.__SKIP_ANIMATIONS__ = true;
       window.__INSTANT_BAZOOKA__ = true;
 
-      // Inject instant bazooka resolver into window for weapon system to use
+      // WORKING PHYSICS SIMULATION (matches PhysicsManager exactly!)
       window.__simulateBazookaPhysics__ = function (scene, startX, startY, angle, velocity) {
         // Create temporary ghost body for simulation
         const tempBody = scene.matter.add.circle(startX, startY, 8, {
-          isSensor: true,
+          isSensor: true, // Ghost - doesn't collide with players
           friction: 0.1,
           restitution: 0.1,
           mass: 1,
@@ -114,7 +113,7 @@ class PuppeteerGameRunner {
         const vy = Math.sin(angle) * velocity;
         scene.matter.body.setVelocity(tempBody, { x: vx, y: vy });
 
-        // Simulate physics steps until collision (max 300 steps)
+        // Simulate physics steps until collision
         const bodies = scene.matter.world.localWorld.bodies;
         let lastValidPos = { x: tempBody.position.x, y: tempBody.position.y };
 
@@ -125,21 +124,48 @@ class PuppeteerGameRunner {
           // Step physics
           scene.matter.world.step(1000 / 60);
 
-          // Check terrain collision AFTER step - if hit, return PREVIOUS position
+          // Check terrain collision AFTER step
           const collisions = Phaser.Physics.Matter.Matter.Query.point(bodies, {
             x: tempBody.position.x,
             y: tempBody.position.y,
           });
 
           if (collisions.find(c => c.isTerrain)) {
-            // Return last valid position (before penetrating terrain)
+            // CRITICAL FIX: Apply same 50px explosion offset as real shots!
+            // This matches PhysicsManager.calculateExplosionPosition()
+            const explosionPos = { x: lastValidPos.x, y: lastValidPos.y };
+            const vel = tempBody.velocity;
+
+            if (vel.x || vel.y) {
+              const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
+              if (speed > 0) {
+                const offset = 50; // Match PhysicsManager.CONFIG.EXPLOSION_OFFSET
+                explosionPos.x -= (vel.x / speed) * offset;
+                explosionPos.y -= (vel.y / speed) * offset;
+              }
+            }
+
             scene.matter.world.remove(tempBody);
-            return lastValidPos;
+
+            // Clamp explosion position to game boundaries
+            const gameWidth = scene.game.config.width;
+            const gameHeight = scene.game.config.height;
+            explosionPos.x = Math.max(0, Math.min(gameWidth, explosionPos.x));
+            explosionPos.y = Math.max(0, Math.min(gameHeight, explosionPos.y));
+
+            return explosionPos;
           }
 
           // Check out of bounds
           if (tempBody.position.y > scene.game.config.height + 100) {
             scene.matter.world.remove(tempBody);
+
+            // Clamp to boundaries before returning
+            const gameWidth = scene.game.config.width;
+            const gameHeight = scene.game.config.height;
+            lastValidPos.x = Math.max(0, Math.min(gameWidth, lastValidPos.x));
+            lastValidPos.y = Math.max(0, Math.min(gameHeight, lastValidPos.y));
+
             return lastValidPos;
           }
 
@@ -156,17 +182,16 @@ class PuppeteerGameRunner {
         return lastValidPos;
       };
 
-      console.log(`[AI] Game speed multiplier set to ${speed}x`);
-      console.log(`[AI] Training mode enabled: skip animations, instant shots`);
-    }, multiplier);
+      console.log(`[AI] Training mode enabled: working physics simulation restored`);
+    });
 
-    console.log(`✅ Game speed set to ${multiplier}x`);
+    console.log(`✅ Training mode configured`);
   }
 
   async startNewGame(network1, network2, gameConfig = {}) {
     const config = {
       mode: gameConfig.mode || "1v1",
-      map: gameConfig.map || "hotelOfHorror",
+      map: gameConfig.map || "dinocoaster", // Changed to static map for testing
       ...gameConfig,
     };
 
@@ -319,11 +344,11 @@ class PuppeteerGameRunner {
 
         // Store teams in game state (StateManager.storeTeams does this)
         window.CombatCrocs.gameState.game.teams = teams;
-        window.CombatCrocs.gameState.game.selectedMap = "hotelOfHorror";
+        window.CombatCrocs.gameState.game.selectedMap = "dinocoaster";
 
         // Use MapManager to properly set the current map
         if (window.MapManager && window.MapManager.setCurrentMap) {
-          window.MapManager.setCurrentMap("hotelOfHorror");
+          window.MapManager.setCurrentMap("dinocoaster");
           console.log("[AI] Map set via MapManager");
         }
 
@@ -884,6 +909,15 @@ class PuppeteerGameRunner {
       action,
     );
 
+    // PHYSICS VERIFICATION: If enabled, disable instant mode temporarily
+    if (this.options.verifyPhysics && action._verificationData) {
+      await this.page.evaluate(() => {
+        window.__INSTANT_BAZOOKA__ = false;
+        window.__LAST_EXPLOSION__ = null;
+        console.log("\n🔬 [PHYSICS VERIFICATION] Real shot mode enabled");
+      });
+    }
+
     // Execute the action in the game
     await this.page.evaluate(action => {
       const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
@@ -934,14 +968,51 @@ class PuppeteerGameRunner {
       window.__AI_TURN_DATA__ = null;
     }, action);
 
-    // Training mode: minimal delay (projectile travel is instant)
-    // Normal mode: allow time for projectile travel
-    const turnDelay = this.options.headless ? 50 : 500;
-    await this.delay(turnDelay);
+    // PHYSICS VERIFICATION: Wait for real shot and compare
+    if (this.options.verifyPhysics && action._verificationData) {
+      // Wait for projectile to land
+      await this.delay(3000);
+
+      // Get actual explosion position and compare
+      const actualExplosion = await this.page.evaluate(() => window.__LAST_EXPLOSION__);
+
+      if (actualExplosion) {
+        const predicted = action._verificationData;
+        const dx = actualExplosion.x - predicted.predictedX;
+        const dy = actualExplosion.y - predicted.predictedY;
+        const diff = Math.sqrt(dx * dx + dy * dy);
+
+        console.log("\n🔬 [PHYSICS VERIFICATION RESULT]");
+        console.log(`  Predicted: (${predicted.predictedX}, ${predicted.predictedY})`);
+        console.log(`  Actual:    (${Math.round(actualExplosion.x)}, ${Math.round(actualExplosion.y)})`);
+        console.log(`  Difference: ${diff.toFixed(1)}px`);
+        console.log(
+          `  ${diff < 20 ? "✅ MATCH!" : diff < 50 ? "⚠️ CLOSE" : "❌ MISMATCH"} (tolerance: 20px)\n`,
+        );
+      } else {
+        console.log("\n🔬 [PHYSICS VERIFICATION] ⚠️ No explosion detected\n");
+      }
+
+      // Re-enable instant mode
+      await this.page.evaluate(() => {
+        window.__INSTANT_BAZOOKA__ = true;
+      });
+    } else {
+      // Training mode: minimal delay (projectile travel is instant)
+      // Normal mode: allow time for projectile travel
+      const turnDelay = this.options.headless ? 50 : 500;
+      await this.delay(turnDelay);
+    }
   }
 
   async makeAIDecision(gameState, team) {
-    // Get the neural network for this team from the browser
+    // TEAM 2 = DUMB OPPONENT (pure random, no simulation, no network)
+    if (team === 2) {
+      return this.makeRandomDecision(gameState);
+    }
+
+    // TEAM 1 = SMART AI (network + look-ahead simulation)
+    // Get the neural network for this team from browser
     const networkJSON = await this.page.evaluate(teamNum => {
       return window.__AI_NETWORKS__?.[`team${teamNum}`];
     }, team);
@@ -951,55 +1022,147 @@ class PuppeteerGameRunner {
       return this.makeRandomDecision(gameState);
     }
 
-    // Encode game state
+    // Encode game state using Node.js function
     const inputs = encodeGameState(gameState);
 
-    // VALIDATION: Log inputs for first few turns (verbose mode)
-    if (this.options.verboseLogging && gameState.context.turnNumber <= 3) {
-      console.log(`\n🔍 INPUT VALIDATION - Team ${team}, Turn ${gameState.context.turnNumber}`);
-      logGameStateInputs(gameState, inputs, true);
-    }
+    // Activate network in Node.js (neataptic imported at top of file!)
+    const network = neataptic.Network.fromJSON(networkJSON);
+    const outputs = network.activate(inputs);
 
-    // Run through network (in Node.js context)
-    const outputs = await this.page.evaluate(
-      (netJSON, inputArray) => {
-        // Reconstruct network from JSON
-        if (!window.neataptic) {
-          // Network not available in browser, return null
+    // Get network's base angle suggestion
+    const networkAngle = outputs[0] * 2 * Math.PI;
+
+    // Pass base angle to browser for look-ahead simulation (always enabled now!)
+    const decision = await this.page.evaluate(
+      (gs, netAngle) => {
+        // Generate 5 candidate angles: 1 from network + 4 random
+        const candidateAngles = [
+          { angle: netAngle, source: "network" },
+          { angle: Math.random() * 2 * Math.PI, source: "random" },
+          { angle: Math.random() * 2 * Math.PI, source: "random" },
+          { angle: Math.random() * 2 * Math.PI, source: "random" },
+          { angle: Math.random() * 2 * Math.PI, source: "random" },
+        ];
+
+        // CLI LOGGING: Show we're simulating (turn 3 only)
+        if (gs.context?.turnNumber === 3 && gs.self.team === 1) {
+          console.log("\n🎯 [LOOK-AHEAD] Simulating 5 candidate shots...");
+        }
+
+        // Simulate each candidate and track details
+        let bestAngle = netAngle;
+        let maxDistance = 0;
+        const candidateDetails = [];
+
+        const playerPos = { x: gs.self.x, y: gs.self.y };
+
+        // Get scene for real physics simulation
+        const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+        if (!scene) {
+          console.log("[AI] ERROR: GameScene not found for physics simulation");
           return null;
         }
-        const { Network } = window.neataptic;
-        const network = Network.fromJSON(netJSON);
 
-        // Activate network
-        return network.activate(inputArray);
+        for (const candidate of candidateAngles) {
+          // Use REAL game physics simulator with CORRECT velocity! 🚀
+          const weaponConfig = window.CombatCrocs.config.WEAPON_CONFIGS.BAZOOKA;
+          const velocity = weaponConfig.initialVelocity || 15; // MUST match weapons.js!
+
+          const landing = window.__simulateBazookaPhysics__(
+            scene,
+            playerPos.x,
+            playerPos.y,
+            candidate.angle,
+            velocity, // FIXED: Use actual game velocity (15, not 500!)
+          );
+
+          // Calculate distance from player to actual landing
+          const dx = landing.x - playerPos.x;
+          const dy = landing.y - playerPos.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          // Track this candidate's details
+          candidateDetails.push({
+            angle: candidate.angle,
+            angleDegrees: (candidate.angle * 180) / Math.PI,
+            source: candidate.source,
+            landingX: Math.round(landing.x),
+            landingY: Math.round(landing.y),
+            distanceFromPlayer: Math.round(distance),
+            selected: false,
+          });
+
+          // CLI LOGGING: Show each candidate (turn 3 only)
+          if (gs.context?.turnNumber === 3 && gs.self.team === 1) {
+            console.log(
+              `  ${candidate.source === "network" ? "🧠" : "🎲"} ${candidate.source.padEnd(7)}: ` +
+                `angle=${((candidate.angle * 180) / Math.PI).toFixed(1)}° → ` +
+                `landing=(${Math.round(landing.x)}, ${Math.round(landing.y)}) → ` +
+                `distance=${Math.round(distance)}px`,
+            );
+          }
+
+          if (distance > maxDistance) {
+            maxDistance = distance;
+            bestAngle = candidate.angle;
+          }
+        }
+
+        // Mark the selected candidate
+        const selectedIndex = candidateDetails.findIndex(c => Math.abs(c.angle - bestAngle) < 0.001);
+        if (selectedIndex !== -1) {
+          candidateDetails[selectedIndex].selected = true;
+        }
+
+        // CLI LOGGING: Show selection (turn 3 only)
+        if (gs.context?.turnNumber === 3 && gs.self.team === 1) {
+          const selected = candidateDetails[selectedIndex];
+          console.log(
+            `\n  ✅ SELECTED: ${selected.source} (${selected.angleDegrees.toFixed(1)}°) - ` +
+              `${selected.distanceFromPlayer}px from player\n`,
+          );
+        }
+
+        return {
+          weapon: "BAZOOKA",
+          aimAngle: bestAngle,
+          aimAngleDegrees: (bestAngle * 180) / Math.PI,
+          targetIndex: 0,
+          power: 1.0,
+          movement: "none",
+          explorationUsed: bestAngle !== netAngle,
+          candidatesChecked: 5,
+          bestDistance: Math.round(maxDistance),
+          candidates: candidateDetails,
+        };
       },
-      networkJSON,
-      inputs,
+      gameState,
+      networkAngle,
     );
 
-    // If browser evaluation failed, use random
-    if (!outputs) {
-      return this.makeRandomDecision(gameState);
+    // PHYSICS VERIFICATION: Compare predicted vs actual landing (if enabled)
+    if (this.options.verifyPhysics && decision && decision.candidates) {
+      const predicted = decision.candidates.find(c => c.selected);
+
+      if (predicted) {
+        // Store predicted landing for comparison after real shot
+        decision._verificationData = {
+          predictedX: predicted.landingX,
+          predictedY: predicted.landingY,
+          angle: predicted.angle,
+        };
+      }
     }
 
-    // Decode outputs to actions
-    const decision = decodeNetworkOutput(outputs);
-
-    return {
-      weapon: decision.weapon,
-      aimAngle: decision.aimAngle,
-      targetIndex: decision.targetIndex,
-      power: decision.power,
-      movement: decision.movement,
-    };
+    return decision;
   }
 
   makeRandomDecision(gameState) {
     // Fallback: Random decision when no network available
+    // FIXED: Use full 360° range (not just forward hemisphere)
     return {
       weapon: "BAZOOKA",
-      aimAngle: (Math.random() - 0.5) * Math.PI,
+      aimAngle: Math.random() * 2 * Math.PI, // 0 to 2π (full circle)
       targetIndex: 0,
       power: 1.0,
       movement: "none",
