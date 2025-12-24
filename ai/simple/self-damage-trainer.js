@@ -374,7 +374,7 @@ async function saveCheckpoint(neat, generation, stats) {
   const checkpoint = {
     generation: generation,
     timestamp: new Date().toISOString(),
-    bestNetwork: neat.population[0].toJSON(),
+    population: neat.population.map(net => net.toJSON()), // FIXED: Save entire population
     stats: {
       bestFitness: stats.bestFitness,
       avgFitness: stats.avgFitness,
@@ -393,7 +393,7 @@ async function saveCheckpoint(neat, generation, stats) {
   const filepath = path.join(checkpointDir, filename);
   await fs.promises.writeFile(filepath, JSON.stringify(checkpoint, null, 2));
 
-  console.log(`  💾 Checkpoint saved: ${filename}`);
+  console.log(`  💾 Checkpoint saved: ${filename} (full population: ${neat.population.length} networks)`);
 }
 
 async function cleanupOldCheckpoints(currentGen) {
@@ -409,8 +409,8 @@ async function cleanupOldCheckpoints(currentGen) {
       })
       .sort((a, b) => b.generation - a.generation); // Sort descending
 
-    // Keep only last 5 checkpoints
-    const toDelete = checkpointFiles.slice(5);
+    // Keep only last 2 checkpoints (full population takes more space)
+    const toDelete = checkpointFiles.slice(2);
 
     for (const file of toDelete) {
       const filepath = path.join(checkpointDir, file.filename);
@@ -534,7 +534,7 @@ async function playSingleGame(runner, network, opponent, map, gameNum, totalGame
 }
 
 // =============================================================================
-// MODEL PERSISTENCE
+// MODEL PERSISTENCE & CHECKPOINT LOADING
 // =============================================================================
 
 async function loadBestModel() {
@@ -544,6 +544,40 @@ async function loadBestModel() {
     return JSON.parse(modelData);
   } catch (error) {
     return null; // No existing model
+  }
+}
+
+async function loadFromCheckpoint() {
+  const checkpointDir = path.join(process.cwd(), "../../ai/checkpoints");
+
+  try {
+    const files = await fs.promises.readdir(checkpointDir);
+    const checkpointFiles = files
+      .filter(f => f.startsWith("self-damage-checkpoint-gen") && f.endsWith(".json"))
+      .map(f => {
+        const match = f.match(/gen(\d+)\.json$/);
+        return { filename: f, generation: match ? parseInt(match[1]) : 0 };
+      })
+      .sort((a, b) => b.generation - a.generation); // Sort descending
+
+    if (checkpointFiles.length === 0) {
+      return null; // No checkpoints found
+    }
+
+    // Load the latest checkpoint
+    const latestCheckpoint = checkpointFiles[0];
+    const filepath = path.join(checkpointDir, latestCheckpoint.filename);
+    const checkpointData = await fs.promises.readFile(filepath, "utf-8");
+    const checkpoint = JSON.parse(checkpointData);
+
+    return {
+      generation: checkpoint.generation,
+      population: checkpoint.population,
+      stats: checkpoint.stats,
+    };
+  } catch (error) {
+    console.log(`  ⚠️  Error loading checkpoint: ${error.message}`);
+    return null;
   }
 }
 
@@ -656,13 +690,14 @@ async function trainSelfDamageAvoidance() {
   // CRITICAL FIX: Load previous model if exists
   const existingModel = await loadBestModel();
   if (existingModel) {
-    console.log(`\n📂 Loading previous best model...`);
-    console.log(`  ✅ Found existing model - will seed population`);
-  } else {
-    console.log(`\n🆕 Starting from scratch with proper architecture`);
+    console.log(`\n📂 Loading previous training session...`);
   }
 
   const startTime = Date.now();
+
+  // CRITICAL FIX: Load entire population from checkpoint, not just best model!
+  const checkpoint = await loadFromCheckpoint();
+  let startingGeneration = 0;
 
   const neat = new Neat(config.networkConfig.inputs, config.networkConfig.outputs, null, {
     popsize: config.populationSize,
@@ -670,24 +705,34 @@ async function trainSelfDamageAvoidance() {
     elitism: config.elitism,
   });
 
-  // CRITICAL FIX: Seed population with proper hidden layer architecture!
-  if (existingModel) {
+  if (checkpoint && checkpoint.population) {
+    // Restore entire population from checkpoint
     try {
       const { Network } = neataptic;
-      neat.population[0] = Network.fromJSON(existingModel);
-      console.log(`  ✅ Seeded Network #1 with previous best model\n`);
+      startingGeneration = checkpoint.generation;
+
+      neat.population = checkpoint.population.map(netJSON => Network.fromJSON(netJSON));
+
+      console.log(`  ✅ Restored full population from generation ${startingGeneration}`);
+      console.log(`  📊 Loaded ${neat.population.length} networks`);
+      console.log(`  📈 Previous stats: avg self-damage ${checkpoint.stats.avgSelfDamage.toFixed(1)} HP\n`);
     } catch (error) {
-      console.log(`  ⚠️  Could not load model: ${error.message}\n`);
+      console.log(`  ⚠️  Could not load checkpoint: ${error.message}`);
+      console.log(`  🆕 Starting from scratch instead\n`);
+      startingGeneration = 0;
     }
-  } else {
-    // Create template network with hidden layers
+  }
+
+  if (startingGeneration === 0) {
+    // Starting fresh - create template network with hidden layers
     const template = createTemplateNetwork(
       config.networkConfig.inputs,
       config.networkConfig.outputs,
       config.networkConfig.hidden,
     );
 
-    console.log(`\n🧬 Seeding population with proper architecture...`);
+    console.log(`\n🆕 Starting from generation 0`);
+    console.log(`🧬 Seeding population with proper architecture...`);
     const { Network } = neataptic;
 
     // Seed all networks with template + random variations
@@ -746,8 +791,7 @@ async function trainSelfDamageAvoidance() {
   const dumbOpponent = createDumbOpponent();
   console.log("🤖 Created static dumb opponent for consistent training environment\n");
 
-  // CUMULATIVE GENERATION TRACKING: Load starting generation from checkpoints
-  const startingGeneration = await getLastGenerationNumber();
+  // startingGeneration already set during checkpoint loading above
   if (startingGeneration > 0) {
     console.log(`📂 Continuing from generation ${startingGeneration}`);
     console.log(

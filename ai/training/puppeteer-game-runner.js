@@ -216,8 +216,8 @@ class PuppeteerGameRunner {
           }
         });
 
-        // Brief delay to let first turn initialize
-        await this.delay(200);
+        // Brief delay to let first turn initialize (reduced for speed)
+        await this.delay(50);
 
         // Play the game
         const result = await this.playGame();
@@ -257,8 +257,8 @@ class PuppeteerGameRunner {
     console.log("  📋 Navigating to game...");
 
     // CRITICAL FIX: Add delay to ensure page main frame is ready
-    // Reduce delay in headless mode for speed
-    const initDelay = this.options.headless ? 50 : 1000;
+    // Minimized for maximum speed in headless mode
+    const initDelay = this.options.headless ? 0 : 1000;
     await this.delay(initDelay);
 
     // Wait for Phaser and CombatCrocs to be ready with retry logic
@@ -595,8 +595,8 @@ class PuppeteerGameRunner {
         // Execute AI turn
         await this.executeAITurn();
 
-        // Brief delay between turns (reduced in headless)
-        const betweenTurnsDelay = this.options.headless ? 10 : 100;
+        // Brief delay between turns (removed in headless for max speed)
+        const betweenTurnsDelay = this.options.headless ? 0 : 100;
         await this.delay(betweenTurnsDelay);
       }
 
@@ -998,9 +998,9 @@ class PuppeteerGameRunner {
         window.__INSTANT_BAZOOKA__ = true;
       });
     } else {
-      // Training mode: minimal delay (projectile travel is instant)
+      // Training mode: no delay (projectile travel is instant with __INSTANT_BAZOOKA__)
       // Normal mode: allow time for projectile travel
-      const turnDelay = this.options.headless ? 50 : 500;
+      const turnDelay = this.options.headless ? 0 : 500;
       await this.delay(turnDelay);
     }
   }

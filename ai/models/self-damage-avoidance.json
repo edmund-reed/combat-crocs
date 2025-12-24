@@ -8,7 +8,7 @@
       "index": 0
     },
     {
-      "bias": 0.07880195608807747,
+      "bias": 0,
       "type": "input",
       "squash": "LOGISTIC",
       "mask": 1,
@@ -57,14 +57,14 @@
       "index": 7
     },
     {
-      "bias": -0.2945465123618781,
+      "bias": 0,
       "type": "input",
       "squash": "LOGISTIC",
       "mask": 1,
       "index": 8
     },
     {
-      "bias": 0.08534254681226372,
+      "bias": 0,
       "type": "input",
       "squash": "LOGISTIC",
       "mask": 1,
@@ -85,21 +85,21 @@
       "index": 11
     },
     {
-      "bias": 0.12692620875753335,
+      "bias": 0,
       "type": "input",
       "squash": "LOGISTIC",
       "mask": 1,
       "index": 12
     },
     {
-      "bias": -0.3194751480757893,
+      "bias": 0,
       "type": "input",
       "squash": "LOGISTIC",
       "mask": 1,
       "index": 13
     },
     {
-      "bias": 0.22158998124812077,
+      "bias": 0,
       "type": "input",
       "squash": "LOGISTIC",
       "mask": 1,
@@ -365,7 +365,7 @@
       "index": 51
     },
     {
-      "bias": 0.09329934197179343,
+      "bias": 0.04965091985560641,
       "type": "output",
       "squash": "LOGISTIC",
       "mask": 1,
@@ -3128,7 +3128,7 @@
       "gater": null
     },
     {
-      "weight": -0.23409308752535202,
+      "weight": 5.614505898955807,
       "from": 13,
       "to": 16,
       "gater": null
@@ -3344,7 +3344,7 @@
       "gater": null
     },
     {
-      "weight": 0.08153545189080177,
+      "weight": 4.042272814118185,
       "from": 10,
       "to": 16,
       "gater": null
@@ -3584,7 +3584,7 @@
       "gater": null
     },
     {
-      "weight": 0.07034221760341292,
+      "weight": 4.344621014580077,
       "from": 5,
       "to": 16,
       "gater": null
@@ -3614,7 +3614,7 @@
       "gater": null
     },
     {
-      "weight": 2.1822197548352014,
+      "weight": 4.079533553953866,
       "from": 4,
       "to": 16,
       "gater": null
@@ -3656,7 +3656,7 @@
       "gater": null
     },
     {
-      "weight": 0.2447515769736563,
+      "weight": 2.351591602803721,
       "from": 2,
       "to": 16,
       "gater": null
