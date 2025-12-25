@@ -1,6 +1,6 @@
 // Self-Damage Avoidance Trainer
-// FOCUSED goal: Teach AI to avoid damaging itself (no enemy targeting concerns)
-// Simplified 20 inputs: position + feedback + terrain (NO enemy data)
+// FOCUSED goal: Teach AI to avoid damaging itself while considering enemy position
+// 22 inputs: self status + enemy + feedback (enhanced) + terrain + context
 
 import neataptic from "neataptic";
 const { Neat } = neataptic;
@@ -10,64 +10,68 @@ import path from "path";
 import { analyzeNetwork, generateAnalysisSummary, compareGenerations } from "./network-analyzer.js";
 
 // =============================================================================
-// SIMPLIFIED ENCODING - 20 inputs (removed enemy data for clarity)
+// ENHANCED ENCODING - 22 inputs (optimized)
 // =============================================================================
 
 function encodeSelfDamageGameState(gameState) {
   const inputs = [];
-
-  // === BLAST RADIUS (1) ===
-  inputs.push(140); // Bazooka blast radius - key safety threshold
 
   // === SELF POSITION & HEALTH (3) ===
   inputs.push(gameState.self.x);
   inputs.push(gameState.self.y);
   inputs.push(gameState.self.health / gameState.self.maxHealth);
 
-  // === SELF-DAMAGE FEEDBACK (3) === Only self-damage, not enemy damage
-  const feedback = gameState.shotFeedback || {};
-  inputs.push(feedback.didDamageSelf ? 1 : 0);
-  inputs.push(feedback.damageTaken || 0);
+  // === ENEMY POSITION & HEALTH (3) ===
+  const enemy = gameState.enemies && gameState.enemies[0];
+  if (enemy) {
+    inputs.push(enemy.x || 0);
+    inputs.push(enemy.y || 0);
+    inputs.push((enemy.health || 0) / (enemy.maxHealth || 100));
+  } else {
+    inputs.push(0);
+    inputs.push(0);
+    inputs.push(0);
+  }
 
-  // === LAST EXPLOSION DISTANCE (1) === How far was I from my last explosion?
-  const explosionDist = feedback.explosionX
+  // === LAST AIM ANGLE (1) === What did I choose last turn?
+  const lastDecision = gameState.lastDecision || {};
+  inputs.push(lastDecision.aimAngle || 0);
+
+  // === ENHANCED EXPLOSION FEEDBACK (6) ===
+  const feedback = gameState.shotFeedback || {};
+  inputs.push(feedback.explosionX || 0);
+  inputs.push(feedback.explosionY || 0);
+
+  // Distance from self to explosion
+  const explosionDistFromSelf = feedback.explosionX
     ? Math.sqrt(
         Math.pow(gameState.self.x - feedback.explosionX, 2) +
           Math.pow(gameState.self.y - feedback.explosionY, 2),
       )
     : 1000;
-  inputs.push(explosionDist);
+  inputs.push(explosionDistFromSelf);
 
-  // === TERRAIN DISTANCES (8 directions) === Critical for spatial awareness
-  const terrainDists = gameState.terrainDistances || [500, 500, 500, 500, 500, 500, 500, 500];
+  // NEW: Distance from enemy to explosion (accuracy feedback)
+  const explosionDistFromEnemy =
+    feedback.explosionX && enemy
+      ? Math.sqrt(Math.pow(enemy.x - feedback.explosionX, 2) + Math.pow(enemy.y - feedback.explosionY, 2))
+      : 1000;
+  inputs.push(explosionDistFromEnemy);
+
+  inputs.push(feedback.damageTaken || 0);
+
+  // NEW: Binary flag - did we hit the enemy last turn?
+  const didHitEnemy = feedback.didDamageEnemy ? 1 : 0;
+  inputs.push(didHitEnemy);
+
+  // === TERRAIN DISTANCES (8 directions) ===
+  const terrainDists = gameState.terrain || [500, 500, 500, 500, 500, 500, 500, 500];
   inputs.push(...terrainDists);
 
-  // === MIN TERRAIN (1) === Closest wall distance
-  const minTerrain = Math.min(...terrainDists);
-  inputs.push(minTerrain);
+  // === TIME REMAINING (1) ===
+  inputs.push(gameState.context?.timeRemaining || 30);
 
-  // CLI LOGGING: Show AI's turn 2 inputs (raw 16-value array)
-  if (typeof console !== "undefined" && gameState.context?.turnNumber === 3 && gameState.self.team === 1) {
-    console.log("\n📊 [AI TURN 2 INPUTS] Raw 16-value array:");
-    console.log(
-      `  [${inputs.map((v, i) => `${v.toFixed(1)}${i < inputs.length - 1 ? ", " : ""}`).join("")}]`,
-    );
-    console.log("\n  Breakdown:");
-    console.log(`    blastRadius: ${inputs[0]}`);
-    console.log(`    position: (${inputs[1].toFixed(0)}, ${inputs[2].toFixed(0)})`);
-    console.log(`    healthPercent: ${inputs[3].toFixed(2)}`);
-    console.log(`    selfDamageFeedback: (${inputs[4]}, ${inputs[5]})`);
-    console.log(`    explosionDist: ${inputs[6].toFixed(0)}`);
-    console.log(
-      `    terrain: [${inputs
-        .slice(7, 15)
-        .map(v => v.toFixed(0))
-        .join(", ")}]`,
-    );
-    console.log(`    minTerrain: ${inputs[15].toFixed(0)}\n`);
-  }
-
-  // Total: 16 inputs (simplified - removed redundant metrics)
+  // Total: 22 inputs (removed constant ammo, added accuracy feedback)
   return inputs;
 }
 
@@ -77,13 +81,19 @@ function encodeSelfDamageGameState(gameState) {
 
 function getInputLabels() {
   return [
-    "blastRadius",
     "selfX",
     "selfY",
     "selfHealthPercent",
-    "didDamageSelf",
+    "enemyX",
+    "enemyY",
+    "enemyHealthPercent",
+    "lastAimAngle",
+    "explosionX",
+    "explosionY",
+    "explosionDistFromSelf",
+    "explosionDistFromEnemy",
     "damageTaken",
-    "explosionDistance",
+    "didHitEnemy",
     "terrainRight",
     "terrainUpRight",
     "terrainUp",
@@ -92,7 +102,7 @@ function getInputLabels() {
     "terrainDownLeft",
     "terrainDown",
     "terrainDownRight",
-    "minTerrain",
+    "timeRemaining",
   ];
 }
 
@@ -104,40 +114,50 @@ function createLabeledInputObject(gameState, inputArray) {
     labeled[label] = inputArray[index];
   });
 
-  // Add human-readable sections
+  // Create human-readable structure showing the exact model inputs
   return {
-    blastRadius: labeled.blastRadius,
-    self: {
-      x: labeled.selfX,
-      y: labeled.selfY,
-      healthPercent: labeled.selfHealthPercent,
+    modelInputs: inputArray, // <-- RAW 22-value array fed to network
+    inputLabels: labeled, // <-- Same values with labels
+    structuredData: {
+      self: {
+        x: labeled.selfX,
+        y: labeled.selfY,
+        healthPercent: labeled.selfHealthPercent,
+      },
+      enemy: {
+        x: labeled.enemyX,
+        y: labeled.enemyY,
+        healthPercent: labeled.enemyHealthPercent,
+      },
+      lastDecision: {
+        aimAngle: labeled.lastAimAngle,
+        aimAngleDegrees: (labeled.lastAimAngle * 180) / Math.PI,
+      },
+      explosion: {
+        x: labeled.explosionX,
+        y: labeled.explosionY,
+        distanceFromSelf: labeled.explosionDistFromSelf,
+        distanceFromEnemy: labeled.explosionDistFromEnemy,
+        damageTaken: labeled.damageTaken,
+        didHitEnemy: labeled.didHitEnemy,
+      },
+      terrain: {
+        directions: [
+          labeled.terrainRight,
+          labeled.terrainUpRight,
+          labeled.terrainUp,
+          labeled.terrainUpLeft,
+          labeled.terrainLeft,
+          labeled.terrainDownLeft,
+          labeled.terrainDown,
+          labeled.terrainDownRight,
+        ],
+        directionNames: ["right", "upRight", "up", "upLeft", "left", "downLeft", "down", "downRight"],
+      },
+      context: {
+        timeRemaining: labeled.timeRemaining,
+      },
     },
-    feedback: {
-      didDamageSelf: labeled.didDamageSelf === 1,
-      damageTaken: labeled.damageTaken,
-    },
-    lastExplosion: {
-      x: labeled.lastExplosionX,
-      y: labeled.lastExplosionY,
-      distanceFromSelf: labeled.explosionDistance,
-    },
-    terrain: {
-      directions: [
-        labeled.terrainRight,
-        labeled.terrainUpRight,
-        labeled.terrainUp,
-        labeled.terrainUpLeft,
-        labeled.terrainLeft,
-        labeled.terrainDownLeft,
-        labeled.terrainDown,
-        labeled.terrainDownRight,
-      ],
-      directionNames: ["right", "upRight", "up", "upLeft", "left", "downLeft", "down", "downRight"],
-      minDistance: labeled.minTerrain,
-      rightDistance: labeled.rightTerrain,
-      safetyMargin: labeled.safetyMargin,
-    },
-    rawInputArray: inputArray,
   };
 }
 
@@ -147,24 +167,56 @@ function decodeNetworkOutput(outputs, gameState) {
 
   // CLI LOGGING: Show we're simulating
   if (typeof console !== "undefined" && gameState.context?.turnNumber === 3) {
-    console.log("\n🎯 [LOOK-AHEAD] Simulating 5 candidate shots...");
+    console.log("\n🎯 [LOOK-AHEAD] Simulating 10 candidate shots...");
   }
 
-  // Generate 5 candidate angles: 1 network + 4 random
+  // Generate 10 candidate angles: 1 network + 9 random
   const candidateAngles = [
     { angle: baseAngle, source: "network" },
     { angle: Math.random() * 2 * Math.PI, source: "random" },
     { angle: Math.random() * 2 * Math.PI, source: "random" },
     { angle: Math.random() * 2 * Math.PI, source: "random" },
     { angle: Math.random() * 2 * Math.PI, source: "random" },
+    { angle: Math.random() * 2 * Math.PI, source: "random" },
+    { angle: Math.random() * 2 * Math.PI, source: "random" },
+    { angle: Math.random() * 2 * Math.PI, source: "random" },
+    { angle: Math.random() * 2 * Math.PI, source: "random" },
+    { angle: Math.random() * 2 * Math.PI, source: "random" },
   ];
+
+  // Helper function: Check if terrain blocks line-of-sight from landing to enemy
+  const checkTerrainLineOfSight = (landingX, landingY, targetX, targetY) => {
+    // Sample points along the line from landing to enemy
+    const samples = 10;
+    const dx = targetX - landingX;
+    const dy = targetY - landingY;
+
+    for (let i = 1; i < samples; i++) {
+      const t = i / samples;
+      const checkX = landingX + dx * t;
+      const checkY = landingY + dy * t;
+
+      // Check if this point hits terrain
+      const terrainBodies = gameState.terrain || [];
+      // Simple distance check - if any terrain raycast is very short in this direction, blocked
+      // This is a simplified check - in browser we'd do proper collision detection
+
+      // For now, return true (clear) - will implement proper check in browser
+      // The browser version will use actual terrain collision data
+    }
+
+    return true; // Assume clear for training (browser will do real check)
+  };
 
   // Simulate each candidate and track details
   let bestAngle = baseAngle;
-  let maxDistance = 0;
+  let minDistToEnemy = Infinity;
+  let minDistToEnemyClear = Infinity; // Track best with clear LOS
   const candidateDetails = [];
 
   const playerPos = { x: gameState.self.x, y: gameState.self.y };
+  const enemy = gameState.enemies && gameState.enemies[0];
+  const enemyPos = enemy ? { x: enemy.x, y: enemy.y } : { x: 600, y: 400 }; // Fallback to center
 
   for (const candidate of candidateAngles) {
     // Simulate shot landing position (simplified physics)
@@ -176,10 +228,15 @@ function decodeNetworkOutput(outputs, gameState) {
     const landingY =
       playerPos.y + Math.sin(candidate.angle) * velocity * time * 60 + 0.5 * gravity * time * time * 60 * 60;
 
-    // Calculate distance from player to landing
+    // Calculate distance from landing to enemy (NEW: aim at enemy!)
+    const dxToEnemy = landingX - enemyPos.x;
+    const dyToEnemy = landingY - enemyPos.y;
+    const distToEnemy = Math.sqrt(dxToEnemy * dxToEnemy + dyToEnemy * dyToEnemy);
+
+    // Also track distance from player (for logging)
     const dx = landingX - playerPos.x;
     const dy = landingY - playerPos.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    const distFromPlayer = Math.sqrt(dx * dx + dy * dy);
 
     // Track this candidate's details
     candidateDetails.push({
@@ -188,7 +245,8 @@ function decodeNetworkOutput(outputs, gameState) {
       source: candidate.source,
       landingX: Math.round(landingX),
       landingY: Math.round(landingY),
-      distanceFromPlayer: Math.round(distance),
+      distanceFromPlayer: Math.round(distFromPlayer),
+      distanceToEnemy: Math.round(distToEnemy), // NEW: track proximity to enemy
       selected: false, // Will update after finding best
     });
 
@@ -198,12 +256,13 @@ function decodeNetworkOutput(outputs, gameState) {
         `  ${candidate.source === "network" ? "🧠" : "🎲"} ${candidate.source.padEnd(7)}: ` +
           `angle=${((candidate.angle * 180) / Math.PI).toFixed(1)}° → ` +
           `landing=(${Math.round(landingX)}, ${Math.round(landingY)}) → ` +
-          `distance=${Math.round(distance)}px`,
+          `distToEnemy=${Math.round(distToEnemy)}px`,
       );
     }
 
-    if (distance > maxDistance) {
-      maxDistance = distance;
+    // NEW: Pick shot that lands CLOSEST to enemy (attack-focused)
+    if (distToEnemy < minDistToEnemy) {
+      minDistToEnemy = distToEnemy;
       bestAngle = candidate.angle;
     }
   }
@@ -219,7 +278,7 @@ function decodeNetworkOutput(outputs, gameState) {
     const selected = candidateDetails[selectedIndex];
     console.log(
       `\n  ✅ SELECTED: ${selected.source} (${selected.angleDegrees.toFixed(1)}°) - ` +
-        `${selected.distanceFromPlayer}px from player\n`,
+        `${selected.distanceToEnemy}px from enemy\n`,
     );
   }
 
@@ -231,8 +290,8 @@ function decodeNetworkOutput(outputs, gameState) {
     power: 1.0,
     movement: "none",
     explorationUsed: bestAngle !== baseAngle,
-    candidatesChecked: 5,
-    bestDistance: Math.round(maxDistance),
+    candidatesChecked: 10,
+    bestDistanceToEnemy: Math.round(minDistToEnemy), // NEW: track proximity to target
     candidates: candidateDetails,
   };
 
@@ -246,22 +305,90 @@ function decodeNetworkOutput(outputs, gameState) {
 }
 
 // =============================================================================
-// ENHANCED FITNESS - PURE SELF-DAMAGE AVOIDANCE
+// BALANCED FITNESS - Avoid self-damage AND attack enemy
 // =============================================================================
 
-function calculateFitness(gameStats) {
+function calculateFitness(gameStats, decision) {
   let fitness = 100; // Base survival
 
-  // Self damage (PRIMARY goal - heavy penalty!)
-  const myStartHealth = gameStats.initialHealth?.team1?.totalHealth || 100;
-  const myEndHealth = gameStats.teams?.[1]?.totalHealth !== undefined ? gameStats.teams[1].totalHealth : 100;
-  const selfDamage = Math.max(0, myStartHealth - myEndHealth);
-  fitness -= selfDamage * 15; // Heavy penalty for self-damage
+  // === ACCURATE DAMAGE TRACKING FROM SHOT FEEDBACK ===
+  // Each turn's shotFeedback shows what happened from the PREVIOUS turn
+  // To see what WE (team 1) did, we check ENEMY's (team 2) turn feedback
+  const turnData = gameStats.turnData || [];
 
-  // Win bonus (secondary - much smaller now)
-  if (gameStats.winner === 1) fitness += 50;
+  let selfDamage = 0;
+  let enemyDamageDealt = 0;
 
-  return fitness;
+  // Look at ENEMY turns (team 2) - their feedback shows what WE did
+  for (let i = 0; i < turnData.length; i++) {
+    const turn = turnData[i];
+
+    if (turn.team === 2 && turn.inputs?.shotFeedback) {
+      const feedback = turn.inputs.shotFeedback;
+
+      // Enemy's feedback shows the result of OUR previous shot
+      if (feedback.didDamageSelf) {
+        // They took damage from us = we hit them
+        enemyDamageDealt += feedback.damageTaken || 0;
+      }
+
+      if (feedback.didDamageEnemy) {
+        // They "damaged enemy" (us) = we hit ourselves
+        selfDamage += feedback.damageDealt || 0;
+      }
+    }
+  }
+
+  // === SELF DAMAGE PENALTY (avoid hurting yourself) ===
+  fitness -= selfDamage * 3; // Reduced penalty to prioritize attacking (was 5)
+
+  // === ENEMY DAMAGE REWARD (attack the opponent) ===
+  fitness += enemyDamageDealt * 5; // STRONG reward for hurting enemy (was 3) - ATTACK FIRST!
+
+  // === AIM QUALITY BONUS (network suggestion won look-ahead) ===
+  // Small bonus if network's angle beat 4 random alternatives
+  // Helps accelerate early learning by providing direct feedback
+  if (decision && !decision.explorationUsed) {
+    fitness += 15; // Small bonus - outcome rewards still dominate
+  }
+
+  // === DAMAGE EFFICIENCY BONUS (reward damage per turn) ===
+  const turns = gameStats.turns || 50;
+  const damagePerTurn = turns > 0 ? enemyDamageDealt / turns : 0;
+
+  if (damagePerTurn > 0) {
+    // Bonus for high damage efficiency
+    // 40+ HP/turn = excellent (games end in ~2 turns)
+    // 20 HP/turn = good (games end in ~5 turns)
+    // 10 HP/turn = okay (games end in ~10 turns)
+    let efficiencyBonus = 0;
+
+    if (damagePerTurn >= 40) {
+      efficiencyBonus = 100; // Major bonus for ultra-fast kills
+    } else if (damagePerTurn >= 20) {
+      efficiencyBonus = 50; // Good bonus for fast kills
+    } else if (damagePerTurn >= 10) {
+      efficiencyBonus = 25; // Small bonus for decent efficiency
+    } else {
+      efficiencyBonus = damagePerTurn * 2; // Linear scaling below 10 HP/turn
+    }
+
+    fitness += efficiencyBonus;
+  }
+
+  // === WIN BONUS (achieved through skill, not luck) ===
+  // Only give win bonus if we actively damaged the enemy
+  if (gameStats.winner === 1) {
+    if (enemyDamageDealt > 30) {
+      // Earned win through combat
+      fitness += 150; // Major bonus for legitimate victory
+    } else {
+      // Won passively (enemy killed itself) - small bonus
+      fitness += 30; // Discourage "do nothing and wait" strategy
+    }
+  }
+
+  return { fitness, enemyDamageDealt, selfDamage, turns, damagePerTurn };
 }
 
 // =============================================================================
@@ -438,7 +565,7 @@ const config = {
   generations: parseInt(getArg("--gen", "10")),
   mutationRate: parseFloat(getArg("--mutation", "0.2")),
   gamesPerEvaluation: parseInt(getArg("--games", "8")),
-  elitism: parseInt(getArg("--elitism", "4")),
+  elitism: parseInt(getArg("--elitism", "10")),
   headless: !hasFlag("--headed"),
   testMode: hasFlag("--test"),
   parallelTabs: parseInt(getArg("--tabs", "1")),
@@ -450,9 +577,9 @@ const config = {
   maps: ["heavyMetalCoaster", "dinocoaster", "magnificentBulk"],
 
   networkConfig: {
-    inputs: 16, // Simplified - removed redundant/confusing metrics
+    inputs: 22, // Optimized: self + enemy + enhanced feedback + terrain + context
     outputs: 1,
-    hidden: [16, 12, 8], // Increased capacity for spatial reasoning
+    hidden: [22, 16, 10], // Scaled for 22 inputs - efficient architecture
   },
 };
 
@@ -498,15 +625,16 @@ async function playSingleGame(runner, network, opponent, map, gameNum, totalGame
 
   if (result.error) {
     console.log(`  ⚠️  Error: ${result.error}`);
-    return { fitness: -1000, selfDamage: 100, error: true };
+    return { fitness: -1000, selfDamage: 100, enemyDamage: 0, error: true };
   }
 
-  const fitness = calculateFitness(result.stats);
+  // NEW: calculateFitness now returns object with metrics
+  const fitnessResult = calculateFitness(result.stats, result.decision);
+  const { fitness, enemyDamageDealt, selfDamage, turns, damagePerTurn } = fitnessResult;
 
   const myStartHealth = result.stats.initialHealth?.team1?.totalHealth || 100;
   const myEndHealth =
     result.stats.teams?.[1]?.totalHealth !== undefined ? result.stats.teams[1].totalHealth : 100;
-  const selfDamage = Math.max(0, myStartHealth - myEndHealth);
 
   // FIXED: Log game data with turn-by-turn inputs if available!
   if (shouldLog) {
@@ -518,6 +646,7 @@ async function playSingleGame(runner, network, opponent, map, gameNum, totalGame
       result: {
         winner: result.stats.winner,
         selfDamage: selfDamage,
+        enemyDamage: enemyDamageDealt, // NEW: Track enemy damage
         fitness: fitness,
         initialHealth: myStartHealth,
         finalHealth: myEndHealth,
@@ -530,7 +659,25 @@ async function playSingleGame(runner, network, opponent, map, gameNum, totalGame
 
   const won = result.stats.winner === 1;
 
-  return { fitness, selfDamage, won, error: false };
+  // Track network angle selection (from turn data if available)
+  let networkAngleSelections = 0;
+  let totalDecisions = 0;
+  if (result.stats.turnData && result.stats.turnData.length > 0) {
+    const aiTurns = result.stats.turnData.filter(turn => turn.team === 1);
+    totalDecisions = aiTurns.length;
+    networkAngleSelections = aiTurns.filter(turn => !turn.decision?.explorationUsed).length;
+  }
+
+  return {
+    fitness,
+    selfDamage,
+    enemyDamage: enemyDamageDealt,
+    damagePerTurn,
+    won,
+    error: false,
+    networkAngleSelections,
+    totalDecisions,
+  };
 }
 
 // =============================================================================
@@ -640,6 +787,12 @@ async function saveTrainingHistory(generationStats, startingGen, startTime) {
 
   history.trainingSessions.push(session);
 
+  // Keep only the last 5 sessions to prevent file bloat
+  if (history.trainingSessions.length > 5) {
+    history.trainingSessions = history.trainingSessions.slice(-5);
+    console.log(`\n🗑️  Trimmed training history to last 5 sessions`);
+  }
+
   await fs.promises.writeFile(historyPath, JSON.stringify(history, null, 2));
   console.log(`\n📊 Training history saved to: ai/analysis/training-history.json`);
 }
@@ -675,7 +828,7 @@ async function trainSelfDamageAvoidance() {
   console.log(`  - Generations: ${config.generations}`);
   console.log(`  - Games per network: ${config.gamesPerEvaluation}`);
   console.log(`  - Parallel tabs: ${config.parallelTabs}`);
-  console.log(`  - Inputs: ${config.networkConfig.inputs} (SIMPLIFIED - no enemy data)`);
+  console.log(`  - Inputs: ${config.networkConfig.inputs} (ENHANCED - with enemy + weapons + context)`);
   console.log(
     `  - Architecture: ${config.networkConfig.inputs} → [${config.networkConfig.hidden.join(",")}] → ${
       config.networkConfig.outputs
@@ -706,20 +859,29 @@ async function trainSelfDamageAvoidance() {
   });
 
   if (checkpoint && checkpoint.population) {
-    // Restore entire population from checkpoint
-    try {
-      const { Network } = neataptic;
-      startingGeneration = checkpoint.generation;
-
-      neat.population = checkpoint.population.map(netJSON => Network.fromJSON(netJSON));
-
-      console.log(`  ✅ Restored full population from generation ${startingGeneration}`);
-      console.log(`  📊 Loaded ${neat.population.length} networks`);
-      console.log(`  📈 Previous stats: avg self-damage ${checkpoint.stats.avgSelfDamage.toFixed(1)} HP\n`);
-    } catch (error) {
-      console.log(`  ⚠️  Could not load checkpoint: ${error.message}`);
-      console.log(`  🆕 Starting from scratch instead\n`);
+    // Check if checkpoint population size matches config
+    if (checkpoint.population.length !== config.populationSize) {
+      console.log(
+        `  ⚠️  Checkpoint has ${checkpoint.population.length} networks but config specifies ${config.populationSize}`,
+      );
+      console.log(`  🆕 Starting fresh to match requested population size\n`);
       startingGeneration = 0;
+    } else {
+      // Restore entire population from checkpoint
+      try {
+        const { Network } = neataptic;
+        startingGeneration = checkpoint.generation;
+
+        neat.population = checkpoint.population.map(netJSON => Network.fromJSON(netJSON));
+
+        console.log(`  ✅ Restored full population from generation ${startingGeneration}`);
+        console.log(`  📊 Loaded ${neat.population.length} networks`);
+        console.log(`  📈 Previous stats: avg self-damage ${checkpoint.stats.avgSelfDamage.toFixed(1)} HP\n`);
+      } catch (error) {
+        console.log(`  ⚠️  Could not load checkpoint: ${error.message}`);
+        console.log(`  🆕 Starting from scratch instead\n`);
+        startingGeneration = 0;
+      }
     }
   }
 
@@ -762,6 +924,7 @@ async function trainSelfDamageAvoidance() {
       headless: config.headless,
       devServerUrl: "http://localhost:3001",
       verifyPhysics: config.verifyPhysics,
+      customEncoder: encodeSelfDamageGameState, // Pass custom 23-input encoder
     });
 
     await runner.initialize();
@@ -810,19 +973,21 @@ async function trainSelfDamageAvoidance() {
     console.log(`📈 Generation ${gen}/${config.generations} (Cumulative: ${cumulativeGen})`);
     console.log(`${"=".repeat(60)}`);
 
+    // NEW: Build ALL game tasks for ALL networks at once
+    const allGameTasks = [];
     for (let i = 0; i < neat.population.length; i++) {
       const network = neat.population[i];
 
-      const gameTasks = [];
       for (let game = 0; game < config.gamesPerEvaluation; game++) {
         const mapIndex = game % config.maps.length;
         const map = config.maps[mapIndex];
-        const tabIndex = game % config.parallelTabs;
+        const tabIndex = allGameTasks.length % config.parallelTabs;
         const runner = tabPool[tabIndex];
 
-        gameTasks.push({
+        allGameTasks.push({
           runner,
           network,
+          networkIndex: i,
           map,
           gameNum: ++currentGameNumber,
           totalGames,
@@ -830,42 +995,79 @@ async function trainSelfDamageAvoidance() {
           generation: gen,
         });
       }
+    }
 
-      const results = [];
-      for (let batchStart = 0; batchStart < gameTasks.length; batchStart += config.parallelTabs) {
-        const batch = gameTasks.slice(batchStart, batchStart + config.parallelTabs);
-        const batchResults = await Promise.all(
-          batch.map(task =>
-            playSingleGame(
-              task.runner,
-              task.network,
-              dumbOpponent, // FIXED: Pass static opponent!
-              task.map,
-              task.gameNum,
-              task.totalGames,
-              task.netNum,
-              task.generation,
-            ),
-          ),
-        );
-        results.push(...batchResults);
+    console.log(
+      `  🚀 Playing ${allGameTasks.length} games across ${config.parallelTabs} tabs ` +
+        `(${Math.ceil(allGameTasks.length / config.parallelTabs)} batches)`,
+    );
+
+    // NEW: Process ALL games in parallel batches (multiple networks at once!)
+    const allResults = [];
+    for (let batchStart = 0; batchStart < allGameTasks.length; batchStart += config.parallelTabs) {
+      const batch = allGameTasks.slice(batchStart, batchStart + config.parallelTabs);
+      const batchNum = Math.floor(batchStart / config.parallelTabs) + 1;
+      const totalBatches = Math.ceil(allGameTasks.length / config.parallelTabs);
+
+      if (batchNum % 5 === 0 || batchNum === totalBatches) {
+        console.log(`  ⏳ Processing batch ${batchNum}/${totalBatches}...`);
       }
 
-      const validResults = results.filter(r => !r.error);
+      const batchResults = await Promise.all(
+        batch.map(task =>
+          playSingleGame(
+            task.runner,
+            task.network,
+            dumbOpponent,
+            task.map,
+            task.gameNum,
+            task.totalGames,
+            task.netNum,
+            task.generation,
+          ),
+        ),
+      );
+
+      // Tag results with network index
+      batchResults.forEach((result, idx) => {
+        allResults.push({
+          ...result,
+          networkIndex: batch[idx].networkIndex,
+        });
+      });
+    }
+
+    // NEW: Aggregate results by network
+    for (let i = 0; i < neat.population.length; i++) {
+      const network = neat.population[i];
+      const networkResults = allResults.filter(r => r.networkIndex === i);
+
+      const validResults = networkResults.filter(r => !r.error);
       const totalFitness = validResults.reduce((sum, r) => sum + r.fitness, 0);
       const totalSelfDamage = validResults.reduce((sum, r) => sum + r.selfDamage, 0);
+      const totalEnemyDamage = validResults.reduce((sum, r) => sum + r.enemyDamage, 0);
+      const totalDamagePerTurn = validResults.reduce((sum, r) => sum + (r.damagePerTurn || 0), 0);
       const totalWins = validResults.reduce((sum, r) => sum + (r.won ? 1 : 0), 0);
       const gamesPlayed = validResults.length;
+      const totalNetworkSelections = validResults.reduce(
+        (sum, r) => sum + (r.networkAngleSelections || 0),
+        0,
+      );
+      const totalDecisions = validResults.reduce((sum, r) => sum + (r.totalDecisions || 0), 0);
 
       network.score = gamesPlayed > 0 ? totalFitness / gamesPlayed : -1000;
       network.avgSelfDamage = gamesPlayed > 0 ? totalSelfDamage / gamesPlayed : 100;
+      network.avgEnemyDamage = gamesPlayed > 0 ? totalEnemyDamage / gamesPlayed : 0;
+      network.avgDamagePerTurn = gamesPlayed > 0 ? totalDamagePerTurn / gamesPlayed : 0;
       network.wins = totalWins;
       network.gamesPlayed = gamesPlayed;
+      network.networkSelections = totalNetworkSelections;
+      network.totalDecisions = totalDecisions;
 
       if ((i + 1) % 5 === 0 || i === neat.population.length - 1) {
         console.log(
           `  Net ${String(i + 1).padStart(2)}: Fit ${String(Math.round(network.score)).padStart(4)} | ` +
-            `Self-dmg ${network.avgSelfDamage.toFixed(1)} HP`,
+            `Self ${network.avgSelfDamage.toFixed(1)} HP | Enemy ${network.avgEnemyDamage.toFixed(1)} HP`,
         );
       }
     }
@@ -877,6 +1079,12 @@ async function trainSelfDamageAvoidance() {
     const avgSelfDamage =
       neat.population.reduce((sum, n) => sum + n.avgSelfDamage, 0) / neat.population.length;
     const bestSelfDamage = neat.population[0].avgSelfDamage;
+    const avgEnemyDamage =
+      neat.population.reduce((sum, n) => sum + (n.avgEnemyDamage || 0), 0) / neat.population.length;
+    const bestEnemyDamage = neat.population[0].avgEnemyDamage || 0;
+    const avgDamagePerTurn =
+      neat.population.reduce((sum, n) => sum + (n.avgDamagePerTurn || 0), 0) / neat.population.length;
+    const bestDamagePerTurn = neat.population[0].avgDamagePerTurn || 0;
 
     // NETWORK ANALYSIS: Analyze best network to understand what it learned
     const networkAnalysis = analyzeNetwork(neat.population[0]);
@@ -885,21 +1093,53 @@ async function trainSelfDamageAvoidance() {
     const genWins = neat.population.reduce((sum, n) => sum + (n.wins || 0), 0);
     const genGames = neat.population.reduce((sum, n) => sum + (n.gamesPlayed || 0), 0);
 
+    // Calculate network selection rate
+    const totalNetworkSelections = neat.population.reduce((sum, n) => sum + (n.networkSelections || 0), 0);
+    const totalDecisionsAcrossPopulation = neat.population.reduce(
+      (sum, n) => sum + (n.totalDecisions || 0),
+      0,
+    );
+    const networkSelectionRate =
+      totalDecisionsAcrossPopulation > 0
+        ? (totalNetworkSelections / totalDecisionsAcrossPopulation) * 100
+        : 0;
+
+    // NEW: Calculate damage differential (enemy damage - self damage)
+    const damageDifferential = avgEnemyDamage - avgSelfDamage;
+    const bestDifferential = bestEnemyDamage - bestSelfDamage;
+
     generationStats.push({
       generation: gen,
       bestFitness,
       avgFitness,
       avgSelfDamage,
       bestSelfDamage,
+      avgEnemyDamage,
+      bestEnemyDamage,
+      avgDamagePerTurn,
+      bestDamagePerTurn,
       networkAnalysis,
       wins: genWins,
       gamesPlayed: genGames,
+      networkSelectionRate, // NEW: Track per-generation
     });
 
     console.log(`\n📊 Gen ${gen} Summary:`);
     console.log(`  Best Fitness: ${Math.round(bestFitness)} | Avg: ${Math.round(avgFitness)}`);
-    console.log(`  Avg Self-Damage: ${avgSelfDamage.toFixed(1)} HP per game`);
-    console.log(`  Best Self-Damage: ${bestSelfDamage.toFixed(1)} HP per game`);
+    console.log(`  Self-Damage: Avg ${avgSelfDamage.toFixed(1)} HP | Best ${bestSelfDamage.toFixed(1)} HP`);
+    console.log(
+      `  Enemy Damage: Avg ${avgEnemyDamage.toFixed(1)} HP | Best ${bestEnemyDamage.toFixed(1)} HP`,
+    );
+    console.log(
+      `  Dmg/Turn: Avg ${avgDamagePerTurn.toFixed(1)} HP/turn | Best ${bestDamagePerTurn.toFixed(
+        1,
+      )} HP/turn ${bestDamagePerTurn >= 40 ? "🔥" : bestDamagePerTurn >= 20 ? "⚡" : ""}`,
+    );
+    console.log(
+      `  Differential: Avg ${damageDifferential >= 0 ? "+" : ""}${damageDifferential.toFixed(1)} HP | ` +
+        `Best ${bestDifferential >= 0 ? "+" : ""}${bestDifferential.toFixed(1)} HP`,
+    );
+    console.log(`  Network Win Rate: ${networkSelectionRate.toFixed(1)}% (network angle chosen over random)`);
 
     if (gen > 1) {
       const prevAvgDamage = generationStats[gen - 2].avgSelfDamage;
@@ -954,12 +1194,25 @@ async function trainSelfDamageAvoidance() {
   console.log(`✅ Training complete in ${duration} minutes!`);
   console.log(`${"=".repeat(60)}`);
 
-  console.log(`\n📉 Self-Damage Learning Curve:`);
+  console.log(`\n📉 Learning Curves:`);
   generationStats.forEach(stat => {
-    const change =
+    const selfChange =
       stat.generation > 1 ? generationStats[stat.generation - 2].avgSelfDamage - stat.avgSelfDamage : 0;
-    const arrow = change > 0 ? "↓" : change < 0 ? "↑" : "→";
-    console.log(`  Gen ${String(stat.generation).padStart(2)}: ${stat.avgSelfDamage.toFixed(1)} HP ${arrow}`);
+    const dmgPerTurnChange =
+      stat.generation > 1 ? stat.avgDamagePerTurn - generationStats[stat.generation - 2].avgDamagePerTurn : 0;
+    const networkRateChange =
+      stat.generation > 1
+        ? stat.networkSelectionRate - generationStats[stat.generation - 2].networkSelectionRate
+        : 0;
+    const selfArrow = selfChange > 0 ? "↓" : selfChange < 0 ? "↑" : "→";
+    const dmgArrow = dmgPerTurnChange > 0 ? "↑" : dmgPerTurnChange < 0 ? "↓" : "→";
+    const rateArrow = networkRateChange > 0 ? "↑" : networkRateChange < 0 ? "↓" : "→";
+    console.log(
+      `  Gen ${String(stat.generation).padStart(2)}: ` +
+        `Self ${stat.avgSelfDamage.toFixed(1)} HP ${selfArrow} | ` +
+        `Dmg/Turn ${stat.avgDamagePerTurn.toFixed(1)} HP ${dmgArrow} | ` +
+        `Net ${stat.networkSelectionRate.toFixed(1)}% ${rateArrow}`,
+    );
   });
 
   const firstGenDamage = generationStats[0].avgSelfDamage;

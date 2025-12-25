@@ -5,7 +5,6 @@ import puppeteer from "puppeteer";
 import path from "path";
 import { fileURLToPath } from "url";
 import neataptic from "neataptic";
-import { encodeGameState, decodeNetworkOutput, logGameStateInputs } from "./network-config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +26,7 @@ class PuppeteerGameRunner {
       team1: null,
       team2: null,
     };
+    this.customEncoder = options.customEncoder || null; // Allow custom encoding function
   }
 
   async initialize() {
@@ -849,6 +849,12 @@ class PuppeteerGameRunner {
         }
       }
 
+      // Retrieve last decision for this team
+      const lastDecision = window.__AI_LAST_DECISION__?.[`team${currentPlayer.team}`] || {
+        aimAngle: 0,
+        weapon: "BAZOOKA",
+      };
+
       // Store current state for next turn's feedback
       window.__AI_LAST_TURN_STATE__[`team${currentPlayer.team}`] = {
         myHealth: currentPlayer.health,
@@ -867,6 +873,8 @@ class PuppeteerGameRunner {
         enemies: enemies.slice(0, 4).map(enemy => ({
           health: enemy.health,
           maxHealth: enemy.maxHealth,
+          x: enemy.x, // ADDED: Enemy position
+          y: enemy.y, // ADDED: Enemy position
           distance: Phaser.Math.Distance.Between(currentPlayer.x, currentPlayer.y, enemy.x, enemy.y),
           angle: Phaser.Math.Angle.Between(currentPlayer.x, currentPlayer.y, enemy.x, enemy.y),
           threat: 50, // Placeholder
@@ -884,6 +892,7 @@ class PuppeteerGameRunner {
         obstacles,
         shotHistory,
         shotFeedback, // CRITICAL: Immediate feedback from last turn!
+        lastDecision, // ADDED: What did I choose last turn?
       };
 
       return { gameState: state, team: currentPlayer.team };
@@ -894,7 +903,16 @@ class PuppeteerGameRunner {
 
     // FIXED: Store turn data BEFORE executing action
     await this.page.evaluate(
-      (gs, act) => {
+      (gs, act, tm) => {
+        // Store this decision for next turn's feedback
+        if (!window.__AI_LAST_DECISION__) {
+          window.__AI_LAST_DECISION__ = {};
+        }
+        window.__AI_LAST_DECISION__[`team${tm}`] = {
+          aimAngle: act.aimAngle,
+          weapon: act.weapon,
+        };
+
         // Store turn data
         if (window.__TURN_DATA__) {
           window.__TURN_DATA__.push({
@@ -907,6 +925,7 @@ class PuppeteerGameRunner {
       },
       gameState,
       action,
+      team,
     );
 
     // PHYSICS VERIFICATION: If enabled, disable instant mode temporarily
@@ -1022,8 +1041,13 @@ class PuppeteerGameRunner {
       return this.makeRandomDecision(gameState);
     }
 
-    // Encode game state using Node.js function
-    const inputs = encodeGameState(gameState);
+    // Use custom encoder (required)
+    if (!this.customEncoder) {
+      throw new Error(
+        "customEncoder is required! Pass encodeSelfDamageGameState to PuppeteerGameRunner options.",
+      );
+    }
+    const inputs = this.customEncoder(gameState);
 
     // Activate network in Node.js (neataptic imported at top of file!)
     const network = neataptic.Network.fromJSON(networkJSON);

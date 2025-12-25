@@ -66,30 +66,35 @@ function calculateInputInfluence(connections) {
 
 /**
  * Get human-readable label for a node
+ * CRITICAL: Must match exact order from encodeSelfDamageGameState() in trainer
  */
 function getNodeLabel(node, index) {
   if (node.type === "input") {
+    // UPDATED: Correct 23-input architecture labels
     const inputLabels = [
-      "blastRadius",
-      "selfX",
-      "selfY",
-      "selfHealthPercent",
-      "didDamageSelf",
-      "damageTaken",
-      "lastExplosionX",
-      "lastExplosionY",
-      "explosionDistance",
-      "terrainRight",
-      "terrainUpRight",
-      "terrainUp",
-      "terrainUpLeft",
-      "terrainLeft",
-      "terrainDownLeft",
-      "terrainDown",
-      "terrainDownRight",
-      "minTerrain",
-      "rightTerrain",
-      "safetyMargin",
+      "selfX", // 0
+      "selfY", // 1
+      "selfHealthPercent", // 2
+      "enemyX", // 3
+      "enemyY", // 4
+      "enemyHealthPercent", // 5
+      "lastAimAngle", // 6
+      "explosionX", // 7
+      "explosionY", // 8
+      "explosionDistance", // 9
+      "damageTaken", // 10
+      "terrainRight", // 11
+      "terrainUpRight", // 12
+      "terrainUp", // 13
+      "terrainUpLeft", // 14
+      "terrainLeft", // 15
+      "terrainDownLeft", // 16
+      "terrainDown", // 17
+      "terrainDownRight", // 18
+      "timeRemaining", // 19
+      "bazookaAmmo", // 20
+      "grenadeAmmo", // 21
+      "shotgunAmmo", // 22
     ];
     return `input_${inputLabels[node.index] || index}`;
   } else if (node.type === "output") {
