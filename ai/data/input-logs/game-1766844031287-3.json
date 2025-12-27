@@ -1,0 +1,1365 @@
+{
+  "gameId": "game-1766844031287-3",
+  "network": 1,
+  "generation": 1,
+  "map": "magnificentBulk",
+  "result": {
+    "winner": 1,
+    "selfDamage": 0,
+    "enemyDamage": 37.47952191128391,
+    "fitness": 448.1060443882149,
+    "initialHealth": 100,
+    "finalHealth": 100,
+    "turns": 7
+  },
+  "turns": [
+    {
+      "turnNumber": 2,
+      "team": 2,
+      "inputs": {
+        "self": {
+          "health": 100,
+          "maxHealth": 100,
+          "x": 395,
+          "y": 540.0500000000417,
+          "team": 2
+        },
+        "enemies": [
+          {
+            "health": 100,
+            "maxHealth": 100,
+            "x": 634.9646581286878,
+            "y": 490.0413276092936,
+            "distance": 245.12018371628065,
+            "angle": -0.2054594321645637,
+            "threat": 50
+          }
+        ],
+        "weapons": {
+          "ammo": {
+            "BAZOOKA": 1,
+            "GRENADE": 1,
+            "SHOTGUN": 2
+          }
+        },
+        "context": {
+          "turnNumber": 2,
+          "timeRemaining": 30
+        },
+        "ballistics": {
+          "projectileSpeed": 500,
+          "gravity": 981,
+          "timeToImpact": 0.4902403674325613,
+          "optimalAngle": -0.2054594321645637,
+          "powerNeeded": 1,
+          "windEffect": 0,
+          "arcHeight": -50.898556218168345,
+          "collisionPredicted": false
+        },
+        "terrain": [
+          230,
+          20,
+          10,
+          20,
+          400,
+          560,
+          550,
+          770
+        ],
+        "obstacles": {
+          "lineOfSight": true,
+          "nearestDistance": 1000,
+          "obstacleHeight": 0,
+          "terrainType": 0
+        },
+        "shotHistory": {
+          "recent": []
+        },
+        "shotFeedback": {
+          "didDamageEnemy": false,
+          "damageDealt": 0,
+          "didDamageSelf": false,
+          "damageTaken": 0,
+          "myHealthDelta": 0,
+          "enemyHealthDelta": 0,
+          "explosionX": 0,
+          "explosionY": 0,
+          "explosionDistance": 1000
+        },
+        "lastDecision": {
+          "aimAngle": 0,
+          "weapon": "BAZOOKA"
+        }
+      },
+      "decision": {
+        "weapon": "BAZOOKA",
+        "aimAngle": 5.749825176105787,
+        "targetIndex": 0,
+        "power": 1,
+        "movement": "none"
+      }
+    },
+    {
+      "turnNumber": 3,
+      "team": 1,
+      "inputs": {
+        "self": {
+          "health": 100,
+          "maxHealth": 100,
+          "x": 634.9414182440521,
+          "y": 490.0413328699383,
+          "team": 1
+        },
+        "enemies": [
+          {
+            "health": 100,
+            "maxHealth": 100,
+            "x": 395,
+            "y": 540.0500000000417,
+            "distance": 245.0974316003671,
+            "angle": 2.9361138977613153,
+            "threat": 50
+          }
+        ],
+        "weapons": {
+          "ammo": {
+            "BAZOOKA": 1,
+            "GRENADE": 1,
+            "SHOTGUN": 2
+          }
+        },
+        "context": {
+          "turnNumber": 3,
+          "timeRemaining": 30
+        },
+        "ballistics": {
+          "projectileSpeed": 500,
+          "gravity": 981,
+          "timeToImpact": 0.4901948632007342,
+          "optimalAngle": 2.8238839651824192,
+          "powerNeeded": 1,
+          "windEffect": 0,
+          "arcHeight": -75.62608064979665,
+          "collisionPredicted": false
+        },
+        "terrain": [
+          270,
+          20,
+          10,
+          160,
+          640,
+          700,
+          500,
+          700
+        ],
+        "obstacles": {
+          "lineOfSight": true,
+          "nearestDistance": 1000,
+          "obstacleHeight": 0,
+          "terrainType": 0
+        },
+        "shotHistory": {
+          "recent": []
+        },
+        "shotFeedback": {
+          "didDamageEnemy": false,
+          "damageDealt": 0,
+          "didDamageSelf": false,
+          "damageTaken": 0,
+          "myHealthDelta": 0,
+          "enemyHealthDelta": 0,
+          "explosionX": 0,
+          "explosionY": 0,
+          "explosionDistance": 1000
+        },
+        "lastDecision": {
+          "aimAngle": 0,
+          "weapon": "BAZOOKA"
+        }
+      },
+      "decision": {
+        "weapon": "BAZOOKA",
+        "aimAngle": 3.141592653589793,
+        "aimAngleDegrees": 180,
+        "movement": "none",
+        "actionType": "shoot",
+        "targetIndex": 0,
+        "power": 1,
+        "explorationUsed": true,
+        "candidatesChecked": 37,
+        "bestDistanceToEnemy": 21,
+        "candidates": [
+          {
+            "angle": 3.3797558029692043,
+            "angleDegrees": 193.64574329498404,
+            "landingX": 84,
+            "landingY": 565,
+            "distanceToEnemy": 312,
+            "distanceToSelf": 556,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0,
+            "angleDegrees": 0,
+            "landingX": 1008,
+            "landingY": 572,
+            "distanceToEnemy": 614,
+            "distanceToSelf": 382,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0.17453292519943295,
+            "angleDegrees": 10,
+            "landingX": 633,
+            "landingY": 488,
+            "distanceToEnemy": 244,
+            "distanceToSelf": 3,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0.3490658503988659,
+            "angleDegrees": 20,
+            "landingX": 615,
+            "landingY": 481,
+            "distanceToEnemy": 228,
+            "distanceToSelf": 22,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0.5235987755982988,
+            "angleDegrees": 29.999999999999996,
+            "landingX": 599,
+            "landingY": 468,
+            "distanceToEnemy": 216,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0.6981317007977318,
+            "angleDegrees": 40,
+            "landingX": 603,
+            "landingY": 462,
+            "distanceToEnemy": 222,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0.8726646259971648,
+            "angleDegrees": 50,
+            "landingX": 608,
+            "landingY": 457,
+            "distanceToEnemy": 229,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.0471975511965976,
+            "angleDegrees": 59.99999999999999,
+            "landingX": 614,
+            "landingY": 453,
+            "distanceToEnemy": 236,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.2217304763960306,
+            "angleDegrees": 70,
+            "landingX": 621,
+            "landingY": 450,
+            "distanceToEnemy": 243,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.3962634015954636,
+            "angleDegrees": 80,
+            "landingX": 628,
+            "landingY": 449,
+            "distanceToEnemy": 250,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.5707963267948966,
+            "angleDegrees": 90,
+            "landingX": 635,
+            "landingY": 448,
+            "distanceToEnemy": 257,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.7453292519943295,
+            "angleDegrees": 100,
+            "landingX": 642,
+            "landingY": 449,
+            "distanceToEnemy": 263,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.9198621771937625,
+            "angleDegrees": 110,
+            "landingX": 649,
+            "landingY": 450,
+            "distanceToEnemy": 269,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.0943951023931953,
+            "angleDegrees": 119.99999999999999,
+            "landingX": 605,
+            "landingY": 542,
+            "distanceToEnemy": 210,
+            "distanceToSelf": 60,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.2689280275926285,
+            "angleDegrees": 130,
+            "landingX": 584,
+            "landingY": 553,
+            "distanceToEnemy": 189,
+            "distanceToSelf": 81,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.443460952792061,
+            "angleDegrees": 140,
+            "landingX": 560,
+            "landingY": 557,
+            "distanceToEnemy": 166,
+            "distanceToSelf": 100,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.6179938779914944,
+            "angleDegrees": 150.00000000000003,
+            "landingX": 551,
+            "landingY": 542,
+            "distanceToEnemy": 156,
+            "distanceToSelf": 99,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.792526803190927,
+            "angleDegrees": 160,
+            "landingX": 545,
+            "landingY": 526,
+            "distanceToEnemy": 150,
+            "distanceToSelf": 97,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.9670597283903604,
+            "angleDegrees": 170,
+            "landingX": 487,
+            "landingY": 527,
+            "distanceToEnemy": 93,
+            "distanceToSelf": 153,
+            "withinRadius": true,
+            "clearLOS": true,
+            "canDamage": true,
+            "selected": false
+          },
+          {
+            "angle": 3.141592653589793,
+            "angleDegrees": 180,
+            "landingX": 379,
+            "landingY": 526,
+            "distanceToEnemy": 21,
+            "distanceToSelf": 258,
+            "withinRadius": true,
+            "clearLOS": true,
+            "canDamage": true,
+            "selected": true
+          },
+          {
+            "angle": 3.3161255787892263,
+            "angleDegrees": 190,
+            "landingX": 133,
+            "landingY": 566,
+            "distanceToEnemy": 264,
+            "distanceToSelf": 508,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 3.490658503988659,
+            "angleDegrees": 200,
+            "landingX": 51,
+            "landingY": 534,
+            "distanceToEnemy": 344,
+            "distanceToSelf": 585,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 3.6651914291880923,
+            "angleDegrees": 210,
+            "landingX": 43,
+            "landingY": 468,
+            "distanceToEnemy": 360,
+            "distanceToSelf": 593,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 3.839724354387525,
+            "angleDegrees": 220,
+            "landingX": 36,
+            "landingY": 427,
+            "distanceToEnemy": 377,
+            "distanceToSelf": 603,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 4.014257279586958,
+            "angleDegrees": 229.99999999999997,
+            "landingX": 29,
+            "landingY": 466,
+            "distanceToEnemy": 374,
+            "distanceToSelf": 607,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 4.1887902047863905,
+            "angleDegrees": 239.99999999999997,
+            "landingX": 98,
+            "landingY": 542,
+            "distanceToEnemy": 297,
+            "distanceToSelf": 540,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 4.363323129985823,
+            "angleDegrees": 249.99999999999997,
+            "landingX": 252,
+            "landingY": 537,
+            "distanceToEnemy": 143,
+            "distanceToSelf": 386,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 4.537856055185257,
+            "angleDegrees": 260,
+            "landingX": 441,
+            "landingY": 485,
+            "distanceToEnemy": 72,
+            "distanceToSelf": 194,
+            "withinRadius": true,
+            "clearLOS": true,
+            "canDamage": true,
+            "selected": false
+          },
+          {
+            "angle": 4.71238898038469,
+            "angleDegrees": 270,
+            "landingX": 635,
+            "landingY": 127,
+            "distanceToEnemy": 477,
+            "distanceToSelf": 363,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 4.886921905584122,
+            "angleDegrees": 280,
+            "landingX": 835,
+            "landingY": 549,
+            "distanceToEnemy": 441,
+            "distanceToSelf": 209,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.061454830783555,
+            "angleDegrees": 290,
+            "landingX": 985,
+            "landingY": 390,
+            "distanceToEnemy": 608,
+            "distanceToSelf": 364,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.235987755982989,
+            "angleDegrees": 300.00000000000006,
+            "landingX": 1172,
+            "landingY": 542,
+            "distanceToEnemy": 777,
+            "distanceToSelf": 540,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.410520681182422,
+            "angleDegrees": 310,
+            "landingX": 1166,
+            "landingY": 358,
+            "distanceToEnemy": 792,
+            "distanceToSelf": 547,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.585053606381854,
+            "angleDegrees": 320,
+            "landingX": 1153,
+            "landingY": 366,
+            "distanceToEnemy": 778,
+            "distanceToSelf": 533,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.759586531581287,
+            "angleDegrees": 329.99999999999994,
+            "landingX": 1155,
+            "landingY": 426,
+            "distanceToEnemy": 769,
+            "distanceToSelf": 524,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.934119456780721,
+            "angleDegrees": 340,
+            "landingX": 1151,
+            "landingY": 496,
+            "distanceToEnemy": 758,
+            "distanceToSelf": 516,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 6.108652381980153,
+            "angleDegrees": 349.99999999999994,
+            "landingX": 849,
+            "landingY": 477,
+            "distanceToEnemy": 459,
+            "distanceToSelf": 215,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          }
+        ],
+        "predictedLanding": {
+          "x": 379,
+          "y": 526,
+          "distToEnemy": 21,
+          "withinRadius": true,
+          "clearLOS": true,
+          "canDamage": true
+        }
+      }
+    },
+    {
+      "turnNumber": 4,
+      "team": 2,
+      "inputs": {
+        "self": {
+          "health": 62.52047808871609,
+          "maxHealth": 100,
+          "x": 395,
+          "y": 540.0500000000417,
+          "team": 2
+        },
+        "enemies": [
+          {
+            "health": 100,
+            "maxHealth": 100,
+            "x": 634.9217944222244,
+            "y": 490.04134128952256,
+            "distance": 245.0782189114432,
+            "angle": -0.2054950596888022,
+            "threat": 50
+          }
+        ],
+        "weapons": {
+          "ammo": {
+            "BAZOOKA": 1,
+            "GRENADE": 1,
+            "SHOTGUN": 2
+          }
+        },
+        "context": {
+          "turnNumber": 4,
+          "timeRemaining": 30
+        },
+        "ballistics": {
+          "projectileSpeed": 500,
+          "gravity": 981,
+          "timeToImpact": 0.4901564378228864,
+          "optimalAngle": -0.2054950596888022,
+          "powerNeeded": 1,
+          "windEffect": 0,
+          "arcHeight": -50.906879657076146,
+          "collisionPredicted": false
+        },
+        "terrain": [
+          230,
+          20,
+          10,
+          20,
+          400,
+          560,
+          550,
+          770
+        ],
+        "obstacles": {
+          "lineOfSight": true,
+          "nearestDistance": 1000,
+          "obstacleHeight": 0,
+          "terrainType": 0
+        },
+        "shotHistory": {
+          "recent": []
+        },
+        "shotFeedback": {
+          "didDamageEnemy": false,
+          "damageDealt": 0,
+          "didDamageSelf": true,
+          "damageTaken": 37.47952191128391,
+          "myHealthDelta": -37.47952191128391,
+          "enemyHealthDelta": 0,
+          "explosionX": 379.8173720831832,
+          "explosionY": 526.8918602324608,
+          "explosionDistance": 20.091013727627047
+        },
+        "lastDecision": {
+          "aimAngle": 5.749825176105787,
+          "weapon": "BAZOOKA"
+        }
+      },
+      "decision": {
+        "weapon": "BAZOOKA",
+        "aimAngle": 4.588435563332804,
+        "targetIndex": 0,
+        "power": 1,
+        "movement": "none"
+      }
+    },
+    {
+      "turnNumber": 5,
+      "team": 1,
+      "inputs": {
+        "self": {
+          "health": 100,
+          "maxHealth": 100,
+          "x": 634.8791613892421,
+          "y": 490.0413509141555,
+          "team": 1
+        },
+        "enemies": [
+          {
+            "health": 62.52047808871609,
+            "maxHealth": 100,
+            "x": 395,
+            "y": 540.0500000000417,
+            "distance": 245.03648106394556,
+            "angle": 2.9360621300950713,
+            "threat": 50
+          }
+        ],
+        "weapons": {
+          "ammo": {
+            "BAZOOKA": 1,
+            "GRENADE": 1,
+            "SHOTGUN": 2
+          }
+        },
+        "context": {
+          "turnNumber": 5,
+          "timeRemaining": 30
+        },
+        "ballistics": {
+          "projectileSpeed": 500,
+          "gravity": 981,
+          "timeToImpact": 0.49007296212789114,
+          "optimalAngle": 2.8241257005035516,
+          "powerNeeded": 1,
+          "windEffect": 0,
+          "arcHeight": -75.57649118124232,
+          "collisionPredicted": false
+        },
+        "terrain": [
+          270,
+          20,
+          10,
+          160,
+          640,
+          700,
+          500,
+          700
+        ],
+        "obstacles": {
+          "lineOfSight": true,
+          "nearestDistance": 1000,
+          "obstacleHeight": 0,
+          "terrainType": 0
+        },
+        "shotHistory": {
+          "recent": []
+        },
+        "shotFeedback": {
+          "didDamageEnemy": true,
+          "damageDealt": 37.47952191128391,
+          "didDamageSelf": false,
+          "damageTaken": 0,
+          "myHealthDelta": 0,
+          "enemyHealthDelta": -37.47952191128391,
+          "explosionX": 379.8173720831832,
+          "explosionY": 526.8918602324608,
+          "explosionDistance": 257.7100626693239
+        },
+        "lastDecision": {
+          "aimAngle": 3.141592653589793,
+          "weapon": "BAZOOKA"
+        }
+      },
+      "decision": {
+        "weapon": "BAZOOKA",
+        "aimAngle": 3.141592653589793,
+        "aimAngleDegrees": 180,
+        "movement": "none",
+        "actionType": "shoot",
+        "targetIndex": 0,
+        "power": 1,
+        "explorationUsed": true,
+        "candidatesChecked": 37,
+        "bestDistanceToEnemy": 21,
+        "candidates": [
+          {
+            "angle": 3.376153880526952,
+            "angleDegrees": 193.4393683409095,
+            "landingX": 83,
+            "landingY": 567,
+            "distanceToEnemy": 313,
+            "distanceToSelf": 557,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0,
+            "angleDegrees": 0,
+            "landingX": 1008,
+            "landingY": 572,
+            "distanceToEnemy": 614,
+            "distanceToSelf": 382,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0.17453292519943295,
+            "angleDegrees": 10,
+            "landingX": 633,
+            "landingY": 488,
+            "distanceToEnemy": 244,
+            "distanceToSelf": 3,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0.3490658503988659,
+            "angleDegrees": 20,
+            "landingX": 615,
+            "landingY": 481,
+            "distanceToEnemy": 228,
+            "distanceToSelf": 22,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0.5235987755982988,
+            "angleDegrees": 29.999999999999996,
+            "landingX": 599,
+            "landingY": 468,
+            "distanceToEnemy": 216,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0.6981317007977318,
+            "angleDegrees": 40,
+            "landingX": 603,
+            "landingY": 462,
+            "distanceToEnemy": 222,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 0.8726646259971648,
+            "angleDegrees": 50,
+            "landingX": 608,
+            "landingY": 457,
+            "distanceToEnemy": 229,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.0471975511965976,
+            "angleDegrees": 59.99999999999999,
+            "landingX": 614,
+            "landingY": 453,
+            "distanceToEnemy": 236,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.2217304763960306,
+            "angleDegrees": 70,
+            "landingX": 621,
+            "landingY": 450,
+            "distanceToEnemy": 243,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.3962634015954636,
+            "angleDegrees": 80,
+            "landingX": 628,
+            "landingY": 449,
+            "distanceToEnemy": 250,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.5707963267948966,
+            "angleDegrees": 90,
+            "landingX": 635,
+            "landingY": 448,
+            "distanceToEnemy": 257,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.7453292519943295,
+            "angleDegrees": 100,
+            "landingX": 642,
+            "landingY": 449,
+            "distanceToEnemy": 263,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 1.9198621771937625,
+            "angleDegrees": 110,
+            "landingX": 649,
+            "landingY": 450,
+            "distanceToEnemy": 269,
+            "distanceToSelf": 42,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.0943951023931953,
+            "angleDegrees": 119.99999999999999,
+            "landingX": 605,
+            "landingY": 542,
+            "distanceToEnemy": 210,
+            "distanceToSelf": 60,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.2689280275926285,
+            "angleDegrees": 130,
+            "landingX": 584,
+            "landingY": 553,
+            "distanceToEnemy": 189,
+            "distanceToSelf": 81,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.443460952792061,
+            "angleDegrees": 140,
+            "landingX": 560,
+            "landingY": 557,
+            "distanceToEnemy": 166,
+            "distanceToSelf": 100,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.6179938779914944,
+            "angleDegrees": 150.00000000000003,
+            "landingX": 551,
+            "landingY": 542,
+            "distanceToEnemy": 156,
+            "distanceToSelf": 99,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.792526803190927,
+            "angleDegrees": 160,
+            "landingX": 545,
+            "landingY": 526,
+            "distanceToEnemy": 150,
+            "distanceToSelf": 97,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 2.9670597283903604,
+            "angleDegrees": 170,
+            "landingX": 487,
+            "landingY": 527,
+            "distanceToEnemy": 93,
+            "distanceToSelf": 153,
+            "withinRadius": true,
+            "clearLOS": true,
+            "canDamage": true,
+            "selected": false
+          },
+          {
+            "angle": 3.141592653589793,
+            "angleDegrees": 180,
+            "landingX": 379,
+            "landingY": 526,
+            "distanceToEnemy": 21,
+            "distanceToSelf": 258,
+            "withinRadius": true,
+            "clearLOS": true,
+            "canDamage": true,
+            "selected": true
+          },
+          {
+            "angle": 3.3161255787892263,
+            "angleDegrees": 190,
+            "landingX": 133,
+            "landingY": 566,
+            "distanceToEnemy": 264,
+            "distanceToSelf": 508,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 3.490658503988659,
+            "angleDegrees": 200,
+            "landingX": 51,
+            "landingY": 534,
+            "distanceToEnemy": 344,
+            "distanceToSelf": 585,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 3.6651914291880923,
+            "angleDegrees": 210,
+            "landingX": 42,
+            "landingY": 468,
+            "distanceToEnemy": 360,
+            "distanceToSelf": 593,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 3.839724354387525,
+            "angleDegrees": 220,
+            "landingX": 36,
+            "landingY": 427,
+            "distanceToEnemy": 377,
+            "distanceToSelf": 603,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 4.014257279586958,
+            "angleDegrees": 229.99999999999997,
+            "landingX": 29,
+            "landingY": 466,
+            "distanceToEnemy": 374,
+            "distanceToSelf": 607,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 4.1887902047863905,
+            "angleDegrees": 239.99999999999997,
+            "landingX": 98,
+            "landingY": 542,
+            "distanceToEnemy": 297,
+            "distanceToSelf": 540,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 4.363323129985823,
+            "angleDegrees": 249.99999999999997,
+            "landingX": 252,
+            "landingY": 537,
+            "distanceToEnemy": 143,
+            "distanceToSelf": 386,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 4.537856055185257,
+            "angleDegrees": 260,
+            "landingX": 441,
+            "landingY": 485,
+            "distanceToEnemy": 72,
+            "distanceToSelf": 194,
+            "withinRadius": true,
+            "clearLOS": true,
+            "canDamage": true,
+            "selected": false
+          },
+          {
+            "angle": 4.71238898038469,
+            "angleDegrees": 270,
+            "landingX": 635,
+            "landingY": 127,
+            "distanceToEnemy": 477,
+            "distanceToSelf": 363,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 4.886921905584122,
+            "angleDegrees": 280,
+            "landingX": 835,
+            "landingY": 549,
+            "distanceToEnemy": 440,
+            "distanceToSelf": 209,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.061454830783555,
+            "angleDegrees": 290,
+            "landingX": 985,
+            "landingY": 390,
+            "distanceToEnemy": 608,
+            "distanceToSelf": 364,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.235987755982989,
+            "angleDegrees": 300.00000000000006,
+            "landingX": 1172,
+            "landingY": 542,
+            "distanceToEnemy": 777,
+            "distanceToSelf": 540,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.410520681182422,
+            "angleDegrees": 310,
+            "landingX": 1166,
+            "landingY": 358,
+            "distanceToEnemy": 792,
+            "distanceToSelf": 547,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.585053606381854,
+            "angleDegrees": 320,
+            "landingX": 1153,
+            "landingY": 366,
+            "distanceToEnemy": 778,
+            "distanceToSelf": 533,
+            "withinRadius": false,
+            "clearLOS": true,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.759586531581287,
+            "angleDegrees": 329.99999999999994,
+            "landingX": 1155,
+            "landingY": 426,
+            "distanceToEnemy": 769,
+            "distanceToSelf": 524,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 5.934119456780721,
+            "angleDegrees": 340,
+            "landingX": 1151,
+            "landingY": 496,
+            "distanceToEnemy": 758,
+            "distanceToSelf": 516,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          },
+          {
+            "angle": 6.108652381980153,
+            "angleDegrees": 349.99999999999994,
+            "landingX": 849,
+            "landingY": 477,
+            "distanceToEnemy": 459,
+            "distanceToSelf": 215,
+            "withinRadius": false,
+            "clearLOS": false,
+            "canDamage": false,
+            "selected": false
+          }
+        ],
+        "predictedLanding": {
+          "x": 379,
+          "y": 526,
+          "distToEnemy": 21,
+          "withinRadius": true,
+          "clearLOS": true,
+          "canDamage": true
+        }
+      }
+    },
+    {
+      "turnNumber": 6,
+      "team": 2,
+      "inputs": {
+        "self": {
+          "health": 5.287217624412847,
+          "maxHealth": 100,
+          "x": 395,
+          "y": 540.0500000000417,
+          "team": 2
+        },
+        "enemies": [
+          {
+            "health": 100,
+            "maxHealth": 100,
+            "x": 634.8598270959601,
+            "y": 490.0413623373575,
+            "distance": 245.01755140271382,
+            "angle": -0.20554658228862638,
+            "threat": 50
+          }
+        ],
+        "weapons": {
+          "ammo": {
+            "BAZOOKA": 1,
+            "GRENADE": 1,
+            "SHOTGUN": 2
+          }
+        },
+        "context": {
+          "turnNumber": 6,
+          "timeRemaining": 30
+        },
+        "ballistics": {
+          "projectileSpeed": 500,
+          "gravity": 981,
+          "timeToImpact": 0.4900351028054276,
+          "optimalAngle": -0.20554658228862638,
+          "powerNeeded": 1,
+          "windEffect": 0,
+          "arcHeight": -50.91891610735294,
+          "collisionPredicted": false
+        },
+        "terrain": [
+          230,
+          20,
+          10,
+          20,
+          400,
+          560,
+          550,
+          770
+        ],
+        "obstacles": {
+          "lineOfSight": true,
+          "nearestDistance": 1000,
+          "obstacleHeight": 0,
+          "terrainType": 0
+        },
+        "shotHistory": {
+          "recent": []
+        },
+        "shotFeedback": {
+          "didDamageEnemy": false,
+          "damageDealt": 0,
+          "didDamageSelf": true,
+          "damageTaken": 57.23326046430324,
+          "myHealthDelta": -57.23326046430324,
+          "enemyHealthDelta": 0,
+          "explosionX": 379.75546884018064,
+          "explosionY": 526.8918812792995,
+          "explosionDistance": 20.137820600845814
+        },
+        "lastDecision": {
+          "aimAngle": 4.588435563332804,
+          "weapon": "BAZOOKA"
+        }
+      },
+      "decision": {
+        "weapon": "BAZOOKA",
+        "aimAngle": 1.1935375404979347,
+        "targetIndex": 0,
+        "power": 1,
+        "movement": "none"
+      }
+    }
+  ]
+}

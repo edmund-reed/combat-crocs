@@ -49,24 +49,26 @@ export function getLookAheadSimulationInjection() {
 
       // Get weapon config
       const weaponConfig = window.CombatCrocs.config.WEAPON_CONFIGS.BAZOOKA;
-      const velocity = weaponConfig.initialVelocity || 15;
       const DAMAGE_RADIUS = weaponConfig.damageRadius || 140;
+
+      // Get the actual player object (needed for resolveBazookaShot)
+      const playerIndex = scene.turnManager.getCurrentPlayerIndex();
+      const player = scene.players[playerIndex];
 
       let bestAngle = networkAngle;
       let minDistToEnemy = Infinity;
       const candidateDetails = [];
       const validShots = []; // Shots that can actually damage enemy
 
-      // Test each candidate angle using EXACT InstantShotResolver logic
+      // Test each candidate angle using EXACT same function as instant shot
       for (const angle of anglesToTest) {
-        // CRITICAL: Use exact same function as real instant shot
-        const landing = window.InstantShotResolver.simulateProjectilePhysics(
+        // CRITICAL: Pass angle DIRECTLY to avoid recalculation errors
+        // This eliminates floating-point errors from double angle calculation
+        const landing = window.InstantShotResolver.resolveBazookaFromAngle(
           scene,
-          playerPos.x,
-          playerPos.y,
+          player,
           angle,
-          velocity,
-          1 // mass
+          true  // noDamage - simulation only
         );
 
         // Calculate distance to enemy

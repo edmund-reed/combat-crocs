@@ -42,7 +42,39 @@ class InstantShotResolver {
   }
 
   /**
+   * Resolve bazooka shot using angle directly (for look-ahead)
+   * Avoids angle recalculation to prevent floating-point errors
+   * @param {number} angle - Firing angle in radians
+   * @param {boolean} noDamage - If true, explosion won't deal damage
+   */
+  static resolveBazookaFromAngle(scene, player, angle, noDamage = false) {
+    const config = Config.WEAPON_CONFIGS.BAZOOKA;
+
+    // CRITICAL: Match real projectile velocity and spawn offset
+    const velocity = 20;
+    const spawnDistance = 8;
+    const startX = player.x + Math.cos(angle) * spawnDistance;
+    const startY = player.y + Math.sin(angle) * spawnDistance;
+
+    // Simulate projectile physics
+    const landingPos = this.simulateProjectilePhysics(
+      scene,
+      startX,
+      startY,
+      angle,
+      velocity,
+      config.mass || 1,
+    );
+
+    // Trigger explosion at landing position
+    ExplosionSystem.createExplosion(scene, landingPos.x, landingPos.y, player.id, "BAZOOKA", noDamage);
+
+    return landingPos;
+  }
+
+  /**
    * Fast physics simulation to predict where projectile will land
+   * USES SOLID BODY + COLLISION EVENTS (matches real projectile exactly)
    */
   static simulateProjectilePhysics(scene, startX, startY, angle, velocity, mass) {
     // DEBUG: Log all physics parameters
@@ -58,16 +90,53 @@ class InstantShotResolver {
         restitution: 0.1,
         worldGravity: `(${worldGravity.x}, ${worldGravity.y})`,
         timestep: `${1000 / 60}ms`,
+        collisionMode: "SOLID_BODY",
       });
     }
 
-    // Create ghost body for simulation (isSensor = doesn't collide with players)
+    // CRITICAL: Use SOLID body (isSensor: false) to match real projectile
+    // This ensures identical terrain collision behavior
     const tempBody = scene.matter.add.circle(startX, startY, 8, {
-      isSensor: true,
+      isSensor: false, // SOLID collision (matches real projectile)
       friction: 0.1,
       restitution: 0.1,
       mass: mass,
+      isSleeping: false,
+      sleepThreshold: Infinity,
+      collisionFilter: {
+        group: 0,
+        mask: 1, // Only collide with terrain (category 1)
+        category: 4, // Projectile category
+      },
     });
+
+    // Mark as simulation body (not a real projectile)
+    tempBody.isSimulation = true;
+
+    // Track collision
+    let terrainCollisionDetected = false;
+    let collisionPosition = null;
+    let collisionVelocity = null;
+
+    // Set up collision listener
+    const collisionHandler = event => {
+      event.pairs.forEach(pair => {
+        const { bodyA, bodyB } = pair;
+
+        // Check if our simulation body hit terrain
+        if (bodyA === tempBody || bodyB === tempBody) {
+          const otherBody = bodyA === tempBody ? bodyB : bodyA;
+
+          if (otherBody.isTerrain) {
+            terrainCollisionDetected = true;
+            collisionPosition = { x: tempBody.position.x, y: tempBody.position.y };
+            collisionVelocity = { x: tempBody.velocity.x, y: tempBody.velocity.y };
+          }
+        }
+      });
+    };
+
+    scene.matter.world.on("collisionstart", collisionHandler);
 
     // Set initial velocity
     const vx = Math.cos(angle) * velocity;
@@ -75,26 +144,14 @@ class InstantShotResolver {
     scene.matter.body.setVelocity(tempBody, { x: vx, y: vy });
 
     // Simulate physics steps until collision
-    const bodies = scene.matter.world.localWorld.bodies;
     let lastValidPos = { x: tempBody.position.x, y: tempBody.position.y };
 
     for (let steps = 0; steps < 300; steps++) {
-      // Store position BEFORE stepping (critical for offset calculation)
-      lastValidPos = { x: tempBody.position.x, y: tempBody.position.y };
-
-      // Step physics forward
-      scene.matter.world.step(1000 / 60);
-
-      // Check terrain collision AFTER step (use point query like old code)
-      const collisions = Phaser.Physics.Matter.Matter.Query.point(bodies, {
-        x: tempBody.position.x,
-        y: tempBody.position.y,
-      });
-
-      if (collisions.find(c => c.isTerrain)) {
+      // Check if collision was detected
+      if (terrainCollisionDetected) {
         // CRITICAL: Apply 50px explosion offset (matches PhysicsManager.calculateExplosionPosition)
-        const explosionPos = { x: lastValidPos.x, y: lastValidPos.y };
-        const vel = tempBody.velocity;
+        const explosionPos = { x: collisionPosition.x, y: collisionPosition.y };
+        const vel = collisionVelocity;
 
         if (vel.x || vel.y) {
           const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
@@ -105,6 +162,8 @@ class InstantShotResolver {
           }
         }
 
+        // Clean up
+        scene.matter.world.off("collisionstart", collisionHandler);
         scene.matter.world.remove(tempBody);
 
         // Clamp to game boundaries
@@ -116,8 +175,16 @@ class InstantShotResolver {
         return explosionPos;
       }
 
+      // Store position BEFORE stepping
+      lastValidPos = { x: tempBody.position.x, y: tempBody.position.y };
+
+      // Step physics forward
+      scene.matter.world.step(1000 / 60);
+
       // Check out of bounds
       if (tempBody.position.y > scene.game.config.height + 100) {
+        // Clean up
+        scene.matter.world.off("collisionstart", collisionHandler);
         scene.matter.world.remove(tempBody);
 
         // Clamp to boundaries
@@ -132,12 +199,15 @@ class InstantShotResolver {
       // Check if velocity near zero
       const speed = Math.sqrt(tempBody.velocity.x ** 2 + tempBody.velocity.y ** 2);
       if (speed < 0.1 && steps > 10) {
+        // Clean up
+        scene.matter.world.off("collisionstart", collisionHandler);
         scene.matter.world.remove(tempBody);
         return lastValidPos;
       }
     }
 
-    // Timeout fallback
+    // Timeout fallback - clean up
+    scene.matter.world.off("collisionstart", collisionHandler);
     scene.matter.world.remove(tempBody);
     return lastValidPos;
   }

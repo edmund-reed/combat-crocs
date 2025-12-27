@@ -129,7 +129,7 @@ class PuppeteerGameRunner {
   async startNewGame(network1, network2, gameConfig = {}) {
     const config = {
       mode: gameConfig.mode || "1v1",
-      map: gameConfig.map || "dinocoaster", // Changed to static map for testing
+      map: gameConfig.map || "heavyMetalCoaster", // Default map if not specified
       ...gameConfig,
     };
 
@@ -193,6 +193,12 @@ class PuppeteerGameRunner {
 
   async navigateToGameStart(config) {
     console.log("  📋 Navigating to game...");
+    const mapName = config.map || "heavyMetalCoaster";
+
+    // Inject map name into browser context so it can be used during setup
+    await this.page.evaluate(map => {
+      window.__CURRENT_MAP_NAME__ = map;
+    }, mapName);
 
     // CRITICAL FIX: Add delay to ensure page main frame is ready
     // Minimized for maximum speed in headless mode
@@ -282,11 +288,11 @@ class PuppeteerGameRunner {
 
         // Store teams in game state (StateManager.storeTeams does this)
         window.CombatCrocs.gameState.game.teams = teams;
-        window.CombatCrocs.gameState.game.selectedMap = "dinocoaster";
+        window.CombatCrocs.gameState.game.selectedMap = window.__CURRENT_MAP_NAME__;
 
         // Use MapManager to properly set the current map
         if (window.MapManager && window.MapManager.setCurrentMap) {
-          window.MapManager.setCurrentMap("dinocoaster");
+          window.MapManager.setCurrentMap(window.__CURRENT_MAP_NAME__);
           console.log("[AI] Map set via MapManager");
         }
 
@@ -846,9 +852,9 @@ class PuppeteerGameRunner {
       return { gameState: state, team: currentPlayer.team };
     });
 
-    // DEBUG: On Turn 1, wait for player to settle after spawn
-    if (gameState.context.turnNumber === 1 && team === 1) {
-      console.log("  ⏸️  Waiting 1s for player to settle after spawn...");
+    // CRITICAL: On Turn 1, wait for ALL players to settle after spawn (both teams)
+    if (gameState.context.turnNumber === 1) {
+      console.log("  ⏸️  Waiting 1s for players to settle after spawn...");
       await this.delay(1000);
     }
 
@@ -893,6 +899,7 @@ class PuppeteerGameRunner {
 
     // DUAL-SHOT VERIFICATION: For Team 1, check if they will shoot
     let instantShotLanding = null;
+    let instantShotStart = null;
     if (team === 1) {
       // Check if player can actually shoot (has ammo and canShoot is true)
       const willShoot = await this.page.evaluate(() => {
@@ -904,10 +911,13 @@ class PuppeteerGameRunner {
       });
 
       if (willShoot) {
-        instantShotLanding = await this.page.evaluate(act => {
+        const instantShotData = await this.page.evaluate(act => {
           const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
           const playerIndex = scene.turnManager.getCurrentPlayerIndex();
           const currentPlayer = scene.players[playerIndex];
+
+          // Capture INITIAL position BEFORE any movement
+          const startPos = { x: Math.round(currentPlayer.x), y: Math.round(currentPlayer.y) };
 
           // Apply movement BEFORE firing instant shot (to match real shot position)
           if (act.movement && act.movement !== "none") {
@@ -938,16 +948,32 @@ class PuppeteerGameRunner {
           );
 
           console.log(
-            `[DUAL-SHOT] Instant shot landed at: (${Math.round(landing.x)}, ${Math.round(landing.y)})`,
+            `[DUAL-SHOT] Instant shot: START (${startPos.x}, ${startPos.y}) → LAND (${Math.round(
+              landing.x,
+            )}, ${Math.round(landing.y)})`,
           );
 
-          return { x: Math.round(landing.x), y: Math.round(landing.y) };
+          return {
+            start: startPos,
+            landing: { x: Math.round(landing.x), y: Math.round(landing.y) },
+          };
         }, action);
+
+        instantShotStart = instantShotData.start;
+        instantShotLanding = instantShotData.landing;
 
         // Wait a moment for instant explosion to finish
         await this.delay(100);
       }
     }
+
+    // Capture starting position for real shot (BEFORE execution)
+    const realShotStart = await this.page.evaluate(() => {
+      const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+      const playerIndex = scene.turnManager.getCurrentPlayerIndex();
+      const currentPlayer = scene.players[playerIndex];
+      return { x: Math.round(currentPlayer.x), y: Math.round(currentPlayer.y) };
+    });
 
     // Execute the action in the game
     await this.page.evaluate(action => {
@@ -1085,15 +1111,21 @@ class PuppeteerGameRunner {
           );
         }
 
-        // Show instant shot landing (from execution time)
-        if (instantShotLanding) {
+        // Show instant shot vs real shot with START → LAND format
+        if (instantShotLanding && instantShotStart && realShotStart) {
           const deltaX = Math.abs(ex.x - instantShotLanding.x);
           const deltaY = Math.abs(ex.y - instantShotLanding.y);
           const instantError = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-          console.log(`\n     Instant shot landed:   (${instantShotLanding.x}, ${instantShotLanding.y})`);
-          console.log(`     Real shot landed:      (${Math.round(ex.x)}, ${Math.round(ex.y)})`);
-          console.log(`     Discrepancy:           ${Math.round(instantError)}px`);
+          console.log(
+            `\n     Instant shot: START (${instantShotStart.x}, ${instantShotStart.y}) → LAND (${instantShotLanding.x}, ${instantShotLanding.y})`,
+          );
+          console.log(
+            `     Real shot:    START (${realShotStart.x}, ${realShotStart.y}) → LAND (${Math.round(
+              ex.x,
+            )}, ${Math.round(ex.y)})`,
+          );
+          console.log(`     Discrepancy:  ${Math.round(instantError)}px`);
 
           if (instantError > 50) {
             console.log(`     ⚠️  WARNING: InstantShotResolver does NOT match real physics!`);

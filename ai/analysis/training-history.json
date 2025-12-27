@@ -1,9 +1,257 @@
 {
   "trainingSessions": [
     {
-      "sessionId": 1766832968114,
-      "startTime": "2025-12-27T10:55:34.220Z",
-      "endTime": "2025-12-27T10:56:08.114Z",
+      "sessionId": 1766844031292,
+      "startTime": "2025-12-27T13:59:46.127Z",
+      "endTime": "2025-12-27T14:00:31.292Z",
+      "durationMinutes": "0.8",
+      "config": {
+        "population": 20,
+        "generations": 1,
+        "gamesPerNetwork": 6
+      },
+      "winLossStats": {
+        "totalGames": 3,
+        "totalWins": 2,
+        "winRate": "0.667"
+      },
+      "generations": [
+        {
+          "generationInSession": 1,
+          "cumulativeGeneration": 1,
+          "stats": {
+            "bestFitness": 233.57677075769016,
+            "avgFitness": 233.57677075769016,
+            "avgSelfDamage": 49.69943483145374,
+            "bestSelfDamage": 49.69943483145374,
+            "wins": 2,
+            "winRate": "0.667"
+          },
+          "networkAnalysis": {
+            "totalConnections": 1150,
+            "topConnections": [
+              {
+                "from": "hidden_51",
+                "to": "hidden_69",
+                "weight": 0.333932129905534,
+                "absWeight": 0.333932129905534
+              },
+              {
+                "from": "hidden_53",
+                "to": "hidden_67",
+                "weight": -0.33388652153994075,
+                "absWeight": 0.33388652153994075
+              },
+              {
+                "from": "hidden_48",
+                "to": "hidden_66",
+                "weight": 0.324292331239309,
+                "absWeight": 0.324292331239309
+              },
+              {
+                "from": "hidden_27",
+                "to": "hidden_49",
+                "weight": -0.3213920696804406,
+                "absWeight": 0.3213920696804406
+              },
+              {
+                "from": "input_23",
+                "to": "hidden_34",
+                "weight": -0.3213919396045365,
+                "absWeight": 0.3213919396045365
+              },
+              {
+                "from": "hidden_28",
+                "to": "hidden_59",
+                "weight": -0.31999891226972993,
+                "absWeight": 0.31999891226972993
+              },
+              {
+                "from": "input_terrainDownRight",
+                "to": "hidden_46",
+                "weight": -0.3192796964417236,
+                "absWeight": 0.3192796964417236
+              },
+              {
+                "from": "input_selfY",
+                "to": "hidden_33",
+                "weight": 0.31797316821771404,
+                "absWeight": 0.31797316821771404
+              },
+              {
+                "from": "hidden_32",
+                "to": "hidden_63",
+                "weight": 0.31682373086189686,
+                "absWeight": 0.31682373086189686
+              },
+              {
+                "from": "hidden_32",
+                "to": "hidden_49",
+                "weight": -0.3167161942318175,
+                "absWeight": 0.3167161942318175
+              }
+            ],
+            "inputInfluence": {
+              "22": 1,
+              "23": 0.9397398451362313,
+              "terrainDownRight": 0.5381272564931117,
+              "selfY": 0.8128804995766016,
+              "timeRemaining": 0.8602433464624332,
+              "explosionDistFromSelf": 0.8139191770945305,
+              "enemyX": 0.8298021834033683,
+              "enemyHealthPercent": 0.7124527044559944,
+              "terrainDown": 0.8489564190700695,
+              "terrainLeft": 0.7531992885408478,
+              "terrainDownLeft": 0.9027555499190612,
+              "terrainUpRight": 0.817733271281064,
+              "selfX": 0.8159355018744125,
+              "selfHealthPercent": 0.560610296834004,
+              "terrainRight": 0.7974558164709596,
+              "terrainUpLeft": 0.7023922137304016,
+              "explosionDistFromEnemy": 0.5738824778304576,
+              "explosionY": 0.7111635991215672,
+              "terrainUp": 0.762048086020762,
+              "explosionX": 0.80397733288796,
+              "enemyY": 0.7205972024225535,
+              "didHitEnemy": 0.816715636714548,
+              "lastAimAngle": 0.6273159101794742,
+              "damageTaken": 0.8425328249776557
+            },
+            "networkComplexity": 14.935064935064934
+          },
+          "regressionDetected": false,
+          "improvement": 0
+        }
+      ]
+    },
+    {
+      "sessionId": 1766844155790,
+      "startTime": "2025-12-27T14:01:56.499Z",
+      "endTime": "2025-12-27T14:02:35.790Z",
+      "durationMinutes": "0.7",
+      "config": {
+        "population": 20,
+        "generations": 1,
+        "gamesPerNetwork": 6
+      },
+      "winLossStats": {
+        "totalGames": 3,
+        "totalWins": 1,
+        "winRate": "0.333"
+      },
+      "generations": [
+        {
+          "generationInSession": 1,
+          "cumulativeGeneration": 1,
+          "stats": {
+            "bestFitness": 292.91252256114797,
+            "avgFitness": 292.91252256114797,
+            "avgSelfDamage": 50.17679816219887,
+            "bestSelfDamage": 50.17679816219887,
+            "wins": 1,
+            "winRate": "0.333"
+          },
+          "networkAnalysis": {
+            "totalConnections": 1150,
+            "topConnections": [
+              {
+                "from": "input_enemyHealthPercent",
+                "to": "hidden_37",
+                "weight": 0.33372170819119906,
+                "absWeight": 0.33372170819119906
+              },
+              {
+                "from": "hidden_43",
+                "to": "hidden_53",
+                "weight": -0.32989308031158726,
+                "absWeight": 0.32989308031158726
+              },
+              {
+                "from": "input_terrainUpLeft",
+                "to": "hidden_39",
+                "weight": -0.3298100387723028,
+                "absWeight": 0.3298100387723028
+              },
+              {
+                "from": "input_enemyHealthPercent",
+                "to": "hidden_42",
+                "weight": -0.3288179465678433,
+                "absWeight": 0.3288179465678433
+              },
+              {
+                "from": "hidden_29",
+                "to": "hidden_49",
+                "weight": -0.3274162477850589,
+                "absWeight": 0.3274162477850589
+              },
+              {
+                "from": "input_enemyY",
+                "to": "hidden_39",
+                "weight": -0.32125917173833857,
+                "absWeight": 0.32125917173833857
+              },
+              {
+                "from": "input_enemyX",
+                "to": "hidden_43",
+                "weight": -0.32067462336632474,
+                "absWeight": 0.32067462336632474
+              },
+              {
+                "from": "hidden_50",
+                "to": "hidden_66",
+                "weight": -0.32007623242247824,
+                "absWeight": 0.32007623242247824
+              },
+              {
+                "from": "input_terrainUpLeft",
+                "to": "hidden_38",
+                "weight": -0.31890065742440826,
+                "absWeight": 0.31890065742440826
+              },
+              {
+                "from": "input_explosionY",
+                "to": "hidden_29",
+                "weight": -0.31854571321260433,
+                "absWeight": 0.31854571321260433
+              }
+            ],
+            "inputInfluence": {
+              "22": 0.5978564540990275,
+              "23": 0.8307655120925747,
+              "enemyHealthPercent": 1,
+              "terrainUpLeft": 0.8891030142880904,
+              "enemyY": 0.7996264919946355,
+              "enemyX": 0.8362555483492276,
+              "explosionY": 0.8073088540642288,
+              "terrainDownLeft": 0.8195755941659909,
+              "timeRemaining": 0.8607274898666952,
+              "selfHealthPercent": 0.8583065665095291,
+              "terrainUpRight": 0.8418646438326063,
+              "selfX": 0.6925234489760091,
+              "terrainDown": 0.7825428614125443,
+              "didHitEnemy": 0.9986891713969109,
+              "damageTaken": 0.9303831407066615,
+              "selfY": 0.7356332158967486,
+              "terrainRight": 0.7758330254769717,
+              "explosionX": 0.963818667088201,
+              "terrainUp": 0.6928202977863277,
+              "lastAimAngle": 0.8461973004684418,
+              "explosionDistFromSelf": 0.8553610709477572,
+              "terrainDownRight": 0.7495585005018968,
+              "terrainLeft": 0.6206503466223716,
+              "explosionDistFromEnemy": 0.6691602835540713
+            },
+            "networkComplexity": 14.935064935064934
+          },
+          "regressionDetected": false,
+          "improvement": 0
+        }
+      ]
+    },
+    {
+      "sessionId": 1766844737495,
+      "startTime": "2025-12-27T14:11:39.028Z",
+      "endTime": "2025-12-27T14:12:17.495Z",
       "durationMinutes": "0.6",
       "config": {
         "population": 20,
@@ -12,234 +260,110 @@
       },
       "winLossStats": {
         "totalGames": 3,
-        "totalWins": 0,
-        "winRate": "0.000"
+        "totalWins": 3,
+        "winRate": "1.000"
       },
       "generations": [
         {
           "generationInSession": 1,
           "cumulativeGeneration": 1,
           "stats": {
-            "bestFitness": 22.87786232975853,
-            "avgFitness": 22.87786232975853,
-            "avgSelfDamage": 68.98875991855569,
-            "bestSelfDamage": 68.98875991855569,
-            "wins": 0,
-            "winRate": "0.000"
+            "bestFitness": 554.3184322690415,
+            "avgFitness": 554.3184322690415,
+            "avgSelfDamage": 7.449646465337405,
+            "bestSelfDamage": 7.449646465337405,
+            "wins": 3,
+            "winRate": "1.000"
           },
           "networkAnalysis": {
             "totalConnections": 1150,
             "topConnections": [
               {
-                "from": "input_damageTaken",
-                "to": "hidden_29",
-                "weight": 0.3410931262612006,
-                "absWeight": 0.3410931262612006
+                "from": "input_selfHealthPercent",
+                "to": "hidden_24",
+                "weight": 0.3457410143729889,
+                "absWeight": 0.3457410143729889
               },
               {
-                "from": "hidden_30",
-                "to": "hidden_60",
-                "weight": 0.3353787648943506,
-                "absWeight": 0.3353787648943506
-              },
-              {
-                "from": "hidden_72",
-                "to": "output_aimAngle",
-                "weight": -0.3308911873562643,
-                "absWeight": 0.3308911873562643
-              },
-              {
-                "from": "input_terrainLeft",
+                "from": "input_terrainDownLeft",
                 "to": "hidden_31",
-                "weight": 0.3302522232032296,
-                "absWeight": 0.3302522232032296
+                "weight": -0.332969757388349,
+                "absWeight": 0.332969757388349
+              },
+              {
+                "from": "input_didHitEnemy",
+                "to": "hidden_36",
+                "weight": -0.33091685334987,
+                "absWeight": 0.33091685334987
               },
               {
                 "from": "input_enemyY",
-                "to": "hidden_27",
-                "weight": -0.3301579224526366,
-                "absWeight": 0.3301579224526366
+                "to": "hidden_44",
+                "weight": 0.32788883156303894,
+                "absWeight": 0.32788883156303894
               },
               {
-                "from": "input_22",
-                "to": "hidden_33",
-                "weight": 0.330134703561672,
-                "absWeight": 0.330134703561672
-              },
-              {
-                "from": "hidden_60",
-                "to": "hidden_68",
-                "weight": -0.3290614530662687,
-                "absWeight": 0.3290614530662687
-              },
-              {
-                "from": "hidden_45",
-                "to": "hidden_63",
-                "weight": -0.32901293116363994,
-                "absWeight": 0.32901293116363994
-              },
-              {
-                "from": "input_selfHealthPercent",
-                "to": "hidden_45",
-                "weight": -0.32878595952293177,
-                "absWeight": 0.32878595952293177
-              },
-              {
-                "from": "hidden_63",
-                "to": "hidden_67",
-                "weight": 0.32707486563090793,
-                "absWeight": 0.32707486563090793
-              }
-            ],
-            "inputInfluence": {
-              "22": 0.7286308615685085,
-              "23": 0.7358005148257817,
-              "damageTaken": 0.8316286699759212,
-              "terrainLeft": 0.6282833962093963,
-              "enemyY": 0.5988116042216761,
-              "selfHealthPercent": 0.6508168117817926,
-              "terrainDown": 0.5103809680702072,
-              "explosionX": 0.8557132094664598,
-              "explosionY": 0.8051509347440811,
-              "lastAimAngle": 0.8721306728517728,
-              "terrainUpRight": 0.7091363063806585,
-              "enemyHealthPercent": 0.8206038893806255,
-              "terrainUp": 0.8860423420884515,
-              "explosionDistFromEnemy": 0.6862635788141721,
-              "terrainDownRight": 0.7028228616006315,
-              "selfY": 0.877553906455732,
-              "didHitEnemy": 0.8984221482990632,
-              "enemyX": 0.6959105196257811,
-              "terrainRight": 1,
-              "terrainDownLeft": 0.7807936492593377,
-              "explosionDistFromSelf": 0.7654132057016635,
-              "terrainUpLeft": 0.6866425638166882,
-              "timeRemaining": 0.6673764362652139,
-              "selfX": 0.6238363003501203
-            },
-            "networkComplexity": 14.935064935064934
-          },
-          "regressionDetected": false,
-          "improvement": 0
-        }
-      ]
-    },
-    {
-      "sessionId": 1766833207786,
-      "startTime": "2025-12-27T10:59:35.162Z",
-      "endTime": "2025-12-27T11:00:07.786Z",
-      "durationMinutes": "0.5",
-      "config": {
-        "population": 20,
-        "generations": 1,
-        "gamesPerNetwork": 6
-      },
-      "winLossStats": {
-        "totalGames": 3,
-        "totalWins": 2,
-        "winRate": "0.667"
-      },
-      "generations": [
-        {
-          "generationInSession": 1,
-          "cumulativeGeneration": 1,
-          "stats": {
-            "bestFitness": 344.2368097202502,
-            "avgFitness": 344.2368097202502,
-            "avgSelfDamage": 48.968469305337216,
-            "bestSelfDamage": 48.968469305337216,
-            "wins": 2,
-            "winRate": "0.667"
-          },
-          "networkAnalysis": {
-            "totalConnections": 1150,
-            "topConnections": [
-              {
-                "from": "hidden_66",
-                "to": "output_aimAngle",
-                "weight": 0.34772108464706786,
-                "absWeight": 0.34772108464706786
-              },
-              {
-                "from": "input_selfHealthPercent",
-                "to": "hidden_39",
-                "weight": -0.34061384390461336,
-                "absWeight": 0.34061384390461336
-              },
-              {
-                "from": "hidden_33",
-                "to": "hidden_61",
-                "weight": -0.3388451186737105,
-                "absWeight": 0.3388451186737105
-              },
-              {
-                "from": "input_selfY",
-                "to": "hidden_34",
-                "weight": 0.3388222248366709,
-                "absWeight": 0.3388222248366709
+                "from": "hidden_28",
+                "to": "hidden_52",
+                "weight": 0.326194105995245,
+                "absWeight": 0.326194105995245
               },
               {
                 "from": "hidden_42",
-                "to": "hidden_60",
-                "weight": -0.3366886706747641,
-                "absWeight": 0.3366886706747641
+                "to": "hidden_61",
+                "weight": -0.3230706776392176,
+                "absWeight": 0.3230706776392176
               },
               {
-                "from": "hidden_58",
-                "to": "hidden_65",
-                "weight": 0.3359531223027036,
-                "absWeight": 0.3359531223027036
+                "from": "input_terrainDown",
+                "to": "hidden_45",
+                "weight": 0.3212593151992938,
+                "absWeight": 0.3212593151992938
               },
               {
-                "from": "hidden_51",
-                "to": "hidden_73",
-                "weight": 0.3356314487688662,
-                "absWeight": 0.3356314487688662
+                "from": "input_didHitEnemy",
+                "to": "hidden_35",
+                "weight": -0.3203837801967737,
+                "absWeight": 0.3203837801967737
               },
               {
-                "from": "hidden_39",
-                "to": "hidden_48",
-                "weight": 0.3314623765010962,
-                "absWeight": 0.3314623765010962
+                "from": "hidden_55",
+                "to": "hidden_64",
+                "weight": 0.31802938338038333,
+                "absWeight": 0.31802938338038333
               },
               {
-                "from": "hidden_35",
-                "to": "hidden_48",
-                "weight": -0.3309832274007686,
-                "absWeight": 0.3309832274007686
-              },
-              {
-                "from": "input_explosionX",
-                "to": "hidden_37",
-                "weight": 0.32935373060925377,
-                "absWeight": 0.32935373060925377
+                "from": "hidden_36",
+                "to": "hidden_55",
+                "weight": 0.31765351539703035,
+                "absWeight": 0.31765351539703035
               }
             ],
             "inputInfluence": {
-              "22": 0.8732372734524845,
-              "23": 0.7959919110353154,
-              "selfHealthPercent": 0.7883880889955953,
-              "selfY": 0.6311157929392073,
-              "explosionX": 0.8646353600490991,
-              "timeRemaining": 0.8742230526477315,
-              "terrainUpRight": 0.8315418713564534,
-              "terrainDown": 0.7466924573105228,
-              "explosionDistFromEnemy": 0.8927440534142902,
-              "selfX": 1,
-              "enemyHealthPercent": 0.7676073319524221,
-              "terrainUpLeft": 0.8453235293676729,
-              "terrainUp": 0.7162406736650323,
-              "explosionDistFromSelf": 0.8014500358649259,
-              "didHitEnemy": 0.8462342331055771,
-              "explosionY": 0.8084312573084113,
-              "enemyY": 0.8690649276919777,
-              "terrainDownLeft": 0.7329672652673611,
-              "damageTaken": 0.8055376881573194,
-              "terrainLeft": 0.7406547692160153,
-              "terrainRight": 0.7462437980424876,
-              "lastAimAngle": 0.7684099175950815,
-              "terrainDownRight": 0.7398263924388245,
-              "enemyX": 0.6819877745433874
+              "22": 0.7399353832968308,
+              "23": 0.7845567543613641,
+              "selfHealthPercent": 1,
+              "terrainDownLeft": 0.8843036327552385,
+              "didHitEnemy": 0.8563467330303166,
+              "enemyY": 0.9307078747221365,
+              "terrainDown": 0.8974659882075754,
+              "terrainUpRight": 0.6476427814446533,
+              "timeRemaining": 0.7113184318409442,
+              "enemyX": 0.6251768835892576,
+              "explosionDistFromEnemy": 0.8580957240643203,
+              "enemyHealthPercent": 0.862828672053576,
+              "terrainLeft": 0.8447078778085703,
+              "terrainUp": 0.6547699536585778,
+              "terrainUpLeft": 0.8871077938361116,
+              "selfY": 0.8693549340565331,
+              "damageTaken": 0.873043512618991,
+              "lastAimAngle": 0.8413175267796995,
+              "explosionY": 0.6221219303362115,
+              "terrainRight": 0.6842704236620902,
+              "explosionDistFromSelf": 0.7370416002541438,
+              "terrainDownRight": 0.7039476161932849,
+              "explosionX": 0.5873756664521036,
+              "selfX": 0.6291604886608501
             },
             "networkComplexity": 14.935064935064934
           },
@@ -249,18 +373,18 @@
       ]
     },
     {
-      "sessionId": 1766833698125,
-      "startTime": "2025-12-27T11:07:48.477Z",
-      "endTime": "2025-12-27T11:08:18.126Z",
-      "durationMinutes": "0.5",
+      "sessionId": 1766845368946,
+      "startTime": "2025-12-27T14:22:00.322Z",
+      "endTime": "2025-12-27T14:22:48.946Z",
+      "durationMinutes": "0.8",
       "config": {
         "population": 20,
         "generations": 1,
         "gamesPerNetwork": 6
       },
       "winLossStats": {
-        "totalGames": 3,
-        "totalWins": 3,
+        "totalGames": 2,
+        "totalWins": 2,
         "winRate": "1.000"
       },
       "generations": [
@@ -268,226 +392,102 @@
           "generationInSession": 1,
           "cumulativeGeneration": 1,
           "stats": {
-            "bestFitness": 306.60096430534503,
-            "avgFitness": 306.60096430534503,
-            "avgSelfDamage": 11.33956544656366,
-            "bestSelfDamage": 11.33956544656366,
-            "wins": 3,
+            "bestFitness": 346.66713578852705,
+            "avgFitness": 346.66713578852705,
+            "avgSelfDamage": 11.057770216385642,
+            "bestSelfDamage": 11.057770216385642,
+            "wins": 2,
             "winRate": "1.000"
           },
           "networkAnalysis": {
             "totalConnections": 1150,
             "topConnections": [
               {
-                "from": "input_terrainDownRight",
-                "to": "hidden_27",
-                "weight": -0.34164763701921075,
-                "absWeight": 0.34164763701921075
+                "from": "input_terrainRight",
+                "to": "hidden_32",
+                "weight": -0.3416364363081247,
+                "absWeight": 0.3416364363081247
               },
               {
-                "from": "hidden_57",
-                "to": "hidden_67",
-                "weight": -0.3366407512945215,
-                "absWeight": 0.3366407512945215
+                "from": "input_explosionDistFromSelf",
+                "to": "hidden_47",
+                "weight": 0.3396859942384299,
+                "absWeight": 0.3396859942384299
               },
               {
-                "from": "hidden_45",
-                "to": "hidden_49",
-                "weight": -0.3365630624163274,
-                "absWeight": 0.3365630624163274
-              },
-              {
-                "from": "input_terrainUpRight",
-                "to": "hidden_29",
-                "weight": -0.33427935989707486,
-                "absWeight": 0.33427935989707486
-              },
-              {
-                "from": "hidden_26",
-                "to": "hidden_48",
-                "weight": 0.33233025068625144,
-                "absWeight": 0.33233025068625144
-              },
-              {
-                "from": "hidden_61",
-                "to": "hidden_65",
-                "weight": -0.33149502094560457,
-                "absWeight": 0.33149502094560457
-              },
-              {
-                "from": "input_22",
-                "to": "hidden_31",
-                "weight": -0.33049238987085816,
-                "absWeight": 0.33049238987085816
-              },
-              {
-                "from": "hidden_31",
-                "to": "hidden_62",
-                "weight": -0.3287280330418483,
-                "absWeight": 0.3287280330418483
-              },
-              {
-                "from": "hidden_29",
-                "to": "hidden_53",
-                "weight": 0.3271693527395807,
-                "absWeight": 0.3271693527395807
-              },
-              {
-                "from": "input_terrainLeft",
-                "to": "hidden_28",
-                "weight": 0.32685588711574676,
-                "absWeight": 0.32685588711574676
-              }
-            ],
-            "inputInfluence": {
-              "22": 0.8746190645606746,
-              "23": 0.7248890320532557,
-              "terrainDownRight": 1,
-              "terrainUpRight": 0.930719738596256,
-              "terrainLeft": 0.7571540764252729,
-              "terrainRight": 0.7964221403969726,
-              "terrainDownLeft": 0.7903104205117544,
-              "terrainUpLeft": 0.9403650188322065,
-              "explosionX": 0.8136613494109193,
-              "lastAimAngle": 0.8368353272201732,
-              "explosionDistFromEnemy": 0.7432460319754958,
-              "selfY": 0.9687299554688936,
-              "damageTaken": 0.9986848494513447,
-              "selfX": 0.927744889657708,
-              "explosionY": 0.730443443738447,
-              "enemyY": 0.8193510377531216,
-              "terrainUp": 0.7849899768572478,
-              "terrainDown": 0.8645149391779264,
-              "didHitEnemy": 0.857428097294522,
-              "timeRemaining": 0.9528080419905863,
-              "enemyX": 0.8170696477644406,
-              "enemyHealthPercent": 0.8736425730783417,
-              "explosionDistFromSelf": 0.6805003214778843,
-              "selfHealthPercent": 0.7878699882475215
-            },
-            "networkComplexity": 14.935064935064934
-          },
-          "regressionDetected": false,
-          "improvement": 0
-        }
-      ]
-    },
-    {
-      "sessionId": 1766834036123,
-      "startTime": "2025-12-27T11:13:24.788Z",
-      "endTime": "2025-12-27T11:13:56.123Z",
-      "durationMinutes": "0.5",
-      "config": {
-        "population": 20,
-        "generations": 1,
-        "gamesPerNetwork": 6
-      },
-      "winLossStats": {
-        "totalGames": 3,
-        "totalWins": 3,
-        "winRate": "1.000"
-      },
-      "generations": [
-        {
-          "generationInSession": 1,
-          "cumulativeGeneration": 1,
-          "stats": {
-            "bestFitness": 301.64436327757215,
-            "avgFitness": 301.64436327757215,
-            "avgSelfDamage": 12.730717263355443,
-            "bestSelfDamage": 12.730717263355443,
-            "wins": 3,
-            "winRate": "1.000"
-          },
-          "networkAnalysis": {
-            "totalConnections": 1150,
-            "topConnections": [
-              {
-                "from": "hidden_61",
-                "to": "hidden_67",
-                "weight": 0.3358127596506775,
-                "absWeight": 0.3358127596506775
-              },
-              {
-                "from": "input_selfHealthPercent",
-                "to": "hidden_43",
-                "weight": 0.3354554681231852,
-                "absWeight": 0.3354554681231852
-              },
-              {
-                "from": "input_explosionY",
-                "to": "hidden_38",
-                "weight": 0.33145980112967166,
-                "absWeight": 0.33145980112967166
-              },
-              {
-                "from": "hidden_32",
-                "to": "hidden_54",
-                "weight": 0.33061326169063,
-                "absWeight": 0.33061326169063
-              },
-              {
-                "from": "hidden_51",
-                "to": "hidden_70",
-                "weight": -0.32808020665584886,
-                "absWeight": 0.32808020665584886
-              },
-              {
-                "from": "hidden_45",
-                "to": "hidden_49",
-                "weight": 0.32419530094447324,
-                "absWeight": 0.32419530094447324
-              },
-              {
-                "from": "input_selfY",
-                "to": "hidden_36",
-                "weight": -0.3225646654174579,
-                "absWeight": 0.3225646654174579
-              },
-              {
-                "from": "hidden_52",
+                "from": "hidden_48",
                 "to": "hidden_71",
-                "weight": 0.3202684095312762,
-                "absWeight": 0.3202684095312762
+                "weight": 0.3376467933291155,
+                "absWeight": 0.3376467933291155
               },
               {
-                "from": "hidden_26",
-                "to": "hidden_63",
-                "weight": 0.3183842511516957,
-                "absWeight": 0.3183842511516957
+                "from": "input_selfX",
+                "to": "hidden_31",
+                "weight": 0.33253860592953566,
+                "absWeight": 0.33253860592953566
+              },
+              {
+                "from": "input_enemyX",
+                "to": "hidden_31",
+                "weight": 0.330479853607758,
+                "absWeight": 0.330479853607758
+              },
+              {
+                "from": "input_terrainDownLeft",
+                "to": "hidden_42",
+                "weight": -0.3219594572068297,
+                "absWeight": 0.3219594572068297
               },
               {
                 "from": "hidden_44",
-                "to": "hidden_49",
-                "weight": 0.31822371707943975,
-                "absWeight": 0.31822371707943975
+                "to": "hidden_53",
+                "weight": -0.3205046109121666,
+                "absWeight": 0.3205046109121666
+              },
+              {
+                "from": "hidden_25",
+                "to": "hidden_59",
+                "weight": -0.3201591081281389,
+                "absWeight": 0.3201591081281389
+              },
+              {
+                "from": "input_terrainDown",
+                "to": "hidden_30",
+                "weight": -0.3158797977768435,
+                "absWeight": 0.3158797977768435
+              },
+              {
+                "from": "hidden_61",
+                "to": "hidden_67",
+                "weight": 0.31426293449894604,
+                "absWeight": 0.31426293449894604
               }
             ],
             "inputInfluence": {
-              "22": 1,
-              "23": 0.8939641423479383,
-              "selfHealthPercent": 0.909828268855782,
-              "explosionY": 0.9064629208909021,
-              "selfY": 0.754774468956138,
-              "terrainDownRight": 0.8234544378998707,
-              "terrainDown": 0.8720545013747742,
-              "explosionX": 0.691272455184671,
-              "explosionDistFromSelf": 0.6377935851842954,
-              "enemyHealthPercent": 0.9717128957891642,
-              "damageTaken": 0.8165003681126578,
-              "explosionDistFromEnemy": 0.8835524611209545,
-              "timeRemaining": 0.8236326063257148,
-              "terrainDownLeft": 0.7455988080018906,
-              "terrainRight": 0.8656549084286441,
-              "enemyX": 0.708958080790292,
-              "terrainUp": 0.7065388497748003,
-              "lastAimAngle": 0.6997527153418445,
-              "didHitEnemy": 0.7469822762646466,
-              "terrainUpRight": 0.7486894021727357,
-              "enemyY": 0.7367014020856448,
-              "terrainUpLeft": 0.6296934441479807,
-              "selfX": 0.6645718017641571,
-              "terrainLeft": 0.5389257791726295
+              "22": 0.7491043611503011,
+              "23": 0.7740695781287327,
+              "terrainRight": 0.7466043048709954,
+              "explosionDistFromSelf": 0.8329938963088596,
+              "selfX": 0.855923082758553,
+              "enemyX": 1,
+              "terrainDownLeft": 0.7734245723130577,
+              "terrainDown": 0.7520333530727216,
+              "explosionY": 0.8714789607845227,
+              "terrainUpRight": 0.746833287287135,
+              "lastAimAngle": 0.8909111549991099,
+              "didHitEnemy": 0.5978051854589067,
+              "enemyHealthPercent": 0.9450814995694324,
+              "terrainLeft": 0.7299682346832317,
+              "terrainUpLeft": 0.8946122609831009,
+              "terrainUp": 0.7269098862038341,
+              "terrainDownRight": 0.7062921723238234,
+              "damageTaken": 0.5705516425558139,
+              "explosionX": 0.8826619883271692,
+              "timeRemaining": 0.7450665578472809,
+              "selfY": 0.8284210185880189,
+              "explosionDistFromEnemy": 0.7736255447480251,
+              "enemyY": 0.7958907938838732,
+              "selfHealthPercent": 0.7127397900577224
             },
             "networkComplexity": 14.935064935064934
           },
@@ -497,121 +497,121 @@
       ]
     },
     {
-      "sessionId": 1766834493454,
-      "startTime": "2025-12-27T11:21:02.798Z",
-      "endTime": "2025-12-27T11:21:33.454Z",
-      "durationMinutes": "0.5",
+      "sessionId": 1766845500791,
+      "startTime": "2025-12-27T14:24:04.114Z",
+      "endTime": "2025-12-27T14:25:00.791Z",
+      "durationMinutes": "0.9",
       "config": {
         "population": 20,
         "generations": 1,
         "gamesPerNetwork": 6
       },
       "winLossStats": {
-        "totalGames": 3,
+        "totalGames": 2,
         "totalWins": 2,
-        "winRate": "0.667"
+        "winRate": "1.000"
       },
       "generations": [
         {
           "generationInSession": 1,
           "cumulativeGeneration": 1,
           "stats": {
-            "bestFitness": 194.77356760268142,
-            "avgFitness": 194.77356760268142,
-            "avgSelfDamage": 31.788011729759052,
-            "bestSelfDamage": 31.788011729759052,
+            "bestFitness": 539.7084575034875,
+            "avgFitness": 539.7084575034875,
+            "avgSelfDamage": 0,
+            "bestSelfDamage": 0,
             "wins": 2,
-            "winRate": "0.667"
+            "winRate": "1.000"
           },
           "networkAnalysis": {
             "totalConnections": 1150,
             "topConnections": [
               {
-                "from": "input_terrainDownLeft",
-                "to": "hidden_43",
-                "weight": 0.3445443495042647,
-                "absWeight": 0.3445443495042647
+                "from": "input_didHitEnemy",
+                "to": "hidden_41",
+                "weight": 0.34124686496160905,
+                "absWeight": 0.34124686496160905
               },
               {
-                "from": "input_lastAimAngle",
-                "to": "hidden_24",
-                "weight": -0.3368238124996027,
-                "absWeight": 0.3368238124996027
+                "from": "input_explosionDistFromEnemy",
+                "to": "hidden_45",
+                "weight": 0.3408762678762488,
+                "absWeight": 0.3408762678762488
               },
               {
-                "from": "hidden_67",
-                "to": "output_aimAngle",
-                "weight": 0.33048562997007874,
-                "absWeight": 0.33048562997007874
+                "from": "input_didHitEnemy",
+                "to": "hidden_25",
+                "weight": 0.3365522765926784,
+                "absWeight": 0.3365522765926784
               },
               {
-                "from": "input_selfY",
-                "to": "hidden_31",
-                "weight": 0.3296806871587331,
-                "absWeight": 0.3296806871587331
-              },
-              {
-                "from": "hidden_63",
-                "to": "hidden_68",
-                "weight": -0.32736983490818083,
-                "absWeight": 0.32736983490818083
-              },
-              {
-                "from": "hidden_31",
-                "to": "hidden_62",
-                "weight": 0.32710444124997995,
-                "absWeight": 0.32710444124997995
-              },
-              {
-                "from": "hidden_46",
-                "to": "hidden_63",
-                "weight": -0.3232131778107442,
-                "absWeight": 0.3232131778107442
+                "from": "hidden_43",
+                "to": "hidden_48",
+                "weight": 0.3343406812164841,
+                "absWeight": 0.3343406812164841
               },
               {
                 "from": "hidden_50",
-                "to": "hidden_70",
-                "weight": -0.3221984876096132,
-                "absWeight": 0.3221984876096132
+                "to": "hidden_73",
+                "weight": 0.3313685678437964,
+                "absWeight": 0.3313685678437964
               },
               {
-                "from": "hidden_49",
-                "to": "hidden_70",
-                "weight": -0.3210370670201767,
-                "absWeight": 0.3210370670201767
+                "from": "input_23",
+                "to": "hidden_28",
+                "weight": 0.3280112016941378,
+                "absWeight": 0.3280112016941378
               },
               {
-                "from": "input_terrainLeft",
-                "to": "hidden_38",
-                "weight": 0.3200828430466851,
-                "absWeight": 0.3200828430466851
+                "from": "hidden_26",
+                "to": "hidden_51",
+                "weight": 0.32748205638390493,
+                "absWeight": 0.32748205638390493
+              },
+              {
+                "from": "hidden_68",
+                "to": "output_aimAngle",
+                "weight": -0.32603580659428005,
+                "absWeight": 0.32603580659428005
+              },
+              {
+                "from": "hidden_40",
+                "to": "hidden_62",
+                "weight": -0.3258297426779346,
+                "absWeight": 0.3258297426779346
+              },
+              {
+                "from": "input_terrainDownLeft",
+                "to": "hidden_43",
+                "weight": -0.3254305395233936,
+                "absWeight": 0.3254305395233936
               }
             ],
             "inputInfluence": {
-              "22": 1,
-              "23": 0.8651266615796661,
-              "terrainDownLeft": 0.763954188988593,
-              "lastAimAngle": 0.9033685522340944,
-              "selfY": 0.930877959404427,
-              "terrainLeft": 0.8611987882591777,
-              "enemyY": 0.8671490023059797,
-              "terrainUp": 0.9465634230232968,
-              "selfX": 0.8668837890627451,
-              "damageTaken": 0.880244664358752,
-              "explosionDistFromSelf": 0.7770913244098026,
-              "timeRemaining": 0.7502800376584831,
-              "selfHealthPercent": 0.846685092482942,
-              "explosionY": 0.7236174055965757,
-              "explosionX": 0.8040802071383742,
-              "terrainRight": 0.9817960890630826,
-              "terrainDown": 0.8715923014132727,
-              "terrainUpRight": 0.7681837122944939,
-              "terrainUpLeft": 0.9078874506269147,
-              "didHitEnemy": 0.6631396634073148,
-              "explosionDistFromEnemy": 0.6696418202847529,
-              "terrainDownRight": 0.8425280642492907,
-              "enemyX": 0.8268836557045761,
-              "enemyHealthPercent": 0.7332894276268973
+              "22": 0.5192638457827415,
+              "23": 0.6925051507159494,
+              "didHitEnemy": 0.636610550312464,
+              "explosionDistFromEnemy": 0.7247032772041131,
+              "terrainDownLeft": 0.5918652773480516,
+              "explosionDistFromSelf": 0.7632105279484688,
+              "enemyX": 0.7030675445776547,
+              "terrainDownRight": 0.8407763521188821,
+              "terrainRight": 1,
+              "terrainUpLeft": 0.6913960741830965,
+              "terrainDown": 0.7891616366617634,
+              "selfY": 0.617212672625756,
+              "timeRemaining": 0.8075963011707394,
+              "explosionX": 0.717097995706508,
+              "enemyHealthPercent": 0.7189490438581184,
+              "selfX": 0.696093741919205,
+              "terrainUpRight": 0.6593444376919917,
+              "damageTaken": 0.5660196881089373,
+              "enemyY": 0.7223971293533764,
+              "selfHealthPercent": 0.6083579779361498,
+              "terrainLeft": 0.6121663298752599,
+              "lastAimAngle": 0.6547663880844843,
+              "explosionY": 0.7143561209892796,
+              "terrainUp": 0.5729066321184565
             },
             "networkComplexity": 14.935064935064934
           },
