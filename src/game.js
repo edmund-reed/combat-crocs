@@ -7,6 +7,8 @@ import GameScene from "./scenes/GameScene.js";
 import { Maps as MapManager, WeaponManager } from "@utils";
 import StateManager from "./utils/state-manager.js";
 import TerrainScanner from "./utils/terrain-scanner.js";
+import PhysicsManager from "./utils/physics-manager.js";
+import InstantShotResolver from "./weapons/instant-shot-resolver.js";
 
 class CombatCrocsGame {
   constructor() {
@@ -36,6 +38,8 @@ class CombatCrocsGame {
     window.StateManager = StateManager;
     window.WeaponManager = WeaponManager;
     window.TerrainScanner = TerrainScanner; // FIXED: Enable AI terrain vision!
+    window.PhysicsManager = PhysicsManager; // CRITICAL: Enable look-ahead LOS checking!
+    window.InstantShotResolver = InstantShotResolver; // CRITICAL: Enable look-ahead physics simulation!
 
     Logger.gameEvent("Combat Crocs Game Initialized!");
     Logger.gameEvent("Controls: Arrow keys to move/jump, SPACE to jump, Mouse click to shoot");

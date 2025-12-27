@@ -1,0 +1,539 @@
+{
+  "gameId": "game-1766832968106-3",
+  "network": 1,
+  "generation": 1,
+  "map": "magnificentBulk",
+  "result": {
+    "winner": 2,
+    "selfDamage": 82.80394733793253,
+    "enemyDamage": 37.09790984179429,
+    "fitness": 46.352184655622445,
+    "initialHealth": 100,
+    "finalHealth": 0,
+    "turns": 8
+  },
+  "turns": [
+    {
+      "turnNumber": 2,
+      "team": 2,
+      "inputs": {
+        "self": {
+          "health": 100,
+          "maxHealth": 100,
+          "x": 230,
+          "y": 590.0500000000417,
+          "team": 2
+        },
+        "enemies": [
+          {
+            "health": 100,
+            "maxHealth": 100,
+            "x": 410,
+            "y": 590.0500000000417,
+            "distance": 180,
+            "angle": 0,
+            "threat": 50
+          }
+        ],
+        "weapons": {
+          "ammo": {
+            "BAZOOKA": 1,
+            "GRENADE": 1,
+            "SHOTGUN": 2
+          }
+        },
+        "context": {
+          "turnNumber": 2,
+          "timeRemaining": 30
+        },
+        "ballistics": {
+          "projectileSpeed": 500,
+          "gravity": 981,
+          "timeToImpact": 0.36,
+          "optimalAngle": 0.3921430524403063,
+          "powerNeeded": 1,
+          "windEffect": 0,
+          "arcHeight": 90.00000000000001,
+          "collisionPredicted": false
+        },
+        "terrain": [
+          970,
+          20,
+          10,
+          20,
+          230,
+          330,
+          600,
+          30
+        ],
+        "obstacles": {
+          "lineOfSight": true,
+          "nearestDistance": 1000,
+          "obstacleHeight": 0,
+          "terrainType": 0
+        },
+        "shotHistory": {
+          "recent": []
+        },
+        "shotFeedback": {
+          "didDamageEnemy": false,
+          "damageDealt": 0,
+          "didDamageSelf": false,
+          "damageTaken": 0,
+          "myHealthDelta": 0,
+          "enemyHealthDelta": 0,
+          "explosionX": 0,
+          "explosionY": 0,
+          "explosionDistance": 1000
+        },
+        "lastDecision": {
+          "aimAngle": 0,
+          "weapon": "BAZOOKA"
+        }
+      },
+      "decision": {
+        "weapon": "BAZOOKA",
+        "aimAngle": 2.276036302770664,
+        "targetIndex": 0,
+        "power": 1,
+        "movement": "none"
+      }
+    },
+    {
+      "turnNumber": 3,
+      "team": 1,
+      "inputs": {
+        "self": {
+          "health": 100,
+          "maxHealth": 100,
+          "x": 410,
+          "y": 590.0500000000417,
+          "team": 1
+        },
+        "enemies": [
+          {
+            "health": 62.92342707637886,
+            "maxHealth": 100,
+            "x": 230,
+            "y": 590.0500000000417,
+            "distance": 180,
+            "angle": 3.141592653589793,
+            "threat": 50
+          }
+        ],
+        "weapons": {
+          "ammo": {
+            "BAZOOKA": 1,
+            "GRENADE": 1,
+            "SHOTGUN": 2
+          }
+        },
+        "context": {
+          "turnNumber": 3,
+          "timeRemaining": 30
+        },
+        "ballistics": {
+          "projectileSpeed": 500,
+          "gravity": 981,
+          "timeToImpact": 0.36,
+          "optimalAngle": 2.749449601149487,
+          "powerNeeded": 1,
+          "windEffect": 0,
+          "arcHeight": -90.00000000000001,
+          "collisionPredicted": false
+        },
+        "terrain": [
+          790,
+          20,
+          10,
+          20,
+          410,
+          90,
+          600,
+          840
+        ],
+        "obstacles": {
+          "lineOfSight": true,
+          "nearestDistance": 1000,
+          "obstacleHeight": 0,
+          "terrainType": 0
+        },
+        "shotHistory": {
+          "recent": []
+        },
+        "shotFeedback": {
+          "didDamageEnemy": false,
+          "damageDealt": 0,
+          "didDamageSelf": false,
+          "damageTaken": 0,
+          "myHealthDelta": 0,
+          "enemyHealthDelta": 0,
+          "explosionX": 0,
+          "explosionY": 0,
+          "explosionDistance": 1000
+        },
+        "lastDecision": {
+          "aimAngle": 0,
+          "weapon": "BAZOOKA"
+        }
+      },
+      "decision": {
+        "weapon": "BAZOOKA",
+        "aimAngle": 3.0996257586354714,
+        "movement": "right",
+        "movementDistance": 111.32759912518941,
+        "actionType": "move",
+        "targetIndex": 0,
+        "power": 1
+      }
+    },
+    {
+      "turnNumber": 4,
+      "team": 2,
+      "inputs": {
+        "self": {
+          "health": 62.92342707637886,
+          "maxHealth": 100,
+          "x": 230,
+          "y": 590.0500000000417,
+          "team": 2
+        },
+        "enemies": [
+          {
+            "health": 58.59533153704713,
+            "maxHealth": 100,
+            "x": 510,
+            "y": 590.0500000000417,
+            "distance": 280,
+            "angle": 0,
+            "threat": 50
+          }
+        ],
+        "weapons": {
+          "ammo": {
+            "BAZOOKA": 1,
+            "GRENADE": 1,
+            "SHOTGUN": 2
+          }
+        },
+        "context": {
+          "turnNumber": 4,
+          "timeRemaining": 30
+        },
+        "ballistics": {
+          "projectileSpeed": 500,
+          "gravity": 981,
+          "timeToImpact": 0.56,
+          "optimalAngle": 0,
+          "powerNeeded": 1,
+          "windEffect": 0,
+          "arcHeight": 0,
+          "collisionPredicted": false
+        },
+        "terrain": [
+          970,
+          20,
+          10,
+          20,
+          230,
+          330,
+          600,
+          30
+        ],
+        "obstacles": {
+          "lineOfSight": true,
+          "nearestDistance": 1000,
+          "obstacleHeight": 0,
+          "terrainType": 0
+        },
+        "shotHistory": {
+          "recent": []
+        },
+        "shotFeedback": {
+          "didDamageEnemy": true,
+          "damageDealt": 41.40466846295287,
+          "didDamageSelf": true,
+          "damageTaken": 37.07657292362114,
+          "myHealthDelta": -37.07657292362114,
+          "enemyHealthDelta": -41.40466846295287,
+          "explosionX": 512.4628949657978,
+          "explosionY": 589.0830304319942,
+          "explosionDistance": 282.4645500989546
+        },
+        "lastDecision": {
+          "aimAngle": 2.276036302770664,
+          "weapon": "BAZOOKA"
+        }
+      },
+      "decision": {
+        "weapon": "BAZOOKA",
+        "aimAngle": 5.467008180802685,
+        "targetIndex": 0,
+        "power": 1,
+        "movement": "none"
+      }
+    },
+    {
+      "turnNumber": 5,
+      "team": 1,
+      "inputs": {
+        "self": {
+          "health": 58.59533153704713,
+          "maxHealth": 100,
+          "x": 510,
+          "y": 590.0500000000417,
+          "team": 1
+        },
+        "enemies": [
+          {
+            "health": 62.92342707637886,
+            "maxHealth": 100,
+            "x": 230,
+            "y": 590.0500000000417,
+            "distance": 280,
+            "angle": 3.141592653589793,
+            "threat": 50
+          }
+        ],
+        "weapons": {
+          "ammo": {
+            "BAZOOKA": 1,
+            "GRENADE": 1,
+            "SHOTGUN": 2
+          }
+        },
+        "context": {
+          "turnNumber": 5,
+          "timeRemaining": 30
+        },
+        "ballistics": {
+          "projectileSpeed": 500,
+          "gravity": 981,
+          "timeToImpact": 0.56,
+          "optimalAngle": 3.141592653589793,
+          "powerNeeded": 1,
+          "windEffect": 0,
+          "arcHeight": -3.120914370915783e-14,
+          "collisionPredicted": false
+        },
+        "terrain": [
+          690,
+          20,
+          10,
+          20,
+          510,
+          730,
+          170,
+          100
+        ],
+        "obstacles": {
+          "lineOfSight": true,
+          "nearestDistance": 1000,
+          "obstacleHeight": 0,
+          "terrainType": 0
+        },
+        "shotHistory": {
+          "recent": []
+        },
+        "shotFeedback": {
+          "didDamageEnemy": false,
+          "damageDealt": 0,
+          "didDamageSelf": true,
+          "damageTaken": 41.40466846295287,
+          "myHealthDelta": -41.40466846295287,
+          "enemyHealthDelta": 0,
+          "explosionX": 512.4628949657978,
+          "explosionY": 589.0830304319942,
+          "explosionDistance": 2.645917942431692
+        },
+        "lastDecision": {
+          "aimAngle": 3.0996257586354714,
+          "weapon": "BAZOOKA"
+        }
+      },
+      "decision": {
+        "weapon": "BAZOOKA",
+        "aimAngle": 3.1194357852883896,
+        "movement": "right",
+        "movementDistance": 111.21617878535054,
+        "actionType": "move",
+        "targetIndex": 0,
+        "power": 1
+      }
+    },
+    {
+      "turnNumber": 6,
+      "team": 2,
+      "inputs": {
+        "self": {
+          "health": 62.92342707637886,
+          "maxHealth": 100,
+          "x": 230,
+          "y": 590.0500000000417,
+          "team": 2
+        },
+        "enemies": [
+          {
+            "health": 17.19605266206748,
+            "maxHealth": 100,
+            "x": 610,
+            "y": 590.0500000000417,
+            "distance": 380,
+            "angle": 0,
+            "threat": 50
+          }
+        ],
+        "weapons": {
+          "ammo": {
+            "BAZOOKA": 1,
+            "GRENADE": 1,
+            "SHOTGUN": 2
+          }
+        },
+        "context": {
+          "turnNumber": 6,
+          "timeRemaining": 30
+        },
+        "ballistics": {
+          "projectileSpeed": 500,
+          "gravity": 981,
+          "timeToImpact": 0.76,
+          "optimalAngle": 0,
+          "powerNeeded": 1,
+          "windEffect": 0,
+          "arcHeight": 0,
+          "collisionPredicted": false
+        },
+        "terrain": [
+          970,
+          20,
+          10,
+          20,
+          230,
+          330,
+          600,
+          30
+        ],
+        "obstacles": {
+          "lineOfSight": true,
+          "nearestDistance": 1000,
+          "obstacleHeight": 0,
+          "terrainType": 0
+        },
+        "shotHistory": {
+          "recent": []
+        },
+        "shotFeedback": {
+          "didDamageEnemy": true,
+          "damageDealt": 41.39927887497965,
+          "didDamageSelf": false,
+          "damageTaken": 0,
+          "myHealthDelta": 0,
+          "enemyHealthDelta": -41.39927887497965,
+          "explosionX": 612.5060450986164,
+          "explosionY": 589.1291565385059,
+          "explosionDistance": 382.50715351436946
+        },
+        "lastDecision": {
+          "aimAngle": 5.467008180802685,
+          "weapon": "BAZOOKA"
+        }
+      },
+      "decision": {
+        "weapon": "BAZOOKA",
+        "aimAngle": 1.7054109815610514,
+        "targetIndex": 0,
+        "power": 1,
+        "movement": "none"
+      }
+    },
+    {
+      "turnNumber": 7,
+      "team": 1,
+      "inputs": {
+        "self": {
+          "health": 17.19605266206748,
+          "maxHealth": 100,
+          "x": 610,
+          "y": 590.0500000000417,
+          "team": 1
+        },
+        "enemies": [
+          {
+            "health": 25.825517234584566,
+            "maxHealth": 100,
+            "x": 230,
+            "y": 590.0500000000417,
+            "distance": 380,
+            "angle": 3.141592653589793,
+            "threat": 50
+          }
+        ],
+        "weapons": {
+          "ammo": {
+            "BAZOOKA": 1,
+            "GRENADE": 1,
+            "SHOTGUN": 2
+          }
+        },
+        "context": {
+          "turnNumber": 7,
+          "timeRemaining": 30
+        },
+        "ballistics": {
+          "projectileSpeed": 500,
+          "gravity": 981,
+          "timeToImpact": 0.76,
+          "optimalAngle": 3.141592653589793,
+          "powerNeeded": 1,
+          "windEffect": 0,
+          "arcHeight": -3.120914370915783e-14,
+          "collisionPredicted": false
+        },
+        "terrain": [
+          590,
+          20,
+          10,
+          20,
+          610,
+          230,
+          70,
+          350
+        ],
+        "obstacles": {
+          "lineOfSight": true,
+          "nearestDistance": 1000,
+          "obstacleHeight": 0,
+          "terrainType": 0
+        },
+        "shotHistory": {
+          "recent": []
+        },
+        "shotFeedback": {
+          "didDamageEnemy": true,
+          "damageDealt": 37.09790984179429,
+          "didDamageSelf": true,
+          "damageTaken": 41.39927887497965,
+          "myHealthDelta": -41.39927887497965,
+          "enemyHealthDelta": -37.09790984179429,
+          "explosionX": 612.5060450986164,
+          "explosionY": 589.1291565385059,
+          "explosionDistance": 2.669871666757108
+        },
+        "lastDecision": {
+          "aimAngle": 3.1194357852883896,
+          "weapon": "BAZOOKA"
+        }
+      },
+      "decision": {
+        "weapon": "BAZOOKA",
+        "aimAngle": 3.1121595888022573,
+        "movement": "right",
+        "movementDistance": 111.3088901608611,
+        "actionType": "move",
+        "targetIndex": 0,
+        "power": 1
+      }
+    }
+  ]
+}

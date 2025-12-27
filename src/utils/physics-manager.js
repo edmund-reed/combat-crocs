@@ -16,6 +16,16 @@ class PhysicsManager {
     scene.matter.world.setBounds(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
     scene.matter.world.setGravity(0, Config.GRAVITY);
 
+    // NEW: Mark boundary walls as terrain for AI ray-casting
+    // setBounds creates 4 static rectangular bodies for the walls
+    scene.matter.world.localWorld.bodies.forEach(body => {
+      // Boundary walls are static and have no custom properties yet
+      if (body.isStatic && !body.isTerrain && !body.terrainName) {
+        body.isTerrain = true;
+        body.terrainName = "Boundary";
+      }
+    });
+
     // Optimize physics engine for accurate collision detection
     const engine = scene.matter.world.engine;
 
@@ -72,6 +82,20 @@ class PhysicsManager {
       ? this.CONFIG.RESTITUTION.PROJECTILE
       : 0.1;
 
+    // DEBUG: Log real projectile parameters
+    if (window.__TRAINING_MODE__) {
+      const worldGravity = scene.matter.world.engine.gravity;
+      console.log(`[REAL-PROJECTILE] Physics params:`, {
+        startPos: `(${x.toFixed(1)}, ${y.toFixed(1)})`,
+        weaponType: weaponType,
+        radius: 8,
+        friction: this.CONFIG.FRICTION.PROJECTILE,
+        restitution: restitution,
+        worldGravity: `(${worldGravity.x}, ${worldGravity.y})`,
+        isSensor: false,
+      });
+    }
+
     // Increased radius from 5px to 8px - larger projectiles are harder to tunnel through gaps
     const body = scene.matter.add.circle(x, y, 8, {
       friction: this.CONFIG.FRICTION.PROJECTILE,
@@ -109,10 +133,19 @@ class PhysicsManager {
 
   // Set projectile velocity and apply physics
   static applyProjectileVelocity = (scene, projectileBody, angle, power) => {
-    scene.matter.body.setVelocity(projectileBody, {
-      x: Math.cos(angle) * power,
-      y: Math.sin(angle) * power,
-    });
+    const vx = Math.cos(angle) * power;
+    const vy = Math.sin(angle) * power;
+
+    // DEBUG: Log velocity application
+    if (window.__TRAINING_MODE__) {
+      console.log(`[REAL-PROJECTILE] Velocity applied:`, {
+        angle: angle.toFixed(3),
+        power: power,
+        velocity: `(${vx.toFixed(2)}, ${vy.toFixed(2)})`,
+      });
+    }
+
+    scene.matter.body.setVelocity(projectileBody, { x: vx, y: vy });
   };
 
   // Delegate to existing ExplosionPhysics for terrain blocking

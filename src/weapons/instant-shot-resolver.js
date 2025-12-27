@@ -9,26 +9,34 @@ class InstantShotResolver {
   /**
    * Instantly resolve a bazooka shot by simulating physics
    * Returns landing position without creating actual projectile
+   * @param {boolean} noDamage - If true, explosion won't deal damage (for verification)
    */
-  static resolveBazookaShot(scene, player, targetX, targetY) {
+  static resolveBazookaShot(scene, player, targetX, targetY, noDamage = false) {
     const config = Config.WEAPON_CONFIGS.BAZOOKA;
 
     // Calculate firing angle
     const angle = Math.atan2(targetY - player.y, targetX - player.x);
-    const velocity = config.initialVelocity || 15;
 
-    // Simulate projectile physics
+    // CRITICAL: Match real projectile velocity (20, not 15!)
+    const velocity = 20;
+
+    // CRITICAL: Match real projectile spawn offset (8px from player center)
+    const spawnDistance = 8;
+    const startX = player.x + Math.cos(angle) * spawnDistance;
+    const startY = player.y + Math.sin(angle) * spawnDistance;
+
+    // Simulate projectile physics from SAME starting position as real projectile
     const landingPos = this.simulateProjectilePhysics(
       scene,
-      player.x,
-      player.y,
+      startX,
+      startY,
       angle,
       velocity,
       config.mass || 1,
     );
 
     // Immediately trigger explosion at landing position
-    ExplosionSystem.createExplosion(scene, landingPos.x, landingPos.y, player.id, "BAZOOKA");
+    ExplosionSystem.createExplosion(scene, landingPos.x, landingPos.y, player.id, "BAZOOKA", noDamage);
 
     return landingPos;
   }
@@ -37,9 +45,25 @@ class InstantShotResolver {
    * Fast physics simulation to predict where projectile will land
    */
   static simulateProjectilePhysics(scene, startX, startY, angle, velocity, mass) {
-    // Create temporary ghost body for simulation
+    // DEBUG: Log all physics parameters
+    if (window.__TRAINING_MODE__) {
+      const worldGravity = scene.matter.world.engine.gravity;
+      console.log(`[INSTANT-SHOT] Physics params:`, {
+        startPos: `(${startX.toFixed(1)}, ${startY.toFixed(1)})`,
+        angle: angle.toFixed(3),
+        velocity: velocity,
+        mass: mass,
+        radius: 8,
+        friction: 0.1,
+        restitution: 0.1,
+        worldGravity: `(${worldGravity.x}, ${worldGravity.y})`,
+        timestep: `${1000 / 60}ms`,
+      });
+    }
+
+    // Create ghost body for simulation (isSensor = doesn't collide with players)
     const tempBody = scene.matter.add.circle(startX, startY, 8, {
-      isSensor: true, // Ghost - doesn't affect real world
+      isSensor: true,
       friction: 0.1,
       restitution: 0.1,
       mass: mass,
@@ -51,51 +75,71 @@ class InstantShotResolver {
     scene.matter.body.setVelocity(tempBody, { x: vx, y: vy });
 
     // Simulate physics steps until collision
-    let steps = 0;
-    const maxSteps = 300; // Safety limit (~5 seconds of physics)
     const bodies = scene.matter.world.localWorld.bodies;
+    let lastValidPos = { x: tempBody.position.x, y: tempBody.position.y };
 
-    while (steps < maxSteps) {
-      // Step physics forward by one frame
-      scene.matter.world.step(1000 / 60); // 60 FPS
+    for (let steps = 0; steps < 300; steps++) {
+      // Store position BEFORE stepping (critical for offset calculation)
+      lastValidPos = { x: tempBody.position.x, y: tempBody.position.y };
 
-      // Check for terrain collision
+      // Step physics forward
+      scene.matter.world.step(1000 / 60);
+
+      // Check terrain collision AFTER step (use point query like old code)
       const collisions = Phaser.Physics.Matter.Matter.Query.point(bodies, {
         x: tempBody.position.x,
         y: tempBody.position.y,
       });
 
-      const terrainHit = collisions.find(c => c.isTerrain);
-      if (terrainHit) {
-        const landingPos = { x: tempBody.position.x, y: tempBody.position.y };
+      if (collisions.find(c => c.isTerrain)) {
+        // CRITICAL: Apply 50px explosion offset (matches PhysicsManager.calculateExplosionPosition)
+        const explosionPos = { x: lastValidPos.x, y: lastValidPos.y };
+        const vel = tempBody.velocity;
+
+        if (vel.x || vel.y) {
+          const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
+          if (speed > 0) {
+            const offset = 50; // Match PhysicsManager.CONFIG.EXPLOSION_OFFSET
+            explosionPos.x -= (vel.x / speed) * offset;
+            explosionPos.y -= (vel.y / speed) * offset;
+          }
+        }
+
         scene.matter.world.remove(tempBody);
-        return landingPos;
+
+        // Clamp to game boundaries
+        const gameWidth = scene.game.config.width;
+        const gameHeight = scene.game.config.height;
+        explosionPos.x = Math.max(0, Math.min(gameWidth, explosionPos.x));
+        explosionPos.y = Math.max(0, Math.min(gameHeight, explosionPos.y));
+
+        return explosionPos;
       }
 
-      // Check if out of bounds (fell off map)
+      // Check out of bounds
       if (tempBody.position.y > scene.game.config.height + 100) {
-        const landingPos = { x: tempBody.position.x, y: scene.game.config.height };
         scene.matter.world.remove(tempBody);
-        return landingPos;
+
+        // Clamp to boundaries
+        const gameWidth = scene.game.config.width;
+        const gameHeight = scene.game.config.height;
+        lastValidPos.x = Math.max(0, Math.min(gameWidth, lastValidPos.x));
+        lastValidPos.y = Math.max(0, Math.min(gameHeight, lastValidPos.y));
+
+        return lastValidPos;
       }
 
-      // Check if velocity is nearly zero (resting)
-      const speed = Math.sqrt(
-        tempBody.velocity.x * tempBody.velocity.x + tempBody.velocity.y * tempBody.velocity.y,
-      );
+      // Check if velocity near zero
+      const speed = Math.sqrt(tempBody.velocity.x ** 2 + tempBody.velocity.y ** 2);
       if (speed < 0.1 && steps > 10) {
-        const landingPos = { x: tempBody.position.x, y: tempBody.position.y };
         scene.matter.world.remove(tempBody);
-        return landingPos;
+        return lastValidPos;
       }
-
-      steps++;
     }
 
-    // Fallback: timeout, use current position
-    const fallbackPos = { x: tempBody.position.x, y: tempBody.position.y };
+    // Timeout fallback
     scene.matter.world.remove(tempBody);
-    return fallbackPos;
+    return lastValidPos;
   }
 }
 

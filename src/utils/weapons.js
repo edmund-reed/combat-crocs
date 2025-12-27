@@ -1,5 +1,5 @@
 import { Config, Logger } from "@config";
-import { HitscanWeapon, ExplosionSystem } from "@weapons";
+import { HitscanWeapon, ExplosionSystem, InstantShotResolver } from "@weapons";
 import { InputManager, StateManager, PhysicsManager } from "@utils";
 
 class WeaponManager {
@@ -19,33 +19,17 @@ class WeaponManager {
     const config = Config.WEAPON_CONFIGS[weaponType];
     const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
 
-    // TRAINING MODE: Instant bazooka resolution
-    if (window.__INSTANT_BAZOOKA__ && weaponType === "BAZOOKA" && window.__simulateBazookaPhysics__) {
-      const spawnDistance = 8;
-      const startX = player.x + Math.cos(angle) * spawnDistance;
-      const startY = player.y + Math.sin(angle) * spawnDistance;
-      const velocity = config.initialVelocity || 15;
+    // TRAINING MODE: Instant bazooka resolution using real game physics
+    if (window.__INSTANT_BAZOOKA__ && weaponType === "BAZOOKA") {
+      console.log("[INSTANT BAZOOKA] Using InstantShotResolver");
 
-      console.log("[INSTANT BAZOOKA] Starting instant shot simulation");
-
-      // Simulate physics to get landing position
-      const landingPos = window.__simulateBazookaPhysics__(scene, startX, startY, angle, velocity);
+      // Use the game's built-in instant shot resolver
+      const landingPos = InstantShotResolver.resolveBazookaShot(scene, player, targetX, targetY);
 
       console.log(`[INSTANT BAZOOKA] Landing at (${landingPos.x.toFixed(0)}, ${landingPos.y.toFixed(0)})`);
-      console.log(
-        `[INSTANT BAZOOKA] Player health before: ${scene.players
-          .map(p => `T${p.team}:${p.health}`)
-          .join(", ")}`,
-      );
 
-      // Immediately trigger explosion at landing position
-      const owner = ExplosionSystem.createExplosion(scene, landingPos.x, landingPos.y, player.id, weaponType);
-
-      console.log(
-        `[INSTANT BAZOOKA] Player health after: ${scene.players
-          .map(p => `T${p.team}:${p.health}`)
-          .join(", ")}`,
-      );
+      // Store explosion position for logging
+      window.__LAST_EXPLOSION__ = { x: landingPos.x, y: landingPos.y };
 
       // Delay slightly to let turn system process
       scene.time.delayedCall(100, () => {

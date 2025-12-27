@@ -5,18 +5,27 @@ import { getWeaponDamage, getWeaponRadius, getExplosionColor, awardXP } from "@w
 import { DamageManager } from "@utils";
 
 class ExplosionSystem {
-  static createExplosion(scene, x, y, projectileOwner = null, weaponType = "BAZOOKA") {
+  static createExplosion(scene, x, y, projectileOwner = null, weaponType = "BAZOOKA", noDamage = false) {
+    const attackingPlayer = projectileOwner ? scene.players.find(p => p.id === projectileOwner) : null;
+
     // CRITICAL: Store explosion coordinates globally for AI training feedback
+    // ONLY track Team 1 (AI) explosions to avoid confusion from enemy shots
     if (typeof window !== "undefined") {
-      window.__LAST_EXPLOSION__ = {
-        x: x,
-        y: y,
-        timestamp: Date.now(),
-        weaponType: weaponType,
-      };
+      // Only write explosion data for AI's team (Team 1)
+      // Don't overwrite if this is a verification shot (noDamage mode)
+      if (attackingPlayer && attackingPlayer.teamId === 1 && !noDamage) {
+        window.__LAST_EXPLOSION__ = {
+          x: x,
+          y: y,
+          timestamp: Date.now(),
+          weaponType: weaponType,
+        };
+        console.log(`[EXPLOSION] Team 1 shot recorded: (${x.toFixed(0)}, ${y.toFixed(0)})`);
+      } else if (noDamage) {
+        console.log(`[EXPLOSION] Verification shot (no damage): (${x.toFixed(0)}, ${y.toFixed(0)})`);
+      }
     }
 
-    const attackingPlayer = projectileOwner ? scene.players.find(p => p.id === projectileOwner) : null;
     const config = Config.WEAPON_CONFIGS[weaponType];
     const maxDamage = attackingPlayer ? getWeaponDamage(attackingPlayer, weaponType) : config.damage;
     const radius = attackingPlayer ? getWeaponRadius(attackingPlayer, weaponType) : config.radius;
@@ -56,9 +65,24 @@ class ExplosionSystem {
     const enemiesHit = [];
     let enemiesKilled = 0;
 
+    // Skip damage calculation if this is a verification shot
+    if (noDamage) {
+      if (window.__TRAINING_MODE__) {
+        console.log(`[EXPLOSION DAMAGE] Skipped (verification shot)`);
+      }
+      return projectileOwner;
+    }
+
     // TRAINING MODE: Detailed damage logging
     if (window.__TRAINING_MODE__) {
-      console.log(`[EXPLOSION DAMAGE] Checking ${scene.players.length} players, radius: ${radius}`);
+      console.log(
+        `[EXPLOSION DAMAGE] Attacker: ${attackingPlayer?.id || "none"} (Team ${
+          attackingPlayer?.teamId || "none"
+        })`,
+      );
+      console.log(
+        `[EXPLOSION DAMAGE] Checking ${scene.players.length} players, radius: ${radius}, maxDamage: ${maxDamage}`,
+      );
     }
 
     scene.players.forEach(player => {
@@ -68,9 +92,11 @@ class ExplosionSystem {
       // TRAINING MODE: Log each player check
       if (window.__TRAINING_MODE__) {
         console.log(
-          `[EXPLOSION DAMAGE] Player ${player.id} (Team ${player.team}): pos=(${player.x.toFixed(
+          `[EXPLOSION DAMAGE] Player ${player.id} (Team ${player.team}, TeamId ${
+            player.teamId
+          }): pos=(${player.x.toFixed(0)}, ${player.y.toFixed(0)}), distance=${distance.toFixed(
             0,
-          )}, ${player.y.toFixed(0)}), distance=${distance.toFixed(0)}, blocked=${isBlocked}`,
+          )}, blocked=${isBlocked}, attackerTeamId=${attackerTeamId}`,
         );
       }
 
