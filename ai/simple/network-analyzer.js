@@ -70,7 +70,7 @@ function calculateInputInfluence(connections) {
  */
 function getNodeLabel(node, index) {
   if (node.type === "input") {
-    // UPDATED: Correct 23-input architecture labels
+    // FIXED: Correct 22-input architecture (NO ammo inputs!)
     const inputLabels = [
       "selfX", // 0
       "selfY", // 1
@@ -81,20 +81,19 @@ function getNodeLabel(node, index) {
       "lastAimAngle", // 6
       "explosionX", // 7
       "explosionY", // 8
-      "explosionDistance", // 9
-      "damageTaken", // 10
-      "terrainRight", // 11
-      "terrainUpRight", // 12
-      "terrainUp", // 13
-      "terrainUpLeft", // 14
-      "terrainLeft", // 15
-      "terrainDownLeft", // 16
-      "terrainDown", // 17
-      "terrainDownRight", // 18
-      "timeRemaining", // 19
-      "bazookaAmmo", // 20
-      "grenadeAmmo", // 21
-      "shotgunAmmo", // 22
+      "explosionDistFromSelf", // 9
+      "explosionDistFromEnemy", // 10
+      "damageTaken", // 11
+      "didHitEnemy", // 12
+      "terrainRight", // 13
+      "terrainUpRight", // 14
+      "terrainUp", // 15
+      "terrainUpLeft", // 16
+      "terrainLeft", // 17
+      "terrainDownLeft", // 18
+      "terrainDown", // 19
+      "terrainDownRight", // 20
+      "timeRemaining", // 21
     ];
     return `input_${inputLabels[node.index] || index}`;
   } else if (node.type === "output") {

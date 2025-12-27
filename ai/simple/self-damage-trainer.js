@@ -1,6 +1,7 @@
-// Self-Damage Avoidance Trainer
-// FOCUSED goal: Teach AI to avoid damaging itself while considering enemy position
-// 22 inputs: self status + enemy + feedback (enhanced) + terrain + context
+// Strategic AI Trainer
+// Goal: Teach AI strategic positioning and shooting decisions
+// 24 inputs: self + enemy + strategic feedback + terrain + context
+// 3 outputs: actionType (shoot/move), movementDistance, aimAngle
 
 import neataptic from "neataptic";
 const { Neat } = neataptic;
@@ -9,387 +10,19 @@ import fs from "fs";
 import path from "path";
 import { analyzeNetwork, generateAnalysisSummary, compareGenerations } from "./network-analyzer.js";
 
-// =============================================================================
-// ENHANCED ENCODING - 22 inputs (optimized)
-// =============================================================================
+// Modular components
+import { encodeSelfDamageGameState } from "../training/input-encoder.js";
+import { calculateFitness, aggregateNetworkStats } from "../training/fitness-calculator.js";
+import {
+  saveCheckpoint,
+  loadFromCheckpoint,
+  cleanupOldCheckpoints,
+  saveBestModel,
+} from "../training/checkpoint-manager.js";
+import { addGameLog, saveInputLogs, saveTrainingHistory } from "../training/logger.js";
 
-function encodeSelfDamageGameState(gameState) {
-  const inputs = [];
-
-  // === SELF POSITION & HEALTH (3) ===
-  inputs.push(gameState.self.x);
-  inputs.push(gameState.self.y);
-  inputs.push(gameState.self.health / gameState.self.maxHealth);
-
-  // === ENEMY POSITION & HEALTH (3) ===
-  const enemy = gameState.enemies && gameState.enemies[0];
-  if (enemy) {
-    inputs.push(enemy.x || 0);
-    inputs.push(enemy.y || 0);
-    inputs.push((enemy.health || 0) / (enemy.maxHealth || 100));
-  } else {
-    inputs.push(0);
-    inputs.push(0);
-    inputs.push(0);
-  }
-
-  // === LAST AIM ANGLE (1) === What did I choose last turn?
-  const lastDecision = gameState.lastDecision || {};
-  inputs.push(lastDecision.aimAngle || 0);
-
-  // === ENHANCED EXPLOSION FEEDBACK (6) ===
-  const feedback = gameState.shotFeedback || {};
-  inputs.push(feedback.explosionX || 0);
-  inputs.push(feedback.explosionY || 0);
-
-  // Distance from self to explosion
-  const explosionDistFromSelf = feedback.explosionX
-    ? Math.sqrt(
-        Math.pow(gameState.self.x - feedback.explosionX, 2) +
-          Math.pow(gameState.self.y - feedback.explosionY, 2),
-      )
-    : 1000;
-  inputs.push(explosionDistFromSelf);
-
-  // NEW: Distance from enemy to explosion (accuracy feedback)
-  const explosionDistFromEnemy =
-    feedback.explosionX && enemy
-      ? Math.sqrt(Math.pow(enemy.x - feedback.explosionX, 2) + Math.pow(enemy.y - feedback.explosionY, 2))
-      : 1000;
-  inputs.push(explosionDistFromEnemy);
-
-  inputs.push(feedback.damageTaken || 0);
-
-  // NEW: Binary flag - did we hit the enemy last turn?
-  const didHitEnemy = feedback.didDamageEnemy ? 1 : 0;
-  inputs.push(didHitEnemy);
-
-  // === TERRAIN DISTANCES (8 directions) ===
-  const terrainDists = gameState.terrain || [500, 500, 500, 500, 500, 500, 500, 500];
-  inputs.push(...terrainDists);
-
-  // === TIME REMAINING (1) ===
-  inputs.push(gameState.context?.timeRemaining || 30);
-
-  // Total: 22 inputs (removed constant ammo, added accuracy feedback)
-  return inputs;
-}
-
-// =============================================================================
-// LABELED INPUT STRUCTURE - For JSON logging
-// =============================================================================
-
-function getInputLabels() {
-  return [
-    "selfX",
-    "selfY",
-    "selfHealthPercent",
-    "enemyX",
-    "enemyY",
-    "enemyHealthPercent",
-    "lastAimAngle",
-    "explosionX",
-    "explosionY",
-    "explosionDistFromSelf",
-    "explosionDistFromEnemy",
-    "damageTaken",
-    "didHitEnemy",
-    "terrainRight",
-    "terrainUpRight",
-    "terrainUp",
-    "terrainUpLeft",
-    "terrainLeft",
-    "terrainDownLeft",
-    "terrainDown",
-    "terrainDownRight",
-    "timeRemaining",
-  ];
-}
-
-function createLabeledInputObject(gameState, inputArray) {
-  const labels = getInputLabels();
-  const labeled = {};
-
-  labels.forEach((label, index) => {
-    labeled[label] = inputArray[index];
-  });
-
-  // Create human-readable structure showing the exact model inputs
-  return {
-    modelInputs: inputArray, // <-- RAW 22-value array fed to network
-    inputLabels: labeled, // <-- Same values with labels
-    structuredData: {
-      self: {
-        x: labeled.selfX,
-        y: labeled.selfY,
-        healthPercent: labeled.selfHealthPercent,
-      },
-      enemy: {
-        x: labeled.enemyX,
-        y: labeled.enemyY,
-        healthPercent: labeled.enemyHealthPercent,
-      },
-      lastDecision: {
-        aimAngle: labeled.lastAimAngle,
-        aimAngleDegrees: (labeled.lastAimAngle * 180) / Math.PI,
-      },
-      explosion: {
-        x: labeled.explosionX,
-        y: labeled.explosionY,
-        distanceFromSelf: labeled.explosionDistFromSelf,
-        distanceFromEnemy: labeled.explosionDistFromEnemy,
-        damageTaken: labeled.damageTaken,
-        didHitEnemy: labeled.didHitEnemy,
-      },
-      terrain: {
-        directions: [
-          labeled.terrainRight,
-          labeled.terrainUpRight,
-          labeled.terrainUp,
-          labeled.terrainUpLeft,
-          labeled.terrainLeft,
-          labeled.terrainDownLeft,
-          labeled.terrainDown,
-          labeled.terrainDownRight,
-        ],
-        directionNames: ["right", "upRight", "up", "upLeft", "left", "downLeft", "down", "downRight"],
-      },
-      context: {
-        timeRemaining: labeled.timeRemaining,
-      },
-    },
-  };
-}
-
-function decodeNetworkOutput(outputs, gameState) {
-  // HYBRID: Network base angle + random exploration
-  const baseAngle = outputs[0] * 2 * Math.PI;
-
-  // CLI LOGGING: Show we're simulating
-  if (typeof console !== "undefined" && gameState.context?.turnNumber === 3) {
-    console.log("\n🎯 [LOOK-AHEAD] Simulating 10 candidate shots...");
-  }
-
-  // Generate 10 candidate angles: 1 network + 9 random
-  const candidateAngles = [
-    { angle: baseAngle, source: "network" },
-    { angle: Math.random() * 2 * Math.PI, source: "random" },
-    { angle: Math.random() * 2 * Math.PI, source: "random" },
-    { angle: Math.random() * 2 * Math.PI, source: "random" },
-    { angle: Math.random() * 2 * Math.PI, source: "random" },
-    { angle: Math.random() * 2 * Math.PI, source: "random" },
-    { angle: Math.random() * 2 * Math.PI, source: "random" },
-    { angle: Math.random() * 2 * Math.PI, source: "random" },
-    { angle: Math.random() * 2 * Math.PI, source: "random" },
-    { angle: Math.random() * 2 * Math.PI, source: "random" },
-  ];
-
-  // Helper function: Check if terrain blocks line-of-sight from landing to enemy
-  const checkTerrainLineOfSight = (landingX, landingY, targetX, targetY) => {
-    // Sample points along the line from landing to enemy
-    const samples = 10;
-    const dx = targetX - landingX;
-    const dy = targetY - landingY;
-
-    for (let i = 1; i < samples; i++) {
-      const t = i / samples;
-      const checkX = landingX + dx * t;
-      const checkY = landingY + dy * t;
-
-      // Check if this point hits terrain
-      const terrainBodies = gameState.terrain || [];
-      // Simple distance check - if any terrain raycast is very short in this direction, blocked
-      // This is a simplified check - in browser we'd do proper collision detection
-
-      // For now, return true (clear) - will implement proper check in browser
-      // The browser version will use actual terrain collision data
-    }
-
-    return true; // Assume clear for training (browser will do real check)
-  };
-
-  // Simulate each candidate and track details
-  let bestAngle = baseAngle;
-  let minDistToEnemy = Infinity;
-  let minDistToEnemyClear = Infinity; // Track best with clear LOS
-  const candidateDetails = [];
-
-  const playerPos = { x: gameState.self.x, y: gameState.self.y };
-  const enemy = gameState.enemies && gameState.enemies[0];
-  const enemyPos = enemy ? { x: enemy.x, y: enemy.y } : { x: 600, y: 400 }; // Fallback to center
-
-  for (const candidate of candidateAngles) {
-    // Simulate shot landing position (simplified physics)
-    const velocity = 15; // Bazooka velocity
-    const gravity = 0.981; // Phaser gravity scaled
-    const time = 1.5; // Approximate flight time
-
-    const landingX = playerPos.x + Math.cos(candidate.angle) * velocity * time * 60;
-    const landingY =
-      playerPos.y + Math.sin(candidate.angle) * velocity * time * 60 + 0.5 * gravity * time * time * 60 * 60;
-
-    // Calculate distance from landing to enemy (NEW: aim at enemy!)
-    const dxToEnemy = landingX - enemyPos.x;
-    const dyToEnemy = landingY - enemyPos.y;
-    const distToEnemy = Math.sqrt(dxToEnemy * dxToEnemy + dyToEnemy * dyToEnemy);
-
-    // Also track distance from player (for logging)
-    const dx = landingX - playerPos.x;
-    const dy = landingY - playerPos.y;
-    const distFromPlayer = Math.sqrt(dx * dx + dy * dy);
-
-    // Track this candidate's details
-    candidateDetails.push({
-      angle: candidate.angle,
-      angleDegrees: (candidate.angle * 180) / Math.PI,
-      source: candidate.source,
-      landingX: Math.round(landingX),
-      landingY: Math.round(landingY),
-      distanceFromPlayer: Math.round(distFromPlayer),
-      distanceToEnemy: Math.round(distToEnemy), // NEW: track proximity to enemy
-      selected: false, // Will update after finding best
-    });
-
-    // CLI LOGGING: Show each candidate
-    if (typeof console !== "undefined" && gameState.context?.turnNumber === 3) {
-      console.log(
-        `  ${candidate.source === "network" ? "🧠" : "🎲"} ${candidate.source.padEnd(7)}: ` +
-          `angle=${((candidate.angle * 180) / Math.PI).toFixed(1)}° → ` +
-          `landing=(${Math.round(landingX)}, ${Math.round(landingY)}) → ` +
-          `distToEnemy=${Math.round(distToEnemy)}px`,
-      );
-    }
-
-    // NEW: Pick shot that lands CLOSEST to enemy (attack-focused)
-    if (distToEnemy < minDistToEnemy) {
-      minDistToEnemy = distToEnemy;
-      bestAngle = candidate.angle;
-    }
-  }
-
-  // Mark the selected candidate
-  const selectedIndex = candidateDetails.findIndex(c => Math.abs(c.angle - bestAngle) < 0.001);
-  if (selectedIndex !== -1) {
-    candidateDetails[selectedIndex].selected = true;
-  }
-
-  // CLI LOGGING: Show selection
-  if (typeof console !== "undefined" && gameState.context?.turnNumber === 3) {
-    const selected = candidateDetails[selectedIndex];
-    console.log(
-      `\n  ✅ SELECTED: ${selected.source} (${selected.angleDegrees.toFixed(1)}°) - ` +
-        `${selected.distanceToEnemy}px from enemy\n`,
-    );
-  }
-
-  const decision = {
-    weapon: "BAZOOKA",
-    aimAngle: bestAngle,
-    aimAngleDegrees: (bestAngle * 180) / Math.PI,
-    targetIndex: 0,
-    power: 1.0,
-    movement: "none",
-    explorationUsed: bestAngle !== baseAngle,
-    candidatesChecked: 10,
-    bestDistanceToEnemy: Math.round(minDistToEnemy), // NEW: track proximity to target
-    candidates: candidateDetails,
-  };
-
-  // CLI LOGGING: Verify candidates in decision object
-  if (typeof console !== "undefined" && gameState.context?.turnNumber === 3) {
-    console.log(`  📦 Decision object has ${Object.keys(decision).length} properties`);
-    console.log(`  📦 Candidates array has ${decision.candidates.length} items`);
-  }
-
-  return decision;
-}
-
-// =============================================================================
-// BALANCED FITNESS - Avoid self-damage AND attack enemy
-// =============================================================================
-
-function calculateFitness(gameStats, decision) {
-  let fitness = 100; // Base survival
-
-  // === ACCURATE DAMAGE TRACKING FROM SHOT FEEDBACK ===
-  // Each turn's shotFeedback shows what happened from the PREVIOUS turn
-  // To see what WE (team 1) did, we check ENEMY's (team 2) turn feedback
-  const turnData = gameStats.turnData || [];
-
-  let selfDamage = 0;
-  let enemyDamageDealt = 0;
-
-  // Look at ENEMY turns (team 2) - their feedback shows what WE did
-  for (let i = 0; i < turnData.length; i++) {
-    const turn = turnData[i];
-
-    if (turn.team === 2 && turn.inputs?.shotFeedback) {
-      const feedback = turn.inputs.shotFeedback;
-
-      // Enemy's feedback shows the result of OUR previous shot
-      if (feedback.didDamageSelf) {
-        // They took damage from us = we hit them
-        enemyDamageDealt += feedback.damageTaken || 0;
-      }
-
-      if (feedback.didDamageEnemy) {
-        // They "damaged enemy" (us) = we hit ourselves
-        selfDamage += feedback.damageDealt || 0;
-      }
-    }
-  }
-
-  // === SELF DAMAGE PENALTY (avoid hurting yourself) ===
-  fitness -= selfDamage * 3; // Reduced penalty to prioritize attacking (was 5)
-
-  // === ENEMY DAMAGE REWARD (attack the opponent) ===
-  fitness += enemyDamageDealt * 5; // STRONG reward for hurting enemy (was 3) - ATTACK FIRST!
-
-  // === AIM QUALITY BONUS (network suggestion won look-ahead) ===
-  // Small bonus if network's angle beat 4 random alternatives
-  // Helps accelerate early learning by providing direct feedback
-  if (decision && !decision.explorationUsed) {
-    fitness += 15; // Small bonus - outcome rewards still dominate
-  }
-
-  // === DAMAGE EFFICIENCY BONUS (reward damage per turn) ===
-  const turns = gameStats.turns || 50;
-  const damagePerTurn = turns > 0 ? enemyDamageDealt / turns : 0;
-
-  if (damagePerTurn > 0) {
-    // Bonus for high damage efficiency
-    // 40+ HP/turn = excellent (games end in ~2 turns)
-    // 20 HP/turn = good (games end in ~5 turns)
-    // 10 HP/turn = okay (games end in ~10 turns)
-    let efficiencyBonus = 0;
-
-    if (damagePerTurn >= 40) {
-      efficiencyBonus = 100; // Major bonus for ultra-fast kills
-    } else if (damagePerTurn >= 20) {
-      efficiencyBonus = 50; // Good bonus for fast kills
-    } else if (damagePerTurn >= 10) {
-      efficiencyBonus = 25; // Small bonus for decent efficiency
-    } else {
-      efficiencyBonus = damagePerTurn * 2; // Linear scaling below 10 HP/turn
-    }
-
-    fitness += efficiencyBonus;
-  }
-
-  // === WIN BONUS (achieved through skill, not luck) ===
-  // Only give win bonus if we actively damaged the enemy
-  if (gameStats.winner === 1) {
-    if (enemyDamageDealt > 30) {
-      // Earned win through combat
-      fitness += 150; // Major bonus for legitimate victory
-    } else {
-      // Won passively (enemy killed itself) - small bonus
-      fitness += 30; // Discourage "do nothing and wait" strategy
-    }
-  }
-
-  return { fitness, enemyDamageDealt, selfDamage, turns, damagePerTurn };
-}
+// NOTE: encodeSelfDamageGameState, calculateFitness, and other functions
+// are now imported from modular components in ai/training/
 
 // =============================================================================
 // DUMB BASELINE OPPONENT - Shoots randomly
@@ -411,143 +44,7 @@ function createDumbOpponent() {
   return dumbNetwork;
 }
 
-// =============================================================================
-// JSON INPUT LOGGING
-// =============================================================================
-
-const inputLogs = []; // Store logs in memory during game
-let currentGameLog = null;
-
-function startGameLog(network, generation, map, gameNum) {
-  currentGameLog = {
-    gameId: `game-${Date.now()}-${gameNum}`,
-    network: network,
-    generation: generation,
-    map: map,
-    turns: [],
-  };
-}
-
-function logTurnInputs(turnNumber, gameState, inputArray, decision) {
-  if (!currentGameLog) return;
-
-  const labeledInputs = createLabeledInputObject(gameState, inputArray);
-
-  currentGameLog.turns.push({
-    turnNumber,
-    inputs: labeledInputs,
-    decision: decision,
-  });
-}
-
-function endGameLog(fitness, selfDamage) {
-  if (!currentGameLog) return;
-
-  currentGameLog.result = {
-    selfDamage,
-    fitness,
-  };
-
-  inputLogs.push(currentGameLog);
-  currentGameLog = null;
-}
-
-async function saveInputLogs() {
-  if (inputLogs.length === 0) return;
-
-  const logDir = path.join(process.cwd(), "../../ai/data/input-logs");
-  await fs.promises.mkdir(logDir, { recursive: true });
-
-  // FIXED: Only save first 10 logs (respect --log-limit)
-  const logsToSave = inputLogs.slice(0, Math.min(10, config.logLimit));
-
-  for (const log of logsToSave) {
-    const filename = `${log.gameId}.json`;
-    const filepath = path.join(logDir, filename);
-    await fs.promises.writeFile(filepath, JSON.stringify(log, null, 2));
-  }
-
-  console.log(`\n💾 Saved ${logsToSave.length} input log files to: ai/data/input-logs/`);
-  inputLogs.length = 0; // Clear logs
-}
-
-// =============================================================================
-// CHECKPOINT SYSTEM
-// =============================================================================
-
-async function getLastGenerationNumber() {
-  const checkpointDir = path.join(process.cwd(), "../../ai/checkpoints");
-
-  try {
-    const files = await fs.promises.readdir(checkpointDir);
-    const checkpointFiles = files
-      .filter(f => f.startsWith("self-damage-checkpoint-gen") && f.endsWith(".json"))
-      .map(f => {
-        const match = f.match(/gen(\d+)\.json$/);
-        return match ? parseInt(match[1]) : 0;
-      });
-
-    return checkpointFiles.length > 0 ? Math.max(...checkpointFiles) : 0;
-  } catch (error) {
-    // Directory doesn't exist or is empty
-    return 0;
-  }
-}
-
-async function saveCheckpoint(neat, generation, stats) {
-  const checkpointDir = path.join(process.cwd(), "../../ai/checkpoints");
-  await fs.promises.mkdir(checkpointDir, { recursive: true });
-
-  const checkpoint = {
-    generation: generation,
-    timestamp: new Date().toISOString(),
-    population: neat.population.map(net => net.toJSON()), // FIXED: Save entire population
-    stats: {
-      bestFitness: stats.bestFitness,
-      avgFitness: stats.avgFitness,
-      avgSelfDamage: stats.avgSelfDamage,
-      bestSelfDamage: stats.bestSelfDamage,
-    },
-    networkAnalysis: stats.networkAnalysis,
-    config: {
-      populationSize: config.populationSize,
-      mutationRate: config.mutationRate,
-      networkArchitecture: config.networkConfig.hidden,
-    },
-  };
-
-  const filename = `self-damage-checkpoint-gen${String(generation).padStart(2, "0")}.json`;
-  const filepath = path.join(checkpointDir, filename);
-  await fs.promises.writeFile(filepath, JSON.stringify(checkpoint, null, 2));
-
-  console.log(`  💾 Checkpoint saved: ${filename} (full population: ${neat.population.length} networks)`);
-}
-
-async function cleanupOldCheckpoints(currentGen) {
-  const checkpointDir = path.join(process.cwd(), "../../ai/checkpoints");
-
-  try {
-    const files = await fs.promises.readdir(checkpointDir);
-    const checkpointFiles = files
-      .filter(f => f.startsWith("self-damage-checkpoint-gen") && f.endsWith(".json"))
-      .map(f => {
-        const match = f.match(/gen(\d+)\.json$/);
-        return { filename: f, generation: match ? parseInt(match[1]) : 0 };
-      })
-      .sort((a, b) => b.generation - a.generation); // Sort descending
-
-    // Keep only last 2 checkpoints (full population takes more space)
-    const toDelete = checkpointFiles.slice(2);
-
-    for (const file of toDelete) {
-      const filepath = path.join(checkpointDir, file.filename);
-      await fs.promises.unlink(filepath);
-      console.log(`  🗑️  Deleted old checkpoint: ${file.filename}`);
-    }
-  } catch (error) {
-    // Directory doesn't exist or other error - ignore
-  }
-}
+// NOTE: Checkpoint and logging functions now imported from modular components
 
 // =============================================================================
 // CLI CONFIGURATION
@@ -569,17 +66,18 @@ const config = {
   headless: !hasFlag("--headed"),
   testMode: hasFlag("--test"),
   parallelTabs: parseInt(getArg("--tabs", "1")),
-  logInputs: !hasFlag("--no-log"), // CHANGED: Default true, use --no-log to disable
-  logLimit: parseInt(getArg("--log-limit", "1")), // CHANGED: Default to 1 log file
+  logInputs: !hasFlag("--no-log"),
+  logLimit: parseInt(getArg("--log-limit", "1")),
   debugInputs: hasFlag("--debug"),
-  verifyPhysics: hasFlag("--verify-physics"), // NEW: Debug mode to compare predicted vs actual landing
+  verifyPhysics: hasFlag("--verify-physics"),
+  instantShot: hasFlag("--instant-shot"), // NEW: Enable instant bazooka (no projectile travel)
 
   maps: ["heavyMetalCoaster", "dinocoaster", "magnificentBulk"],
 
   networkConfig: {
-    inputs: 22, // Optimized: self + enemy + enhanced feedback + terrain + context
-    outputs: 1,
-    hidden: [22, 16, 10], // Scaled for 22 inputs - efficient architecture
+    inputs: 24,
+    outputs: 3,
+    hidden: [24, 16, 10],
   },
 };
 
@@ -593,9 +91,11 @@ if (config.testMode) {
   config.gamesPerEvaluation = 3;
   config.headless = false;
   config.logInputs = true; // Always log in test mode
+  config.verifyPhysics = true; // Enable physics verification
   console.log("\n🧪 TEST MODE");
   console.log("  - 1 network, 1 gen, 3 games");
-  console.log("  - Input logging enabled\n");
+  console.log("  - Input logging enabled");
+  console.log("  - Physics verification enabled\n");
 }
 
 // =============================================================================
@@ -604,11 +104,6 @@ if (config.testMode) {
 
 async function playSingleGame(runner, network, opponent, map, gameNum, totalGames, netNum, generation) {
   console.log(`\n🎲 Game ${gameNum}/${totalGames}: Net ${netNum}, ${map}`);
-
-  const shouldLog = config.logInputs && inputLogs.length < config.logLimit;
-  if (shouldLog) {
-    startGameLog(netNum, generation, map, gameNum);
-  }
 
   // Debug mode: Log first game's inputs to console
   if (config.debugInputs && generation === 1 && gameNum <= 3) {
@@ -628,7 +123,7 @@ async function playSingleGame(runner, network, opponent, map, gameNum, totalGame
     return { fitness: -1000, selfDamage: 100, enemyDamage: 0, error: true };
   }
 
-  // NEW: calculateFitness now returns object with metrics
+  // Calculate fitness using imported module
   const fitnessResult = calculateFitness(result.stats, result.decision);
   const { fitness, enemyDamageDealt, selfDamage, turns, damagePerTurn } = fitnessResult;
 
@@ -636,8 +131,8 @@ async function playSingleGame(runner, network, opponent, map, gameNum, totalGame
   const myEndHealth =
     result.stats.teams?.[1]?.totalHealth !== undefined ? result.stats.teams[1].totalHealth : 100;
 
-  // FIXED: Log game data with turn-by-turn inputs if available!
-  if (shouldLog) {
+  // Log game data with turn-by-turn inputs if logging enabled
+  if (config.logInputs) {
     const gameLog = {
       gameId: `game-${Date.now()}-${gameNum}`,
       network: netNum,
@@ -646,15 +141,15 @@ async function playSingleGame(runner, network, opponent, map, gameNum, totalGame
       result: {
         winner: result.stats.winner,
         selfDamage: selfDamage,
-        enemyDamage: enemyDamageDealt, // NEW: Track enemy damage
+        enemyDamage: enemyDamageDealt,
         fitness: fitness,
         initialHealth: myStartHealth,
         finalHealth: myEndHealth,
         turns: result.stats.turns || 0,
       },
-      turns: result.stats.turnData || [], // FIXED: Include turn-by-turn data!
+      turns: result.stats.turnData || [],
     };
-    inputLogs.push(gameLog);
+    addGameLog(gameLog); // Use imported logging function
   }
 
   const won = result.stats.winner === 1;
@@ -668,11 +163,27 @@ async function playSingleGame(runner, network, opponent, map, gameNum, totalGame
     networkAngleSelections = aiTurns.filter(turn => !turn.decision?.explorationUsed).length;
   }
 
+  // NEW: Calculate shot-level statistics from turn data
+  const turnData = result.stats.turnData || [];
+  const shotsDealtDamage = turnData.filter(turn => {
+    return (
+      turn.team === 2 && turn.inputs?.shotFeedback?.didDamageSelf && turn.inputs.shotFeedback.damageTaken > 0
+    );
+  }).length;
+
+  const totalShots = turnData.filter(turn => turn.team === 2).length;
+  const missRate = totalShots > 0 ? ((totalShots - shotsDealtDamage) / totalShots) * 100 : 0;
+  const effectiveDamagePerTurn = shotsDealtDamage > 0 ? enemyDamageDealt / shotsDealtDamage : 0;
+
   return {
     fitness,
     selfDamage,
     enemyDamage: enemyDamageDealt,
     damagePerTurn,
+    effectiveDamagePerTurn, // NEW: Damage per successful hit
+    missRate, // NEW: Percentage of shots that missed
+    shotsDealtDamage, // NEW: Count of successful hits
+    totalShots, // NEW: Total shots taken
     won,
     error: false,
     networkAngleSelections,
@@ -680,9 +191,7 @@ async function playSingleGame(runner, network, opponent, map, gameNum, totalGame
   };
 }
 
-// =============================================================================
-// MODEL PERSISTENCE & CHECKPOINT LOADING
-// =============================================================================
+// NOTE: Model persistence and history functions still local (could be modularized further)
 
 async function loadBestModel() {
   const modelPath = path.join(process.cwd(), "../../ai/models/self-damage-avoidance.json");
@@ -690,111 +199,8 @@ async function loadBestModel() {
     const modelData = await fs.promises.readFile(modelPath, "utf-8");
     return JSON.parse(modelData);
   } catch (error) {
-    return null; // No existing model
-  }
-}
-
-async function loadFromCheckpoint() {
-  const checkpointDir = path.join(process.cwd(), "../../ai/checkpoints");
-
-  try {
-    const files = await fs.promises.readdir(checkpointDir);
-    const checkpointFiles = files
-      .filter(f => f.startsWith("self-damage-checkpoint-gen") && f.endsWith(".json"))
-      .map(f => {
-        const match = f.match(/gen(\d+)\.json$/);
-        return { filename: f, generation: match ? parseInt(match[1]) : 0 };
-      })
-      .sort((a, b) => b.generation - a.generation); // Sort descending
-
-    if (checkpointFiles.length === 0) {
-      return null; // No checkpoints found
-    }
-
-    // Load the latest checkpoint
-    const latestCheckpoint = checkpointFiles[0];
-    const filepath = path.join(checkpointDir, latestCheckpoint.filename);
-    const checkpointData = await fs.promises.readFile(filepath, "utf-8");
-    const checkpoint = JSON.parse(checkpointData);
-
-    return {
-      generation: checkpoint.generation,
-      population: checkpoint.population,
-      stats: checkpoint.stats,
-    };
-  } catch (error) {
-    console.log(`  ⚠️  Error loading checkpoint: ${error.message}`);
     return null;
   }
-}
-
-// =============================================================================
-// TRAINING HISTORY PERSISTENCE
-// =============================================================================
-
-async function saveTrainingHistory(generationStats, startingGen, startTime) {
-  const historyPath = path.join(process.cwd(), "../../ai/analysis/training-history.json");
-  await fs.promises.mkdir(path.dirname(historyPath), { recursive: true });
-
-  let history = { trainingSessions: [] };
-
-  // Load existing history if it exists
-  try {
-    const existing = await fs.promises.readFile(historyPath, "utf-8");
-    history = JSON.parse(existing);
-  } catch (error) {
-    // File doesn't exist yet
-  }
-
-  // Calculate win/loss ratios across all generations
-  const totalWins = generationStats.reduce((sum, stat) => sum + (stat.wins || 0), 0);
-  const totalGames = config.populationSize * config.gamesPerEvaluation * config.generations;
-  const winRate = totalGames > 0 ? totalWins / totalGames : 0;
-
-  // Add this training session
-  const session = {
-    sessionId: Date.now(),
-    startTime: new Date(startTime).toISOString(),
-    endTime: new Date().toISOString(),
-    durationMinutes: ((Date.now() - startTime) / 1000 / 60).toFixed(1),
-    config: {
-      population: config.populationSize,
-      generations: config.generations,
-      gamesPerNetwork: config.gamesPerEvaluation,
-      parallelTabs: config.parallelTabs,
-    },
-    winLossStats: {
-      totalGames: totalGames,
-      totalWins: totalWins,
-      winRate: winRate.toFixed(3),
-    },
-    generations: generationStats.map((stat, idx) => ({
-      generationInSession: stat.generation,
-      cumulativeGeneration: startingGen + stat.generation,
-      stats: {
-        bestFitness: stat.bestFitness,
-        avgFitness: stat.avgFitness,
-        avgSelfDamage: stat.avgSelfDamage,
-        bestSelfDamage: stat.bestSelfDamage,
-        wins: stat.wins || 0,
-        winRate: stat.gamesPlayed > 0 ? (stat.wins / stat.gamesPlayed).toFixed(3) : "0.000",
-      },
-      networkAnalysis: stat.networkAnalysis,
-      regressionDetected: idx > 0 && stat.avgSelfDamage > generationStats[idx - 1].avgSelfDamage,
-      improvement: idx > 0 ? generationStats[idx - 1].avgSelfDamage - stat.avgSelfDamage : 0,
-    })),
-  };
-
-  history.trainingSessions.push(session);
-
-  // Keep only the last 5 sessions to prevent file bloat
-  if (history.trainingSessions.length > 5) {
-    history.trainingSessions = history.trainingSessions.slice(-5);
-    console.log(`\n🗑️  Trimmed training history to last 5 sessions`);
-  }
-
-  await fs.promises.writeFile(historyPath, JSON.stringify(history, null, 2));
-  console.log(`\n📊 Training history saved to: ai/analysis/training-history.json`);
 }
 
 // =============================================================================
@@ -924,27 +330,18 @@ async function trainSelfDamageAvoidance() {
       headless: config.headless,
       devServerUrl: "http://localhost:3001",
       verifyPhysics: config.verifyPhysics,
-      customEncoder: encodeSelfDamageGameState, // Pass custom 23-input encoder
+      instantShot: config.instantShot, // NEW: Pass instant shot flag
+      customEncoder: encodeSelfDamageGameState,
     });
 
     await runner.initialize();
     await runner.loadGame();
     await runner.setGameSpeed(2.0);
 
-    // DON'T inject decode function - use browser's real physics implementation!
-    await runner.page.evaluate(
-      (encodeFn, logFn) => {
-        window.__CUSTOM_ENCODE__ = new Function("gameState", encodeFn);
-        // window.__CUSTOM_DECODE__ is NOT set - puppeteer-game-runner has the real physics!
-
-        // Enable turn-by-turn logging if requested
-        if (window.__LOG_INPUTS__) {
-          window.__LOG_TURN__ = new Function("turnNum", "gameState", "inputs", "decision", logFn);
-        }
-      },
-      encodeSelfDamageGameState.toString().replace(/^function[^{]*{|}$/g, ""),
-      config.logInputs ? logTurnInputs.toString().replace(/^function[^{]*{|}$/g, "") : "return;",
-    );
+    // Inject custom encoder - puppeteer-game-runner handles the rest (physics simulation, look-ahead)
+    await runner.page.evaluate(encodeFn => {
+      window.__CUSTOM_ENCODE__ = new Function("gameState", encodeFn);
+    }, encodeSelfDamageGameState.toString().replace(/^function[^{]*{|}$/g, ""));
 
     tabPool.push(runner);
     console.log(`  ✅ Tab ${i + 1}/${config.parallelTabs} ready`);
@@ -1037,30 +434,37 @@ async function trainSelfDamageAvoidance() {
       });
     }
 
-    // NEW: Aggregate results by network
+    // Aggregate results by network using modular function
     for (let i = 0; i < neat.population.length; i++) {
       const network = neat.population[i];
       const networkResults = allResults.filter(r => r.networkIndex === i);
 
+      // Use aggregateNetworkStats for basic stats
+      const stats = aggregateNetworkStats(networkResults);
+
+      // Calculate additional stats not in aggregateNetworkStats
       const validResults = networkResults.filter(r => !r.error);
-      const totalFitness = validResults.reduce((sum, r) => sum + r.fitness, 0);
-      const totalSelfDamage = validResults.reduce((sum, r) => sum + r.selfDamage, 0);
-      const totalEnemyDamage = validResults.reduce((sum, r) => sum + r.enemyDamage, 0);
-      const totalDamagePerTurn = validResults.reduce((sum, r) => sum + (r.damagePerTurn || 0), 0);
-      const totalWins = validResults.reduce((sum, r) => sum + (r.won ? 1 : 0), 0);
-      const gamesPlayed = validResults.length;
       const totalNetworkSelections = validResults.reduce(
         (sum, r) => sum + (r.networkAngleSelections || 0),
         0,
       );
       const totalDecisions = validResults.reduce((sum, r) => sum + (r.totalDecisions || 0), 0);
+      const totalEffectiveDamage = validResults.reduce(
+        (sum, r) => sum + (r.effectiveDamagePerTurn || 0) * (r.shotsDealtDamage || 0),
+        0,
+      );
+      const totalShotsHit = validResults.reduce((sum, r) => sum + (r.shotsDealtDamage || 0), 0);
+      const totalShots = validResults.reduce((sum, r) => sum + (r.totalShots || 0), 0);
 
-      network.score = gamesPlayed > 0 ? totalFitness / gamesPlayed : -1000;
-      network.avgSelfDamage = gamesPlayed > 0 ? totalSelfDamage / gamesPlayed : 100;
-      network.avgEnemyDamage = gamesPlayed > 0 ? totalEnemyDamage / gamesPlayed : 0;
-      network.avgDamagePerTurn = gamesPlayed > 0 ? totalDamagePerTurn / gamesPlayed : 0;
-      network.wins = totalWins;
-      network.gamesPlayed = gamesPlayed;
+      // Assign all stats to network
+      network.score = stats.avgFitness;
+      network.avgSelfDamage = stats.avgSelfDamage;
+      network.avgEnemyDamage = stats.avgEnemyDamage;
+      network.avgDamagePerTurn = stats.avgDamagePerTurn;
+      network.wins = stats.wins;
+      network.gamesPlayed = stats.gamesPlayed;
+      network.avgEffectiveDamagePerTurn = totalShotsHit > 0 ? totalEffectiveDamage / totalShotsHit : 0;
+      network.missRate = totalShots > 0 ? ((totalShots - totalShotsHit) / totalShots) * 100 : 0;
       network.networkSelections = totalNetworkSelections;
       network.totalDecisions = totalDecisions;
 
@@ -1085,6 +489,15 @@ async function trainSelfDamageAvoidance() {
     const avgDamagePerTurn =
       neat.population.reduce((sum, n) => sum + (n.avgDamagePerTurn || 0), 0) / neat.population.length;
     const bestDamagePerTurn = neat.population[0].avgDamagePerTurn || 0;
+
+    // NEW: Aggregate shot-level metrics for population
+    const avgEffectiveDamagePerTurn =
+      neat.population.reduce((sum, n) => sum + (n.avgEffectiveDamagePerTurn || 0), 0) /
+      neat.population.length;
+    const bestEffectiveDamagePerTurn = neat.population[0].avgEffectiveDamagePerTurn || 0;
+    const avgMissRate =
+      neat.population.reduce((sum, n) => sum + (n.missRate || 0), 0) / neat.population.length;
+    const bestMissRate = neat.population[0].missRate || 0;
 
     // NETWORK ANALYSIS: Analyze best network to understand what it learned
     const networkAnalysis = analyzeNetwork(neat.population[0]);
@@ -1118,6 +531,10 @@ async function trainSelfDamageAvoidance() {
       bestEnemyDamage,
       avgDamagePerTurn,
       bestDamagePerTurn,
+      avgEffectiveDamagePerTurn, // NEW: Track effective damage
+      bestEffectiveDamagePerTurn, // NEW: Track best effective damage
+      avgMissRate, // NEW: Track miss rate
+      bestMissRate, // NEW: Track best miss rate
       networkAnalysis,
       wins: genWins,
       gamesPlayed: genGames,
@@ -1134,6 +551,16 @@ async function trainSelfDamageAvoidance() {
       `  Dmg/Turn: Avg ${avgDamagePerTurn.toFixed(1)} HP/turn | Best ${bestDamagePerTurn.toFixed(
         1,
       )} HP/turn ${bestDamagePerTurn >= 40 ? "🔥" : bestDamagePerTurn >= 20 ? "⚡" : ""}`,
+    );
+    console.log(
+      `  Effective Dmg/Turn: Avg ${avgEffectiveDamagePerTurn.toFixed(
+        1,
+      )} HP/turn | Best ${bestEffectiveDamagePerTurn.toFixed(1)} HP/turn (when damage > 0)`,
+    );
+    console.log(
+      `  Miss Rate: Avg ${avgMissRate.toFixed(1)}% | Best ${bestMissRate.toFixed(
+        1,
+      )}% of shots dealt 0 damage`,
     );
     console.log(
       `  Differential: Avg ${damageDifferential >= 0 ? "+" : ""}${damageDifferential.toFixed(1)} HP | ` +
@@ -1200,17 +627,27 @@ async function trainSelfDamageAvoidance() {
       stat.generation > 1 ? generationStats[stat.generation - 2].avgSelfDamage - stat.avgSelfDamage : 0;
     const dmgPerTurnChange =
       stat.generation > 1 ? stat.avgDamagePerTurn - generationStats[stat.generation - 2].avgDamagePerTurn : 0;
+    const effectiveChange =
+      stat.generation > 1
+        ? stat.avgEffectiveDamagePerTurn - generationStats[stat.generation - 2].avgEffectiveDamagePerTurn
+        : 0;
+    const missRateChange =
+      stat.generation > 1 ? stat.avgMissRate - generationStats[stat.generation - 2].avgMissRate : 0;
     const networkRateChange =
       stat.generation > 1
         ? stat.networkSelectionRate - generationStats[stat.generation - 2].networkSelectionRate
         : 0;
     const selfArrow = selfChange > 0 ? "↓" : selfChange < 0 ? "↑" : "→";
     const dmgArrow = dmgPerTurnChange > 0 ? "↑" : dmgPerTurnChange < 0 ? "↓" : "→";
+    const effectiveArrow = effectiveChange > 0 ? "↑" : effectiveChange < 0 ? "↓" : "→";
+    const missArrow = missRateChange > 0 ? "↑" : missRateChange < 0 ? "↓" : "→";
     const rateArrow = networkRateChange > 0 ? "↑" : networkRateChange < 0 ? "↓" : "→";
     console.log(
       `  Gen ${String(stat.generation).padStart(2)}: ` +
         `Self ${stat.avgSelfDamage.toFixed(1)} HP ${selfArrow} | ` +
         `Dmg/Turn ${stat.avgDamagePerTurn.toFixed(1)} HP ${dmgArrow} | ` +
+        `Effective ${stat.avgEffectiveDamagePerTurn.toFixed(1)} HP ${effectiveArrow} | ` +
+        `Miss ${stat.avgMissRate.toFixed(1)}% ${missArrow} | ` +
         `Net ${stat.networkSelectionRate.toFixed(1)}% ${rateArrow}`,
     );
   });
@@ -1232,10 +669,7 @@ async function trainSelfDamageAvoidance() {
   // Only save best model if we ran 5+ generations
   if (config.generations >= 5) {
     const bestNetwork = neat.population[0];
-    const modelPath = path.join(process.cwd(), "../../ai/models/self-damage-avoidance.json");
-    await fs.promises.mkdir(path.dirname(modelPath), { recursive: true });
-    await fs.promises.writeFile(modelPath, JSON.stringify(bestNetwork.toJSON(), null, 2));
-    console.log(`\n💾 Best network saved to: ai/models/self-damage-avoidance.json`);
+    await saveBestModel(bestNetwork, "self-damage-avoidance");
   } else {
     console.log(`\n⏭️  Skipped model save (need >= 5 generations, ran ${config.generations})`);
   }
