@@ -61,7 +61,7 @@ class ExplosionSystem {
 
     let totalDamage = 0;
     let selfDamage = 0;
-    const attackerTeamId = attackingPlayer?.teamId ?? null;
+    const attackerTeam = attackingPlayer?.team ?? null;
     const enemiesHit = [];
     let enemiesKilled = 0;
 
@@ -92,11 +92,11 @@ class ExplosionSystem {
       // TRAINING MODE: Log each player check
       if (window.__TRAINING_MODE__) {
         console.log(
-          `[EXPLOSION DAMAGE] Player ${player.id} (Team ${player.team}, TeamId ${
-            player.teamId
-          }): pos=(${player.x.toFixed(0)}, ${player.y.toFixed(0)}), distance=${distance.toFixed(
+          `[EXPLOSION DAMAGE] Player ${player.id} (Team ${player.team}): pos=(${player.x.toFixed(
             0,
-          )}, blocked=${isBlocked}, attackerTeamId=${attackerTeamId}`,
+          )}, ${player.y.toFixed(0)}), distance=${distance.toFixed(
+            0,
+          )}, blocked=${isBlocked}, attackerTeam=${attackerTeam}`,
         );
       }
 
@@ -127,7 +127,7 @@ class ExplosionSystem {
         selfDamage = actualDamage;
       }
 
-      if (attackerTeamId !== null && player.teamId !== attackerTeamId) {
+      if (attackerTeam !== null && player.team !== attackerTeam) {
         totalDamage += actualDamage;
         enemiesHit.push(player.id);
         if (player.health <= 0) enemiesKilled++;

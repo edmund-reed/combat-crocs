@@ -226,42 +226,15 @@ class PuppeteerGameRunner {
 
     console.log("  ✅ Phaser ready");
 
-    // First, let's inspect what's actually available
-    const gameStructure = await this.page.evaluate(() => {
-      const phaserGame = window.CombatCrocs?.game;
-      const currentScene = phaserGame?.scene?.getScenes(true)[0];
-
-      return {
-        hasCombatCrocs: !!window.CombatCrocs,
-        hasGameState: !!window.CombatCrocs?.gameState,
-        hasPhaserGame: !!phaserGame,
-        hasSceneManager: !!phaserGame?.scene,
-        currentSceneKey: currentScene?.scene?.key,
-        sceneKeys: phaserGame?.scene ? Object.keys(phaserGame.scene.keys) : [],
-      };
-    });
-
-    console.log("  📊 Game structure:", JSON.stringify(gameStructure, null, 2));
-
-    // Give the menu scene time to fully render (reduced in training mode)
-    const menuDelay = this.options.headless ? 50 : 2000;
-    await this.delay(menuDelay);
-
-    console.log("  🔧 Attempting to navigate programmatically...");
+    console.log("  � Navigating to game...");
 
     // Try to navigate through scenes by simulating scene transitions
     try {
       await this.page.evaluate(() => {
-        console.log("[AI] Checking Phaser game instance...");
-
         const phaserGame = window.CombatCrocs?.game;
         if (!phaserGame?.scene) {
           throw new Error("Phaser game instance not found");
         }
-
-        const currentScene = phaserGame.scene.getScenes(true)[0];
-        console.log("[AI] Current scene:", currentScene?.scene?.key);
-        console.log("[AI] Available scenes:", Object.keys(phaserGame.scene.keys));
 
         // Set up minimal game state
         if (!window.CombatCrocs.gameState.game) {
@@ -293,21 +266,23 @@ class PuppeteerGameRunner {
         // Use MapManager to properly set the current map
         if (window.MapManager && window.MapManager.setCurrentMap) {
           window.MapManager.setCurrentMap(window.__CURRENT_MAP_NAME__);
-          console.log("[AI] Map set via MapManager");
         }
 
-        // Navigate through PlayerSelectScene to properly initialize everything
-        console.log("[AI] Starting PlayerSelectScene for proper initialization...");
         phaserGame.scene.start("PlayerSelectScene");
       });
 
-      console.log("  ⏳ Waiting for PlayerSelectScene to load...");
-      const sceneDelay = this.options.headless ? 50 : 1000;
-      await this.delay(sceneDelay);
+      // Wait for PlayerSelectScene to be active (event-based)
+      await this.page.waitForFunction(
+        () => {
+          const phaserGame = window.CombatCrocs?.game;
+          const playerScene = phaserGame?.scene?.getScene("PlayerSelectScene");
+          return playerScene?.scene?.isActive();
+        },
+        { timeout: 5000 },
+      );
 
       // Now transition to GameScene
       await this.page.evaluate(() => {
-        console.log("[AI] Transitioning to GameScene...");
         const phaserGame = window.CombatCrocs?.game;
         const playerScene = phaserGame?.scene?.getScene("PlayerSelectScene");
 
@@ -342,11 +317,7 @@ class PuppeteerGameRunner {
         }
       });
 
-      console.log("  ⏳ Waiting for GameScene to initialize...");
-      const gameSceneDelay = this.options.headless ? 100 : 2000;
-      await this.delay(gameSceneDelay);
-
-      // Wait for game scene to be active and have players
+      // Wait for game scene to be active and have players (event-based, no delay)
       await this.page.waitForFunction(
         () => {
           const phaserGame = window.CombatCrocs?.game;
@@ -403,6 +374,10 @@ class PuppeteerGameRunner {
   async injectAIControllers(network1, network2) {
     console.log("  🧠 Injecting AI controllers...");
 
+    // CRITICAL: Re-inject look-ahead simulation for each game (context gets lost between games)
+    await this.page.evaluate(getLookAheadSimulationInjection());
+    console.log("  ✅ Look-ahead simulation re-injected");
+
     // Inject the AI controller that will make decisions each turn
     await this.page.evaluate(
       (net1JSON, net2JSON) => {
@@ -456,7 +431,7 @@ class PuppeteerGameRunner {
     this.gameInProgress = true;
 
     let turnCount = 0;
-    const maxTurns = 200; // Safety limit
+    const maxTurns = 30; // Reasonable limit for training (prevent infinite loops)
 
     // Track initial health for damage calculation & initialize shot history and feedback
     const initialHealth = await this.page.evaluate(() => {
@@ -529,15 +504,16 @@ class PuppeteerGameRunner {
           const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
           if (!scene) return false;
 
-          // Check win condition
-          const teams = scene.players.reduce((acc, p) => {
+          // Check win condition - count teams with ALIVE players
+          const teams = {};
+          scene.players.forEach(p => {
             if (p.health > 0 && !p.inLastStand) {
-              acc[p.team] = (acc[p.team] || 0) + 1;
+              teams[p.team] = (teams[p.team] || 0) + 1;
             }
-            return acc;
-          }, {});
+          });
 
-          const aliveTeams = Object.keys(teams).length;
+          // Count teams that have at least one alive player (count > 0)
+          const aliveTeams = Object.values(teams).filter(count => count > 0).length;
           return aliveTeams <= 1;
         });
 
@@ -554,39 +530,61 @@ class PuppeteerGameRunner {
         await this.delay(betweenTurnsDelay);
       }
 
-      // Get final results AND turn data
-      const result = await this.page.evaluate(() => {
-        const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
-        if (!scene) return null;
+      // Get final results AND turn data (with error handling for context destroyed)
+      let result;
+      try {
+        result = await this.page.evaluate(() => {
+          const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+          if (!scene) return null;
 
-        const teams = {};
-        scene.players.forEach(p => {
-          if (!teams[p.team]) {
-            teams[p.team] = { alive: 0, totalHealth: 0, players: [] };
-          }
-          if (p.health > 0 && !p.inLastStand) {
-            teams[p.team].alive++;
-          }
-          teams[p.team].totalHealth += p.health;
-          teams[p.team].players.push({
-            id: p.id,
-            health: p.health,
-            maxHealth: p.maxHealth,
+          const teams = {};
+          scene.players.forEach(p => {
+            if (!teams[p.team]) {
+              teams[p.team] = { alive: 0, totalHealth: 0, players: [] };
+            }
+            if (p.health > 0 && !p.inLastStand) {
+              teams[p.team].alive++;
+            }
+            teams[p.team].totalHealth += p.health;
+            teams[p.team].players.push({
+              id: p.id,
+              health: p.health,
+              maxHealth: p.maxHealth,
+            });
           });
+
+          // Determine winner
+          const aliveTeams = Object.entries(teams).filter(([_, data]) => data.alive > 0);
+          const winner = aliveTeams.length === 1 ? parseInt(aliveTeams[0][0]) : null;
+
+          // FIXED: Return turn data!
+          return {
+            winner,
+            teams,
+            turns: scene.turnManager.turnCount,
+            turnData: window.__TURN_DATA__ || [], // CRITICAL: Include turn-by-turn data
+          };
         });
-
-        // Determine winner
-        const aliveTeams = Object.entries(teams).filter(([_, data]) => data.alive > 0);
-        const winner = aliveTeams.length === 1 ? parseInt(aliveTeams[0][0]) : null;
-
-        // FIXED: Return turn data!
-        return {
-          winner,
-          teams,
-          turns: scene.turnManager.turnCount,
-          turnData: window.__TURN_DATA__ || [], // CRITICAL: Include turn-by-turn data
-        };
-      });
+      } catch (error) {
+        if (error.message.includes("Execution context") || error.message.includes("Target closed")) {
+          console.log(
+            "  ⚠️  Context destroyed during result extraction (game ended), returning minimal data",
+          );
+          // Return minimal valid data
+          return {
+            winner: null,
+            stats: {
+              winner: null,
+              teams: {},
+              turns: turnCount,
+              turnData: [],
+              initialHealth: stats.initialHealth,
+            },
+            error: "Context destroyed",
+          };
+        }
+        throw error; // Re-throw if not a context error
+      }
 
       stats.turns = result.turns;
       stats.endTime = Date.now();
@@ -595,7 +593,40 @@ class PuppeteerGameRunner {
       console.log(`  ✅ Game complete: Winner = Team ${result.winner || "Draw"} (${turnCount} turns)`);
       console.log(`  📊 Captured ${result.turnData.length} turns of input data`);
 
-      // FIXED: Include initialHealth AND turnData in the returned stats
+      // CRITICAL FIX: Aggregate Team 1 decision data for supervised learning
+      const team1Turns = result.turnData.filter(t => t.team === 1 && t.decision?.networkAngle !== undefined);
+      let aggregatedDecision = null;
+
+      if (team1Turns.length > 0) {
+        // Calculate average angular difference across all Team 1 turns
+        let totalAngleDiff = 0;
+        let totalNetworkAngle = 0;
+        let totalAimAngle = 0;
+
+        team1Turns.forEach(turn => {
+          const networkAngle = turn.decision.networkAngle || 0;
+          const aimAngle = turn.decision.aimAngle || 0;
+
+          totalNetworkAngle += networkAngle;
+          totalAimAngle += aimAngle;
+
+          // Calculate angular difference for this turn
+          let angleDiff = Math.abs(networkAngle - aimAngle);
+          if (angleDiff > Math.PI) {
+            angleDiff = 2 * Math.PI - angleDiff;
+          }
+          totalAngleDiff += angleDiff;
+        });
+
+        aggregatedDecision = {
+          networkAngle: totalNetworkAngle / team1Turns.length,
+          aimAngle: totalAimAngle / team1Turns.length,
+          avgAngleDiff: totalAngleDiff / team1Turns.length,
+          turnsWithNetwork: team1Turns.length,
+        };
+      }
+
+      // FIXED: Include initialHealth, turnData, AND aggregated decision
       return {
         winner: result.winner,
         stats: {
@@ -603,6 +634,7 @@ class PuppeteerGameRunner {
           initialHealth: stats.initialHealth, // CRITICAL: Add initial health for damage calculation
           turnData: result.turnData, // FIXED: Include turn-by-turn input data!
         },
+        decision: aggregatedDecision, // CRITICAL: Add for supervised learning!
         error: null,
       };
     } catch (error) {
@@ -852,14 +884,36 @@ class PuppeteerGameRunner {
       return { gameState: state, team: currentPlayer.team };
     });
 
-    // CRITICAL: On Turn 1, wait for ALL players to settle after spawn (both teams)
+    // CRITICAL: On Turn 1, wait for ALL players to settle after spawn (physics-based)
     if (gameState.context.turnNumber === 1) {
-      console.log("  ⏸️  Waiting 1s for players to settle after spawn...");
-      await this.delay(1000);
+      await this.page
+        .waitForFunction(
+          () => {
+            const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+            if (!scene?.players) return false;
+
+            // Check if all players have stable velocities (physics settled)
+            return scene.players.every(p => {
+              if (!p.body) return true;
+              const velocity = Math.sqrt(p.body.velocity.x ** 2 + p.body.velocity.y ** 2);
+              return velocity < 0.1; // Nearly stationary
+            });
+          },
+          { timeout: 2000 },
+        )
+        .catch(() => {
+          // Fallback if physics check times out
+          console.log("  ⚠️  Physics settle timeout, proceeding anyway");
+        });
     }
 
     // Use neural network decision if available, otherwise random
     const action = await this.makeAIDecision(gameState, team);
+
+    // SUPERVISED LEARNING: Add chosen angle to gameState for next turn
+    if (action && action.aimAngle !== undefined) {
+      gameState.chosenAngle = action.aimAngle;
+    }
 
     // FIXED: Store turn data BEFORE executing action
     await this.page.evaluate(
@@ -897,10 +951,10 @@ class PuppeteerGameRunner {
       });
     }
 
-    // DUAL-SHOT VERIFICATION: For Team 1, check if they will shoot
+    // DUAL-SHOT VERIFICATION: Only if debugPhysics is enabled
     let instantShotLanding = null;
     let instantShotStart = null;
-    if (team === 1) {
+    if (this.options.debugPhysics && team === 1) {
       // Check if player can actually shoot (has ammo and canShoot is true)
       const willShoot = await this.page.evaluate(() => {
         const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
@@ -1063,12 +1117,20 @@ class PuppeteerGameRunner {
       };
     });
 
-    // Wait for projectile to land (if not instant mode)
-    if (!this.options.instantShot) {
-      await this.delay(500);
+    // Get explosion coordinates immediately (synchronous)
+    const explosionData = await this.page.evaluate(() => {
+      return { explosion: window.__LAST_EXPLOSION__ };
+    });
+
+    // Wait for turn to complete (damage processing happens during turn end)
+    // In instant mode, turn ends almost immediately
+    // In real mode, projectile needs time to land
+    const turnEndDelay = this.options.instantShot ? 0 : 500;
+    if (turnEndDelay > 0) {
+      await this.delay(turnEndDelay);
     }
 
-    // Get explosion and post-shot enemy state
+    // Capture post-shot state AFTER turn manager has processed everything
     const postShot = await this.page.evaluate(() => {
       const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
       const playerIndex = scene.turnManager.getCurrentPlayerIndex();
@@ -1092,8 +1154,8 @@ class PuppeteerGameRunner {
       const ex = postShot.explosion;
       console.log(`  💥 Explosion at (${Math.round(ex.x)}, ${Math.round(ex.y)})`);
 
-      // PHYSICS VERIFICATION: Compare predicted vs actual landing (Team 1 only)
-      if (team === 1) {
+      // PHYSICS VERIFICATION: Compare predicted vs actual landing (Team 1 only, debugPhysics mode only)
+      if (this.options.debugPhysics && team === 1) {
         console.log(`\n  🔬 [PHYSICS CHECK]`);
 
         // Show look-ahead prediction (from decision time)
@@ -1137,38 +1199,29 @@ class PuppeteerGameRunner {
         }
       }
 
-      // Log each enemy's position and damage
+      // Log each enemy's position (distance only, health tracking is handled by fitness calculator)
       preShot.enemies.forEach((preShotEnemy, idx) => {
-        const postShotEnemy = postShot.enemies.find(e => e.id === preShotEnemy.id);
-        if (postShotEnemy) {
-          const distance = Math.sqrt(Math.pow(ex.x - preShotEnemy.x, 2) + Math.pow(ex.y - preShotEnemy.y, 2));
-          const healthDelta = postShotEnemy.health - preShotEnemy.health;
-          const damaged = healthDelta < 0;
-
-          console.log(
-            `  🎯 Enemy (Team ${preShotEnemy.team}) at (${Math.round(preShotEnemy.x)}, ${Math.round(
-              preShotEnemy.y,
-            )}) - Distance: ${Math.round(distance)}px`,
-          );
-
-          if (damaged) {
-            console.log(
-              `     ✅ Damage dealt! (${preShotEnemy.health} HP → ${postShotEnemy.health} HP, ${healthDelta} damage)`,
-            );
-          } else {
-            console.log(`     ❌ No damage (${preShotEnemy.health} HP → ${postShotEnemy.health} HP)`);
-          }
-        }
+        const distance = Math.sqrt(Math.pow(ex.x - preShotEnemy.x, 2) + Math.pow(ex.y - preShotEnemy.y, 2));
+        console.log(
+          `  🎯 Enemy (Team ${preShotEnemy.team}) at (${Math.round(preShotEnemy.x)}, ${Math.round(
+            preShotEnemy.y,
+          )}) - Distance: ${Math.round(distance)}px`,
+        );
       });
-    } else {
-      console.log(`  ⚠️  No explosion detected`);
     }
   }
 
   async makeAIDecision(gameState, team) {
     // TEAM 2 = DUMB OPPONENT (pure random, no simulation, no network)
     if (team === 2) {
-      return this.makeRandomDecision(gameState);
+      const randomDecision = this.makeRandomDecision(gameState);
+      console.log(
+        `  🎲 Team 2 random decision: angle ${randomDecision.aimAngle.toFixed(2)} rad (${(
+          (randomDecision.aimAngle * 180) /
+          Math.PI
+        ).toFixed(0)}°)`,
+      );
+      return randomDecision;
     }
 
     // TEAM 1 = SMART AI (network + look-ahead hybrid)
@@ -1232,6 +1285,9 @@ class PuppeteerGameRunner {
     // DEBUG: Force no movement to isolate physics accuracy
     lookAheadResult.movement = "none";
 
+    // SUPERVISED LEARNING: Store network's original angle for fitness calculation
+    lookAheadResult.networkAngle = networkAngle;
+
     // Look-ahead always returns a result (picks closest shot to enemy)
     return lookAheadResult;
   }
@@ -1239,12 +1295,21 @@ class PuppeteerGameRunner {
   makeRandomDecision(gameState) {
     // Fallback: Random decision when no network available
     // FIXED: Use full 360° range (not just forward hemisphere)
+    const randomAngle = Math.random() * 2 * Math.PI;
+    console.log(
+      `  🎲 Generated pure random angle: ${randomAngle.toFixed(2)} rad (${(
+        (randomAngle * 180) /
+        Math.PI
+      ).toFixed(0)}°)`,
+    );
+
     return {
       weapon: "BAZOOKA",
-      aimAngle: Math.random() * 2 * Math.PI, // 0 to 2π (full circle)
+      aimAngle: randomAngle, // 0 to 2π (full circle)
       targetIndex: 0,
       power: 1.0,
       movement: "none",
+      _pureRandom: true, // Flag to bypass any processing
     };
   }
 

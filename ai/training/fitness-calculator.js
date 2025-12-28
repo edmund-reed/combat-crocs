@@ -8,6 +8,20 @@
  * @returns {Object} - Fitness metrics
  */
 export function calculateFitness(gameStats, decision) {
+  // Defensive check: Handle game crashes or initialization failures
+  // Mark as ERROR so it's filtered out, not counted against the network
+  if (!gameStats || !gameStats.turnData) {
+    console.warn("[FITNESS] Invalid gameStats, marking as error (not penalizing network)");
+    return {
+      fitness: -1000,
+      enemyDamageDealt: 0,
+      selfDamage: 100,
+      turns: 0,
+      damagePerTurn: 0,
+      error: true, // Mark as error to filter out
+    };
+  }
+
   let fitness = 100; // Base survival
 
   // === ACCURATE DAMAGE TRACKING FROM SHOT FEEDBACK ===
@@ -39,16 +53,34 @@ export function calculateFitness(gameStats, decision) {
   }
 
   // === SELF DAMAGE PENALTY (avoid hurting yourself) ===
-  fitness -= selfDamage * 3; // Reduced penalty to prioritize attacking (was 5)
+  fitness -= selfDamage * 8; // Strong penalty - self-preservation is critical!
 
   // === ENEMY DAMAGE REWARD (attack the opponent) ===
-  fitness += enemyDamageDealt * 5; // STRONG reward for hurting enemy (was 3) - ATTACK FIRST!
+  fitness += enemyDamageDealt * 4; // Strong reward, but balanced with self-preservation
 
-  // === AIM QUALITY BONUS (network suggestion won look-ahead) ===
-  // Small bonus if network's angle beat 4 random alternatives
-  // Helps accelerate early learning by providing direct feedback
-  if (decision && !decision.explorationUsed) {
-    fitness += 15; // Small bonus - outcome rewards still dominate
+  // === SUPERVISED LEARNING BONUS (angle prediction accuracy) ===
+  // Reward network for predicting angles close to look-ahead's choice
+  // This provides dense feedback every turn (not just when network wins)
+  if (decision && decision.networkAngle !== undefined && decision.aimAngle !== undefined) {
+    // Calculate angular difference (accounting for wraparound)
+    let angleDiff = Math.abs(decision.networkAngle - decision.aimAngle);
+    if (angleDiff > Math.PI) {
+      angleDiff = 2 * Math.PI - angleDiff; // Shortest path around circle
+    }
+
+    // Convert to degrees for easier understanding
+    const angleDiffDegrees = (angleDiff * 180) / Math.PI;
+
+    // Quadratic decay with 45° cutoff - no reward for poor predictions
+    // 0° = 600, 15° = 334, 30° = 150, 45° = 0, >45° = 0
+    let angleAccuracyBonus = 0;
+    if (angleDiffDegrees <= 45) {
+      // Smooth quadratic decay provides strong gradient near optimal
+      angleAccuracyBonus = 600 * Math.pow(1 - angleDiffDegrees / 45, 2);
+    }
+    // Else: >45° off = 0 points (don't reinforce bad predictions)
+
+    fitness += angleAccuracyBonus;
   }
 
   // === DAMAGE EFFICIENCY BONUS (reward damage per turn) ===

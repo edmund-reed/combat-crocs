@@ -1,15 +1,15 @@
-// Input Encoder - 24 inputs for Strategic AI
+// Input Encoder - 25 inputs for Supervised Learning AI
 // Converts game state into neural network inputs
 
 /**
- * Encode game state into 24 inputs for the neural network
+ * Encode game state into 25 inputs for the neural network
  * @param {Object} gameState - Current game state
- * @returns {Array<number>} - 24 normalized inputs
+ * @returns {Array<number>} - 25 normalized inputs
  */
 export function encodeSelfDamageGameState(gameState) {
   const inputs = [];
 
-  // === CURRENT STATE (14 inputs) ===
+  // === CURRENT STATE (15 inputs) ===
   // Self position & health (3)
   inputs.push(gameState.self.x);
   inputs.push(gameState.self.y);
@@ -27,25 +27,21 @@ export function encodeSelfDamageGameState(gameState) {
     inputs.push(0);
   }
 
+  // Enemy distance (1) - helps with range estimation
+  const enemyDistance = enemy
+    ? Math.sqrt(Math.pow(gameState.self.x - enemy.x, 2) + Math.pow(gameState.self.y - enemy.y, 2))
+    : 1400;
+  inputs.push(enemyDistance);
+
   // Terrain distances (8 directions)
   const terrainDists = gameState.terrain || [1400, 1400, 1400, 1400, 1400, 1400, 1400, 1400];
   inputs.push(...terrainDists);
 
-  // === FEEDBACK FROM LAST ACTION (10 inputs) ===
+  // === FEEDBACK FROM LAST ACTION (9 inputs) ===
   const lastDecision = gameState.lastDecision || {};
   const feedback = gameState.shotFeedback || {};
 
-  // Last action type (0 = move, 1 = shoot)
-  inputs.push(lastDecision.actionType === "shoot" ? 1 : 0);
-
-  // Last movement distance (-1 to +1, normalized)
-  const lastMovement = lastDecision.movement || "none";
-  let movementValue = 0;
-  if (lastMovement === "left") movementValue = -0.5;
-  else if (lastMovement === "right") movementValue = 0.5;
-  inputs.push(movementValue);
-
-  // Last aim angle
+  // Last aim angle (SUPERVISED LEARNING TARGET)
   inputs.push(lastDecision.aimAngle || 0);
 
   // Explosion position
@@ -75,12 +71,17 @@ export function encodeSelfDamageGameState(gameState) {
   const didHitEnemy = feedback.didDamageEnemy ? 1 : 0;
   inputs.push(didHitEnemy);
 
-  // Total: 24 inputs (14 state + 10 feedback)
+  // === SUPERVISED LEARNING TARGET (1 input) ===
+  // Chosen angle from look-ahead (the "correct answer")
+  const chosenAngle = gameState.chosenAngle || 0;
+  inputs.push(chosenAngle);
+
+  // Total: 25 inputs (15 state + 9 feedback + 1 target)
   return inputs;
 }
 
 /**
- * Get human-readable labels for the 24 inputs
+ * Get human-readable labels for the 25 inputs
  * @returns {Array<string>} - Input labels
  */
 export function getInputLabels() {
@@ -91,6 +92,7 @@ export function getInputLabels() {
     "enemyX",
     "enemyY",
     "enemyHealthPercent",
+    "enemyDistance",
     "terrainRight",
     "terrainUpRight",
     "terrainUp",
@@ -99,8 +101,6 @@ export function getInputLabels() {
     "terrainDownLeft",
     "terrainDown",
     "terrainDownRight",
-    "lastActionType",
-    "lastMovement",
     "lastAimAngle",
     "explosionX",
     "explosionY",
@@ -109,6 +109,7 @@ export function getInputLabels() {
     "damageTaken",
     "damageDealt",
     "didHitEnemy",
+    "chosenAngle",
   ];
 }
 

@@ -34,8 +34,15 @@ export function getLookAheadSimulationInjection() {
       // Get enemy and player positions
       const enemy = gameState.enemies?.[0];
       if (!enemy) {
-        console.log("[AI] No enemy found for look-ahead");
-        return null;
+        console.log("[AI] No enemy found for look-ahead, returning skip action");
+        return {
+          weapon: "BAZOOKA",
+          aimAngle: 0,
+          movement: "none",
+          actionType: "skip",
+          targetIndex: 0,
+          power: 0,
+        };
       }
       
       const enemyPos = { x: enemy.x, y: enemy.y };
@@ -43,8 +50,8 @@ export function getLookAheadSimulationInjection() {
 
       // Generate 37 candidate angles: network's suggestion + 36 evenly spaced (every 10°)
       const anglesToTest = [networkAngle]; // Network angle first
-      for (let deg = 0; deg < 360; deg += 10) {
-        anglesToTest.push((deg * Math.PI) / 180);
+      for (let i = 0; i < 36; i++) {
+        anglesToTest.push((i * 10 * Math.PI) / 180); // 36 angles: 0°, 10°, 20°, ... 350°
       }
 
       // Get weapon config
@@ -116,17 +123,25 @@ export function getLookAheadSimulationInjection() {
         }
       }
 
-      // TWO-TIER SELECTION:
+      // THREE-TIER SELECTION:
       // 1. If we have valid shots (can damage enemy), pick closest one
-      // 2. Otherwise, fallback to closest shot overall (better than nothing)
+      // 2. If no valid shots, try to find one with clear LOS (even if out of range)
+      // 3. Otherwise, fallback to closest shot overall
       if (validShots.length > 0) {
         // Found shots that can damage enemy - pick closest
         validShots.sort((a, b) => a.distToEnemy - b.distToEnemy);
         bestAngle = validShots[0].angle;
       } else {
-        // No valid shots - fallback to closest attempt
-        candidateDetails.sort((a, b) => a.distanceToEnemy - b.distanceToEnemy);
-        bestAngle = candidateDetails[0].angle;
+        // No valid shots - try to find clear LOS shot (better chance on next turn)
+        const clearLOSShots = candidateDetails.filter(c => c.clearLOS);
+        if (clearLOSShots.length > 0) {
+          clearLOSShots.sort((a, b) => a.distanceToEnemy - b.distanceToEnemy);
+          bestAngle = clearLOSShots[0].angle;
+        } else {
+          // Worst case: pick closest overall
+          candidateDetails.sort((a, b) => a.distanceToEnemy - b.distanceToEnemy);
+          bestAngle = candidateDetails[0].angle;
+        }
       }
 
       // Mark selected candidate

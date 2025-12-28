@@ -1,6 +1,6 @@
-// Strategic AI Trainer
+// Strategic AI Trainer with Supervised Learning
 // Goal: Teach AI strategic positioning and shooting decisions
-// 24 inputs: self + enemy + strategic feedback + terrain + context
+// 25 inputs: self + enemy + strategic feedback + terrain + context + chosenAngle (supervised learning target)
 // 3 outputs: actionType (shoot/move), movementDistance, aimAngle
 
 import neataptic from "neataptic";
@@ -76,9 +76,9 @@ const config = {
   maps: ["heavyMetalCoaster", "dinocoaster", "magnificentBulk"],
 
   networkConfig: {
-    inputs: 24,
+    inputs: 25, // SUPERVISED LEARNING: Added chosenAngle input
     outputs: 3,
-    hidden: [24, 16, 10],
+    hidden: [16], // Simplified architecture for faster learning
   },
 };
 
