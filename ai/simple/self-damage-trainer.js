@@ -71,6 +71,7 @@ const config = {
   debugInputs: hasFlag("--debug"),
   verifyPhysics: hasFlag("--verify-physics"),
   instantShot: hasFlag("--instant-shot"), // NEW: Enable instant bazooka (no projectile travel)
+  debugPhysics: hasFlag("--debug-physics"), // NEW: Enable double-shot physics verification
 
   maps: ["heavyMetalCoaster", "dinocoaster", "magnificentBulk"],
 
@@ -331,6 +332,7 @@ async function trainSelfDamageAvoidance() {
       devServerUrl: "http://localhost:3001",
       verifyPhysics: config.verifyPhysics,
       instantShot: config.instantShot, // NEW: Pass instant shot flag
+      debugPhysics: config.debugPhysics, // NEW: Pass debug physics flag
       customEncoder: encodeSelfDamageGameState,
     });
 
