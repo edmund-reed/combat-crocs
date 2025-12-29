@@ -76,9 +76,9 @@ const config = {
   maps: ["heavyMetalCoaster", "dinocoaster", "magnificentBulk"],
 
   networkConfig: {
-    inputs: 25, // SUPERVISED LEARNING: Added chosenAngle input
-    outputs: 3,
-    hidden: [16], // Simplified architecture for faster learning
+    inputs: 31, // encodeSelfDamageGameState returns 31 inputs (25 + 6 movement)
+    outputs: 4, // action, moveDirection, shouldJump, aimAngle
+    hidden: [31, 24, 16], // 3 hidden layers - deeper network for more complex behavior
   },
 };
 

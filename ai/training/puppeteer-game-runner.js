@@ -5,7 +5,18 @@ import puppeteer from "puppeteer";
 import path from "path";
 import { fileURLToPath } from "url";
 import neataptic from "neataptic";
-import { getLookAheadSimulationInjection, getTrainingModeInjection } from "./browser-injections.js";
+import {
+  getLookAheadSimulationInjection,
+  getTrainingModeInjection,
+  getMovementAssistanceInjection,
+} from "./browser-injections.js";
+import {
+  applyMovementControls,
+  executeWalk,
+  executeJump,
+  getCurrentPlayerPosition,
+  distance,
+} from "./movement-controller.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -120,6 +131,10 @@ class PuppeteerGameRunner {
     // CRITICAL: Inject look-ahead simulation code
     await this.page.evaluate(getLookAheadSimulationInjection());
     console.log(`✅ Look-ahead simulation injected`);
+
+    // NEW: Inject movement assistance (pathfinding)
+    await this.page.evaluate(getMovementAssistanceInjection());
+    console.log(`✅ Movement assistance injected`);
 
     console.log(
       `✅ Training mode configured (${this.options.instantShot ? "instant shot" : "real physics"})`,
@@ -1224,7 +1239,7 @@ class PuppeteerGameRunner {
       return randomDecision;
     }
 
-    // TEAM 1 = SMART AI (network + look-ahead hybrid)
+    // TEAM 1 = SMART AI (network + look-ahead + movement pathfinding)
     // Get the neural network for this team from browser
     const networkJSON = await this.page.evaluate(teamNum => {
       return window.__AI_NETWORKS__?.[`team${teamNum}`];
@@ -1234,6 +1249,32 @@ class PuppeteerGameRunner {
     if (!networkJSON) {
       return this.makeRandomDecision(gameState);
     }
+
+    // NEW: Get movement pathfinding guidance from browser
+    const movementPath = await this.page.evaluate(
+      (playerPos, enemyPos) => {
+        const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+        if (!scene || !enemyPos) {
+          return {
+            position: playerPos,
+            method: "stay",
+            direction: "none",
+            distance: 0,
+            requiresJump: false,
+            canHit: false,
+            score: 0,
+            holdTime: 0,
+            heightGain: 0,
+          };
+        }
+        return window.__findBestMovementPath__(playerPos, enemyPos, scene);
+      },
+      { x: gameState.self.x, y: gameState.self.y },
+      gameState.enemies[0] ? { x: gameState.enemies[0].x, y: gameState.enemies[0].y } : null,
+    );
+
+    // Add movement path to gameState for encoding
+    gameState.movementPath = movementPath;
 
     // Use custom encoder (required)
     if (!this.customEncoder) {
@@ -1247,33 +1288,37 @@ class PuppeteerGameRunner {
     const network = neataptic.Network.fromJSON(networkJSON);
     const outputs = network.activate(inputs);
 
-    // 3 outputs - actionType, movementDistance, aimAngle
-    const actionType = outputs[0]; // 0-1: <0.5 = move, ≥0.5 = shoot
-    const movementDistance = outputs[1]; // -1 to +1: direction and magnitude
-    const networkAngle = outputs[2] * 2 * Math.PI; // 0 to 2π
+    // NEW: 4 outputs instead of 3
+    const action = outputs[0]; // 0-1: <0.5 = move, ≥0.5 = shoot
+    const moveDirection = outputs[1]; // -1 to +1: direction
+    const shouldJump = outputs[2]; // 0-1: ≥0.5 = jump
+    const networkAngle = outputs[3] * 2 * Math.PI; // 0 to 2π
 
-    // DEBUG: Force Team 1 to always shoot (no movement for physics testing)
-    const shouldShoot = team === 1 ? true : actionType >= 0.5;
+    // MOVEMENT ENABLED: If network wants to move AND movement path can hit enemy, execute it!
+    if (action < 0.5 && movementPath && movementPath.canHit && movementPath.method !== "stay") {
+      console.log(
+        `  🚶 Network chose to MOVE (action=${action.toFixed(2)}): ${movementPath.method} ${
+          movementPath.distance
+        }px`,
+      );
 
-    if (!shouldShoot) {
-      // Network chose to move
-      const moveDir = movementDistance < 0 ? "left" : "right";
-      const moveAmount = Math.abs(movementDistance) * 100 + 50;
+      // Execute the movement
+      if (movementPath.method === "walk_left" || movementPath.method === "walk_right") {
+        await executeWalk(this.page, movementPath.direction, movementPath.distance);
+      } else if (movementPath.method.startsWith("jump_")) {
+        await executeJump(this.page, movementPath.direction, movementPath.holdTime);
+      }
 
-      return {
-        weapon: "BAZOOKA",
-        aimAngle: networkAngle,
-        movement: moveDir,
-        movementDistance: moveAmount,
-        actionType: "move",
-        targetIndex: 0,
-        power: 1.0,
-      };
+      // Get new position after movement
+      const newPos = await getCurrentPlayerPosition(this.page);
+      console.log(`  ✅ Moved to (${newPos.x}, ${newPos.y})`);
+
+      // Update gameState with new position
+      gameState.self.x = newPos.x;
+      gameState.self.y = newPos.y;
     }
 
-    // Network chose to shoot - run look-ahead to find best angle
-    // Look-ahead tests network's angle + 36 evenly spaced angles
-    // Returns the angle where missile lands closest to enemy (always returns a result)
+    // Run shooting look-ahead from current (possibly moved) position
     const lookAheadResult = await this.page.evaluate(
       (gs, netAngle) => {
         return window.__runLookAheadSimulation__(gs, netAngle);
@@ -1282,13 +1327,21 @@ class PuppeteerGameRunner {
       networkAngle,
     );
 
-    // DEBUG: Force no movement to isolate physics accuracy
+    // No movement during shooting (already moved if needed)
     lookAheadResult.movement = "none";
 
     // SUPERVISED LEARNING: Store network's original angle for fitness calculation
     lookAheadResult.networkAngle = networkAngle;
 
-    // Look-ahead always returns a result (picks closest shot to enemy)
+    // Store movement outputs for logging
+    lookAheadResult.movementOutputs = {
+      action,
+      moveDirection,
+      shouldJump,
+      executed: action < 0.5 && movementPath && movementPath.canHit && movementPath.method !== "stay",
+      movementPath: movementPath,
+    };
+
     return lookAheadResult;
   }
 
