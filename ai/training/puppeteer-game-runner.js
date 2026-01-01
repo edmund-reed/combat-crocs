@@ -5,18 +5,7 @@ import puppeteer from "puppeteer";
 import path from "path";
 import { fileURLToPath } from "url";
 import neataptic from "neataptic";
-import {
-  getLookAheadSimulationInjection,
-  getTrainingModeInjection,
-  getMovementAssistanceInjection,
-} from "./browser-injections.js";
-import {
-  applyMovementControls,
-  executeWalk,
-  executeJump,
-  getCurrentPlayerPosition,
-  distance,
-} from "./movement-controller.js";
+import { getLookAheadSimulationInjection, getTrainingModeInjection } from "./browser-injections.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -132,10 +121,6 @@ class PuppeteerGameRunner {
     await this.page.evaluate(getLookAheadSimulationInjection());
     console.log(`✅ Look-ahead simulation injected`);
 
-    // NEW: Inject movement assistance (pathfinding)
-    await this.page.evaluate(getMovementAssistanceInjection());
-    console.log(`✅ Movement assistance injected`);
-
     console.log(
       `✅ Training mode configured (${this.options.instantShot ? "instant shot" : "real physics"})`,
     );
@@ -160,19 +145,10 @@ class PuppeteerGameRunner {
         // Inject AI brains
         await this.injectAIControllers(network1, network2);
 
-        // CRITICAL: Manually trigger first turn AFTER AI is loaded
-        await this.page.evaluate(() => {
-          const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
-          if (scene?.turnManager) {
-            console.log("[AI] Manually triggering first turn with AI ready");
-            scene.turnManager.startTurn();
-          }
-        });
+        // GameScene.create() already calls turnManager.startTurn()
+        // No need to manually trigger - let the game's natural flow handle it
 
-        // Brief delay to let first turn initialize (reduced for speed)
-        await this.delay(50);
-
-        // Play the game (Turn 1 will execute inside playGame after initialHealth is captured)
+        // Play the game (Turn 1 will execute naturally via GameScene.create())
         const result = await this.playGame();
 
         return result;
@@ -257,6 +233,10 @@ class PuppeteerGameRunner {
           console.log("[AI] Stopping old GameScene to clean up timers/callbacks");
           oldGameScene.scene.stop();
         }
+
+        // Set AI ready flag to false - AI will manually trigger Turn 1 after injection
+        window.__AI_READY__ = false;
+        console.log("[AI] AI ready flag set to false - Turn 1 will be triggered manually");
 
         // Set up minimal game state
         if (!window.CombatCrocs.gameState.game) {
@@ -422,6 +402,12 @@ class PuppeteerGameRunner {
               return;
             }
 
+            // CRITICAL FIX: Skip Turn 1 if AI not ready yet (hook is being set up)
+            if (this.turnCount === 0 && window.__AI_READY__ === false) {
+              console.log("[AI] Skipping automatic Turn 1 - AI will trigger manually");
+              return;
+            }
+
             // Call original startTurn first
             originalStartTurn(...args);
 
@@ -443,6 +429,11 @@ class PuppeteerGameRunner {
           };
 
           console.log("[AI] Controller injected and hooked to TurnManager.startTurn");
+
+          // NOW set AI ready flag and manually trigger Turn 1
+          window.__AI_READY__ = true;
+          console.log("[AI] AI ready flag set to true - manually triggering Turn 1");
+          gameScene.turnManager.startTurn();
         } else {
           console.log("[AI] Warning: Could not hook into TurnManager");
         }
@@ -1252,7 +1243,7 @@ class PuppeteerGameRunner {
       return randomDecision;
     }
 
-    // TEAM 1 = SMART AI (network + look-ahead + movement pathfinding)
+    // TEAM 1 = SMART AI (network + look-ahead ONLY - no movement)
     // Get the neural network for this team from browser
     const networkJSON = await this.page.evaluate(teamNum => {
       return window.__AI_NETWORKS__?.[`team${teamNum}`];
@@ -1262,32 +1253,6 @@ class PuppeteerGameRunner {
     if (!networkJSON) {
       return this.makeRandomDecision(gameState);
     }
-
-    // NEW: Get movement pathfinding guidance from browser
-    const movementPath = await this.page.evaluate(
-      (playerPos, enemyPos) => {
-        const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
-        if (!scene || !enemyPos) {
-          return {
-            position: playerPos,
-            method: "stay",
-            direction: "none",
-            distance: 0,
-            requiresJump: false,
-            canHit: false,
-            score: 0,
-            holdTime: 0,
-            heightGain: 0,
-          };
-        }
-        return window.__findBestMovementPath__(playerPos, enemyPos, scene);
-      },
-      { x: gameState.self.x, y: gameState.self.y },
-      gameState.enemies[0] ? { x: gameState.enemies[0].x, y: gameState.enemies[0].y } : null,
-    );
-
-    // Add movement path to gameState for encoding
-    gameState.movementPath = movementPath;
 
     // Use custom encoder (required)
     if (!this.customEncoder) {
@@ -1301,37 +1266,10 @@ class PuppeteerGameRunner {
     const network = neataptic.Network.fromJSON(networkJSON);
     const outputs = network.activate(inputs);
 
-    // NEW: 4 outputs instead of 3
-    const action = outputs[0]; // 0-1: <0.5 = move, ≥0.5 = shoot
-    const moveDirection = outputs[1]; // -1 to +1: direction
-    const shouldJump = outputs[2]; // 0-1: ≥0.5 = jump
-    const networkAngle = outputs[3] * 2 * Math.PI; // 0 to 2π
+    // Single output: network's suggested angle
+    const networkAngle = outputs[0] * 2 * Math.PI; // 0 to 2π
 
-    // MOVEMENT ENABLED: If network wants to move AND movement path can hit enemy, execute it!
-    if (action < 0.5 && movementPath && movementPath.canHit && movementPath.method !== "stay") {
-      console.log(
-        `  🚶 Network chose to MOVE (action=${action.toFixed(2)}): ${movementPath.method} ${
-          movementPath.distance
-        }px`,
-      );
-
-      // Execute the movement
-      if (movementPath.method === "walk_left" || movementPath.method === "walk_right") {
-        await executeWalk(this.page, movementPath.direction, movementPath.distance);
-      } else if (movementPath.method.startsWith("jump_")) {
-        await executeJump(this.page, movementPath.direction, movementPath.holdTime);
-      }
-
-      // Get new position after movement
-      const newPos = await getCurrentPlayerPosition(this.page);
-      console.log(`  ✅ Moved to (${newPos.x}, ${newPos.y})`);
-
-      // Update gameState with new position
-      gameState.self.x = newPos.x;
-      gameState.self.y = newPos.y;
-    }
-
-    // Run shooting look-ahead from current (possibly moved) position
+    // Run look-ahead simulation from CURRENT position (no movement)
     const lookAheadResult = await this.page.evaluate(
       (gs, netAngle) => {
         return window.__runLookAheadSimulation__(gs, netAngle);
@@ -1340,20 +1278,11 @@ class PuppeteerGameRunner {
       networkAngle,
     );
 
-    // No movement during shooting (already moved if needed)
+    // No movement - always stay at current position
     lookAheadResult.movement = "none";
 
     // SUPERVISED LEARNING: Store network's original angle for fitness calculation
     lookAheadResult.networkAngle = networkAngle;
-
-    // Store movement outputs for logging
-    lookAheadResult.movementOutputs = {
-      action,
-      moveDirection,
-      shouldJump,
-      executed: action < 0.5 && movementPath && movementPath.canHit && movementPath.method !== "stay",
-      movementPath: movementPath,
-    };
 
     return lookAheadResult;
   }

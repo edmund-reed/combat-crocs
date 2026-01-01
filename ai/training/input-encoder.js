@@ -76,42 +76,12 @@ export function encodeSelfDamageGameState(gameState) {
   const chosenAngle = gameState.chosenAngle || 0;
   inputs.push(chosenAngle);
 
-  // === MOVEMENT ASSISTANCE (6 inputs) ===
-  // Movement pathfinding guidance (like look-ahead for shooting)
-  const movementPath = gameState.movementPath || {};
-
-  // Distance to move (0-1 normalized by map width)
-  const moveDistance = (movementPath.distance || 0) / 1200;
-  inputs.push(moveDistance);
-
-  // Requires jump? (0 or 1)
-  const requiresJump = movementPath.requiresJump ? 1 : 0;
-  inputs.push(requiresJump);
-
-  // Movement direction (-1 left, 0 stay, +1 right)
-  let moveDirection = 0;
-  if (movementPath.direction === "left") moveDirection = -1;
-  if (movementPath.direction === "right") moveDirection = 1;
-  inputs.push(moveDirection);
-
-  // Jump hold duration (0-1 normalized by max hold time 600ms)
-  const jumpHold = (movementPath.holdTime || 0) / 600;
-  inputs.push(jumpHold);
-
-  // Can hit enemy from best position? (0 or 1)
-  const canHitFromBest = movementPath.canHit ? 1 : 0;
-  inputs.push(canHitFromBest);
-
-  // Height gained (0-1 normalized by typical platform height 400px)
-  const heightGained = (movementPath.heightGain || 0) / 400;
-  inputs.push(heightGained);
-
-  // Total: 31 inputs (25 previous + 6 movement)
+  // Total: 25 inputs
   return inputs;
 }
 
 /**
- * Get human-readable labels for the 31 inputs
+ * Get human-readable labels for the 25 inputs
  * @returns {Array<string>} - Input labels
  */
 export function getInputLabels() {
@@ -140,19 +110,13 @@ export function getInputLabels() {
     "damageDealt",
     "didHitEnemy",
     "chosenAngle",
-    "moveDistance",
-    "requiresJump",
-    "moveDirection",
-    "jumpHold",
-    "canHitFromBest",
-    "heightGained",
   ];
 }
 
 /**
  * Create labeled input object for logging
  * @param {Object} gameState - Game state
- * @param {Array<number>} inputArray - 31 input values
+ * @param {Array<number>} inputArray - 25 input values
  * @returns {Object} - Structured input data with labels
  */
 export function createLabeledInputObject(gameState, inputArray) {
@@ -165,7 +129,7 @@ export function createLabeledInputObject(gameState, inputArray) {
 
   // Create human-readable structure showing the exact model inputs
   return {
-    modelInputs: inputArray, // RAW 31-value array fed to network
+    modelInputs: inputArray, // RAW 25-value array fed to network
     inputLabels: labeled, // Same values with labels
     structuredData: {
       self: {
@@ -179,8 +143,6 @@ export function createLabeledInputObject(gameState, inputArray) {
         healthPercent: labeled.enemyHealthPercent,
       },
       lastDecision: {
-        actionType: labeled.lastActionType,
-        movement: labeled.lastMovement,
         aimAngle: labeled.lastAimAngle,
         aimAngleDegrees: (labeled.lastAimAngle * 180) / Math.PI,
       },
@@ -205,14 +167,6 @@ export function createLabeledInputObject(gameState, inputArray) {
           labeled.terrainDownRight,
         ],
         directionNames: ["right", "upRight", "up", "upLeft", "left", "downLeft", "down", "downRight"],
-      },
-      movement: {
-        distance: labeled.moveDistance,
-        requiresJump: labeled.requiresJump,
-        direction: labeled.moveDirection,
-        jumpHold: labeled.jumpHold,
-        canHitFromBest: labeled.canHitFromBest,
-        heightGained: labeled.heightGained,
       },
     },
   };
