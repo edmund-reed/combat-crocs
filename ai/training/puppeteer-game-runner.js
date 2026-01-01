@@ -251,6 +251,13 @@ class PuppeteerGameRunner {
           throw new Error("Phaser game instance not found");
         }
 
+        // CRITICAL FIX: Explicitly stop old GameScene to prevent race conditions
+        const oldGameScene = phaserGame.scene.getScene("GameScene");
+        if (oldGameScene && oldGameScene.scene.isActive()) {
+          console.log("[AI] Stopping old GameScene to clean up timers/callbacks");
+          oldGameScene.scene.stop();
+        }
+
         // Set up minimal game state
         if (!window.CombatCrocs.gameState.game) {
           window.CombatCrocs.gameState.game = {};
@@ -409,6 +416,12 @@ class PuppeteerGameRunner {
           const originalStartTurn = gameScene.turnManager.startTurn.bind(gameScene.turnManager);
 
           gameScene.turnManager.startTurn = function (...args) {
+            // CRITICAL FIX: Guard against execution during scene shutdown/transition
+            if (!gameScene.scene.isActive() || gameScene.scene.isTransitioning) {
+              console.log("[AI] Skipping turn - scene is shutting down or transitioning");
+              return;
+            }
+
             // Call original startTurn first
             originalStartTurn(...args);
 
