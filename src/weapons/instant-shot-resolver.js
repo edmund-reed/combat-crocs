@@ -95,7 +95,7 @@ class InstantShotResolver {
     }
 
     // CRITICAL: Use SOLID body (isSensor: false) to match real projectile
-    // This ensures identical terrain collision behavior
+    // This ensures identical collision behavior with both terrain AND decorations
     const tempBody = scene.matter.add.circle(startX, startY, 8, {
       isSensor: false, // SOLID collision (matches real projectile)
       friction: 0.1,

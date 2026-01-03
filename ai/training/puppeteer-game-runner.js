@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import neataptic from "neataptic";
 import { getLookAheadSimulationInjection, getTrainingModeInjection } from "./browser-injections.js";
+import { findBestShootingPosition } from "./movement-lookahead.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -185,6 +186,21 @@ class PuppeteerGameRunner {
   async navigateToGameStart(config) {
     console.log("  📋 Navigating to game...");
     const mapName = config.map || "heavyMetalCoaster";
+
+    // CRITICAL: Wait for previous GameScene cleanup (headed mode only)
+    if (!this.options.headless) {
+      await this.page
+        .waitForFunction(
+          () => {
+            const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+            return !scene || !scene.scene.isActive();
+          },
+          { timeout: 3000 },
+        )
+        .catch(() => {
+          // Timeout is fine - scene might already be stopped
+        });
+    }
 
     // Inject map name into browser context so it can be used during setup
     await this.page.evaluate(map => {
@@ -1048,6 +1064,29 @@ class PuppeteerGameRunner {
       return { x: Math.round(currentPlayer.x), y: Math.round(currentPlayer.y) };
     });
 
+    // CRITICAL: Check ammo at execution time (right before firing)
+    const canShoot = await this.page.evaluate(() => {
+      const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+      const playerIndex = scene.turnManager.getCurrentPlayerIndex();
+      const currentPlayer = scene.players[playerIndex];
+      const weapon = scene.turnManager.getCurrentWeapon();
+
+      return currentPlayer.canShoot && scene.turnManager.weaponAmmo?.[weapon] > 0;
+    });
+
+    if (!canShoot) {
+      console.log("  ⚠️  Cannot shoot at execution time, skipping turn");
+      // Clear turn data and trigger next turn
+      await this.page.evaluate(() => {
+        const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+        window.__AI_TURN_DATA__ = null;
+        if (scene?.turnManager) {
+          scene.turnManager.startTurn();
+        }
+      });
+      return;
+    }
+
     // Execute the action in the game
     await this.page.evaluate(action => {
       const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
@@ -1243,48 +1282,36 @@ class PuppeteerGameRunner {
       return randomDecision;
     }
 
-    // TEAM 1 = SMART AI (network + look-ahead ONLY - no movement)
-    // Get the neural network for this team from browser
-    const networkJSON = await this.page.evaluate(teamNum => {
-      return window.__AI_NETWORKS__?.[`team${teamNum}`];
-    }, team);
+    // TEAM 1 = SMART AI with MOVEMENT LOOK-AHEAD
+    // Use movement look-ahead to find optimal shooting position
+    const movementResult = await findBestShootingPosition(this.page, gameState);
 
-    // If no network available, use random decision
-    if (!networkJSON) {
-      return this.makeRandomDecision(gameState);
-    }
+    // Movement look-ahead has already moved the player to the optimal position
+    // and determined the best shot from that position
+    // Just return the shot decision with movement metadata
 
-    // Use custom encoder (required)
-    if (!this.customEncoder) {
-      throw new Error(
-        "customEncoder is required! Pass encodeSelfDamageGameState to PuppeteerGameRunner options.",
+    if (movementResult.totalDistance > 0) {
+      console.log(
+        `  🎯 Moved ${movementResult.totalDistance}px to find optimal shot (angle: ${(
+          (movementResult.shotDecision.aimAngle * 180) /
+          Math.PI
+        ).toFixed(0)}°)`,
+      );
+    } else {
+      console.log(
+        `  🎯 Shooting from current position (angle: ${(
+          (movementResult.shotDecision.aimAngle * 180) /
+          Math.PI
+        ).toFixed(0)}°)`,
       );
     }
-    const inputs = this.customEncoder(gameState);
 
-    // Activate network in Node.js (neataptic imported at top of file!)
-    const network = neataptic.Network.fromJSON(networkJSON);
-    const outputs = network.activate(inputs);
+    // Add movement metadata to shot decision
+    movementResult.shotDecision.movement = "none"; // Already moved, no more movement needed
+    movementResult.shotDecision.movedDistance = movementResult.totalDistance;
+    movementResult.shotDecision.finalPosition = movementResult.finalPosition;
 
-    // Single output: network's suggested angle
-    const networkAngle = outputs[0] * 2 * Math.PI; // 0 to 2π
-
-    // Run look-ahead simulation from CURRENT position (no movement)
-    const lookAheadResult = await this.page.evaluate(
-      (gs, netAngle) => {
-        return window.__runLookAheadSimulation__(gs, netAngle);
-      },
-      gameState,
-      networkAngle,
-    );
-
-    // No movement - always stay at current position
-    lookAheadResult.movement = "none";
-
-    // SUPERVISED LEARNING: Store network's original angle for fitness calculation
-    lookAheadResult.networkAngle = networkAngle;
-
-    return lookAheadResult;
+    return movementResult.shotDecision;
   }
 
   makeRandomDecision(gameState) {

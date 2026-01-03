@@ -4,16 +4,66 @@
 import { Config } from "@config";
 
 class SpawnManager {
+  /**
+   * Find the highest point (lowest Y value) of all terrain in the scene
+   * Includes both static terrain and decorations
+   * @param {Phaser.Scene} scene - The game scene
+   * @returns {number} - Y coordinate of highest terrain point
+   */
+  static findHighestTerrainPoint(scene) {
+    const bodies = scene?.matter?.world?.localWorld?.bodies;
+
+    if (!bodies || bodies.length === 0) {
+      console.warn("No physics bodies found, using default spawn height");
+      return Config.GAME_HEIGHT - 400; // Fallback to old behavior
+    }
+
+    // Filter for terrain bodies (including decorations)
+    const terrainBodies = bodies.filter(body => body && body.isTerrain);
+
+    if (terrainBodies.length === 0) {
+      console.warn("No terrain bodies found, using default spawn height");
+      return Config.GAME_HEIGHT - 400; // Fallback
+    }
+
+    // Find highest point (minimum Y coordinate) across all terrain
+    // bounds.min.y is the top of each body's bounding box
+    let highestY = Infinity;
+
+    terrainBodies.forEach(body => {
+      if (body.bounds && body.bounds.min) {
+        const topY = body.bounds.min.y;
+        if (topY < highestY) {
+          highestY = topY;
+        }
+      }
+    });
+
+    // Safety check
+    if (highestY === Infinity || highestY < 0) {
+      console.warn("Invalid highest terrain point, using default");
+      return Config.GAME_HEIGHT - 400;
+    }
+
+    return highestY;
+  }
+
   // Assign random spawn positions to all players
   static assignRandomSpawnPositions(scene, players) {
     const playerCount = players.length;
     const minDistance = 140; // Minimum distance between players
 
-    // Define high-altitude spawn positions (well above all terrain)
+    // DYNAMIC: Calculate spawn height based on highest terrain/decoration
+    const highestTerrainY = this.findHighestTerrainPoint(scene);
+    const spawnY = highestTerrainY - 150; // 150px above highest terrain point
+
+    console.log(
+      `Highest terrain point: ${Math.round(highestTerrainY)}px, spawning at: ${Math.round(spawnY)}px`,
+    );
+
+    // Define high-altitude spawn positions (dynamically calculated above ALL terrain)
     // This ensures characters spawn in unobstructed airspace and fall onto terrain
-    const spawnLevels = [
-      { y: Config.GAME_HEIGHT - 400, name: "Above All Terrain" }, // Way above everything
-    ];
+    const spawnLevels = [{ y: spawnY, name: "Above All Terrain (Dynamic)" }];
 
     // Wide safe air space across entire battlefield (well above all terrain)
     const airSpawnAreas = [
