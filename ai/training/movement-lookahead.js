@@ -264,11 +264,11 @@ export async function measureOverheadClearance(page, position) {
     if (!scene || !window.TerrainScanner) return 0;
 
     // Raycast upward to find distance to terrain
-    const maxDistance = 300; // Maximum height to check
+    const maxDistance = 2000; // Scan to game boundary (not capped at 300!)
     const scanResult = window.TerrainScanner.scanTerrainDistances(scene, pos.x, pos.y, maxDistance);
 
-    // Index 6 is UP direction in the directions array
-    // Array order: [right, down-right, down, down-left, left, up-left, up, up-right]
+    // Index 6 is UP direction (270°) in the directions array
+    // Array order: [right(0°), down-right(45°), down(90°), down-left(135°), left(180°), up-left(225°), up(270°), up-right(315°)]
     return scanResult.directions[6] || 0;
   }, position);
 }
@@ -478,10 +478,26 @@ async function exploreGroundFromPosition(page, state, startPos) {
       }
 
       state.markVisited(moveResult.newPos);
+
+      // Measure overhead clearance at EVERY position to find optimal launch spot
+      const clearanceData = await page.evaluate(pos => {
+        const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+        if (!scene || !window.TerrainScanner) return { clearance: 0, directions: [] };
+
+        const maxDistance = 2000; // Scan to game boundary
+        const scanResult = window.TerrainScanner.scanTerrainDistances(scene, pos.x, pos.y, maxDistance);
+
+        return {
+          clearance: scanResult.directions[6] || 0,
+          directions: scanResult.directions,
+          allDirections: JSON.stringify(scanResult.directions),
+        };
+      }, moveResult.newPos);
+
       console.log(
         `  🚶 Moved ${direction} ${moveResult.distanceMoved}px to (${Math.round(
           moveResult.newPos.x,
-        )}, ${Math.round(moveResult.newPos.y)})`,
+        )}, ${Math.round(moveResult.newPos.y)}) - clearance: ${Math.round(clearanceData.clearance)}px`,
       );
 
       // Test shot
@@ -496,18 +512,8 @@ async function exploreGroundFromPosition(page, state, startPos) {
         };
       }
 
-      // Create checkpoint if: elevated OR moved 80px from last checkpoint
-      // This ensures regular checkpoints for reproducible jump positioning
-      const distFromLastCheckpoint = Math.abs(moveResult.newPos.x - lastCheckpointX);
-      const isElevated = moveResult.newPos.y < startPos.y - 20;
-
-      if (isElevated || distFromLastCheckpoint >= 80) {
-        // Measure overhead clearance for optimal jump positioning
-        const clearance = await measureOverheadClearance(page, moveResult.newPos);
-
-        state.addCheckpoint(moveResult.newPos, moveResult.newPos.y, clearance);
-        lastCheckpointX = moveResult.newPos.x; // Update last checkpoint position
-      }
+      // Create checkpoint at EVERY position (no 80px spacing limit)
+      state.addCheckpoint(moveResult.newPos, moveResult.newPos.y, clearanceData.clearance);
     }
 
     // Return to start for opposite direction
@@ -545,45 +551,65 @@ async function exploreJumpsFromCheckpoints(page, state) {
   const DIRECTIONS = enemyDirection ? [enemyDirection, oppositeDir] : ["left", "right"];
 
   // MULTI-TIER CHECKPOINT SORTING:
-  // 1st Priority: Toward enemy (direct approach)
-  // 2nd Priority: CLOSEST to enemy with good clearance (optimal jump positioning)
-  const origin = state.checkpoints[0]?.pos || { x: 0, y: 0 };
+  // 1st Priority: HIGHEST overhead clearance (most space above)
+  // 2nd Priority: CLOSEST to enemy (nearest to target terrain)
   const enemyX = enemyInfo?.x || 0;
 
   const sortedCheckpoints = enemyInfo
     ? [...state.checkpoints].sort((a, b) => {
-        // Determine if each checkpoint is toward enemy
-        const aTowardEnemy = enemyDirection === "right" ? a.pos.x > origin.x : a.pos.x < origin.x;
-        const bTowardEnemy = enemyDirection === "right" ? b.pos.x > origin.x : b.pos.x < origin.x;
-
-        // Priority 1: Toward enemy always wins
-        if (aTowardEnemy && !bTowardEnemy) return -1;
-        if (!aTowardEnemy && bTowardEnemy) return 1;
-
-        // Priority 2: HIGHEST overhead clearance (most space above)
-        // Picks positions with maximum clearance for successful jumps
-        if (a.overheadClearance !== b.overheadClearance) {
+        // Priority 1: HIGHEST overhead clearance (with 10px buffer)
+        // Positions with similar clearance (within 10px) are considered equal
+        const clearanceDiff = Math.abs(a.overheadClearance - b.overheadClearance);
+        if (clearanceDiff > 10) {
           return b.overheadClearance - a.overheadClearance;
         }
 
-        // Priority 3: CLOSEST to enemy (nearest to target terrain)
+        // Priority 2: CLOSEST to enemy (nearest to target terrain)
         const aDistToEnemy = Math.abs(a.pos.x - enemyX);
         const bDistToEnemy = Math.abs(b.pos.x - enemyX);
         return aDistToEnemy - bDistToEnemy;
       })
     : state.checkpoints;
 
-  // FILTER: Remove positions with insufficient overhead clearance (< 200px)
+  // DEBUG: Log all checkpoint clearances for diagnosis
+  console.log(`  📊 All checkpoints (sorted by clearance → proximity):`);
+  for (const cp of sortedCheckpoints) {
+    const distToEnemy = Math.abs(cp.pos.x - enemyX);
+    console.log(
+      `    (${Math.round(cp.pos.x)}, ${Math.round(cp.pos.y)}): clearance ${Math.round(
+        cp.overheadClearance,
+      )}px, dist ${Math.round(distToEnemy)}px from enemy`,
+    );
+  }
+
+  // FILTER: Remove positions with insufficient overhead clearance (< 400px)
   // This prevents wasting time jumping from positions with terrain overhead
-  let validCheckpoints = sortedCheckpoints.filter(cp => cp.overheadClearance >= 200);
+  let validCheckpoints = sortedCheckpoints.filter(cp => cp.overheadClearance >= 400);
 
   if (validCheckpoints.length === 0) {
-    console.log("  ⚠️  No positions with sufficient clearance (≥200px), using all checkpoints");
+    console.log("  ⚠️  No positions with sufficient clearance (≥400px), using all checkpoints");
     validCheckpoints = sortedCheckpoints; // Fallback to all positions
   } else {
     console.log(
       `  ✅ Found ${validCheckpoints.length}/${sortedCheckpoints.length} positions with good clearance`,
     );
+
+    // BUFFER LOGIC: Among max clearance positions, avoid the absolute closest (likely at terrain edge)
+    // Pick 2nd closest to give ~25-50px buffer from where terrain clearance starts dropping
+    if (validCheckpoints.length >= 2) {
+      const maxClearance = validCheckpoints[0].overheadClearance;
+      const maxClearancePositions = validCheckpoints.filter(
+        cp => Math.abs(cp.overheadClearance - maxClearance) <= 10,
+      );
+
+      if (maxClearancePositions.length >= 2) {
+        console.log(`  🛡️  Using 2nd closest position (buffer from terrain edge)`);
+        // Swap first two in validCheckpoints to pick 2nd closest
+        const temp = validCheckpoints[0];
+        validCheckpoints[0] = validCheckpoints[1];
+        validCheckpoints[1] = temp;
+      }
+    }
   }
 
   for (const checkpoint of validCheckpoints) {

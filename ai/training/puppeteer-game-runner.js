@@ -359,6 +359,12 @@ class PuppeteerGameRunner {
       });
 
       console.log("  ✅ Game started successfully!");
+
+      // HEADED MODE ONLY: Wait for players to spawn and settle after falling
+      if (!this.options.headless) {
+        console.log("  ⏳ Waiting 2s for players to spawn and settle (headed mode)...");
+        await this.delay(2000);
+      }
     } catch (error) {
       console.error("  ❌ Navigation error:", error.message);
       throw error;
