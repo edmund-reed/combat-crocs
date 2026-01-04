@@ -6,7 +6,7 @@ class PhysicsManager {
   static CATEGORIES = { TERRAIN: 1, PLAYERS: 2, PROJECTILES: 4, HEALTH_PACKS: 8 };
   static CONFIG = {
     GRAVITY: 1,
-    FRICTION: { PLAYER: 0.1, PROJECTILE: 0.1, TERRAIN: 1.0 },
+    FRICTION: { PLAYER: 1.0, PROJECTILE: 0.1, TERRAIN: 1.0 },
     RESTITUTION: { PLAYER: 0.1, PROJECTILE: 0.8 },
     DENSITY: { PLAYER: 0.01 },
     EXPLOSION_OFFSET: 50,
@@ -15,6 +15,28 @@ class PhysicsManager {
   static initializePhysics = scene => {
     scene.matter.world.setBounds(0, 0, Config.GAME_WIDTH, Config.GAME_HEIGHT);
     scene.matter.world.setGravity(0, Config.GRAVITY);
+
+    // NEW: Mark boundary walls as terrain for AI ray-casting
+    // setBounds creates 4 static rectangular bodies for the walls
+    scene.matter.world.localWorld.bodies.forEach(body => {
+      // Boundary walls are static and have no custom properties yet
+      if (body.isStatic && !body.isTerrain && !body.terrainName) {
+        body.isTerrain = true;
+        body.terrainName = "Boundary";
+      }
+    });
+
+    // Optimize physics engine for accurate collision detection
+    const engine = scene.matter.world.engine;
+
+    // Increase iterations for better collision resolution
+    engine.positionIterations = 10; // Increased from 8 (default 6)
+    engine.velocityIterations = 8; // Increased from 6 (default 4)
+    engine.constraintIterations = 4; // Better constraint solving (default 2)
+
+    // Disable collision slop to prevent any penetration tolerance
+    // Slop allows small penetrations for performance - we want zero
+    engine.slop = 0; // Default is 0.05
 
     ["collisionstart", "collisionend"].forEach((event, delta) =>
       scene.matter.world.on(event, e =>
@@ -60,15 +82,38 @@ class PhysicsManager {
       ? this.CONFIG.RESTITUTION.PROJECTILE
       : 0.1;
 
-    return scene.matter.add.circle(x, y, 5, {
+    // DEBUG: Log real projectile parameters
+    if (window.__TRAINING_MODE__) {
+      const worldGravity = scene.matter.world.engine.gravity;
+      console.log(`[REAL-PROJECTILE] Physics params:`, {
+        startPos: `(${x.toFixed(1)}, ${y.toFixed(1)})`,
+        weaponType: weaponType,
+        radius: 8,
+        friction: this.CONFIG.FRICTION.PROJECTILE,
+        restitution: restitution,
+        worldGravity: `(${worldGravity.x}, ${worldGravity.y})`,
+        isSensor: false,
+      });
+    }
+
+    // Increased radius from 5px to 8px - larger projectiles are harder to tunnel through gaps
+    const body = scene.matter.add.circle(x, y, 8, {
       friction: this.CONFIG.FRICTION.PROJECTILE,
       restitution,
+      isSensor: false, // Not a sensor - solid collision
+      isSleeping: false, // Never sleep - always check collisions
+      sleepThreshold: Infinity, // Prevent sleeping entirely
       collisionFilter: {
         group: 0,
         mask: this.CATEGORIES.TERRAIN | this.CATEGORIES.PLAYERS,
         category: this.CATEGORIES.PROJECTILES,
       },
     });
+
+    // Mark as high-speed projectile for better collision detection
+    body.isProjectile = true;
+
+    return body;
   };
 
   static createTerrainBody = (scene, x, y, width, height) => {
@@ -88,10 +133,19 @@ class PhysicsManager {
 
   // Set projectile velocity and apply physics
   static applyProjectileVelocity = (scene, projectileBody, angle, power) => {
-    scene.matter.body.setVelocity(projectileBody, {
-      x: Math.cos(angle) * power,
-      y: Math.sin(angle) * power,
-    });
+    const vx = Math.cos(angle) * power;
+    const vy = Math.sin(angle) * power;
+
+    // DEBUG: Log velocity application
+    if (window.__TRAINING_MODE__) {
+      console.log(`[REAL-PROJECTILE] Velocity applied:`, {
+        angle: angle.toFixed(3),
+        power: power,
+        velocity: `(${vx.toFixed(2)}, ${vy.toFixed(2)})`,
+      });
+    }
+
+    scene.matter.body.setVelocity(projectileBody, { x: vx, y: vy });
   };
 
   // Delegate to existing ExplosionPhysics for terrain blocking
@@ -128,13 +182,25 @@ class PhysicsManager {
   };
 
   static updateWeaponProjectiles = scene => {
+    const MAX_VELOCITY = 50; // Cap max velocity to prevent tunneling
+    const MatterBody = Phaser.Physics.Matter.Matter.Body;
+
     scene.matter.world.getAllBodies().forEach(body => {
       if (!body.projectileGraphics || body.destroyed) return;
+
+      // Cap velocity to prevent tunneling through thin terrain
+      const speed = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
+      if (speed > MAX_VELOCITY) {
+        const scale = MAX_VELOCITY / speed;
+        MatterBody.setVelocity(body, {
+          x: body.velocity.x * scale,
+          y: body.velocity.y * scale,
+        });
+      }
 
       body.projectileGraphics.setPosition(body.position.x, body.position.y);
 
       if (body.weaponConfig?.hasPhysicsRotation) {
-        const speed = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
         const rotationSpeed = speed * 0.01;
         body.projectileGraphics.rotation += rotationSpeed * (body.velocity.x < 0 ? -1 : 1);
       } else {

@@ -8,6 +8,7 @@ import {
   LastStandManager,
   Maps as MapManager,
   HealthPackManager,
+  GameplayRecorder,
 } from "@utils";
 import { UIManager, HealthBarManager } from "@ui";
 import { MovementManager } from "@player";
@@ -54,6 +55,7 @@ class GameScene extends Phaser.Scene {
       turnManager: new TurnManager(this),
       hasAttackedThisTurn: false,
       canReviveThisTurn: true,
+      recorder: new GameplayRecorder(),
     });
   }
 
@@ -84,6 +86,20 @@ class GameScene extends Phaser.Scene {
 
     this.healthCrates = [];
     this.rKey = this.input.keyboard.addKey("R");
+
+    // Setup recording toggle (K key)
+    this.kKey = this.input.keyboard.addKey("K");
+    this.input.keyboard.on("keydown-K", () => {
+      if (!this.recorder.isRecording) {
+        this.recorder.startRecording(this);
+        UIManager.showNotification?.(this, "🔴 Recording gameplay for AI training...");
+      } else {
+        this.recorder.stopRecording();
+        this.recorder.exportRecording();
+        UIManager.showNotification?.(this, "✅ Recording saved!");
+      }
+    });
+
     this.turnManager.initializeTeams();
     this.turnManager.startTurn();
 
@@ -91,6 +107,15 @@ class GameScene extends Phaser.Scene {
   }
 
   update() {
+    // Apply training speed multiplier if set
+    if (window.__TRAINING_SPEED_MULTIPLIER__ && this.physics && this.physics.world) {
+      const speed = window.__TRAINING_SPEED_MULTIPLIER__;
+      if (this.physics.world.timeScale !== speed) {
+        this.physics.world.timeScale = speed;
+        this.time.timeScale = speed;
+      }
+    }
+
     UIManager.checkAndHandleGameEnd(this);
 
     const timer = this.turnManager.currentTurnTimer;

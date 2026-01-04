@@ -36,10 +36,50 @@ class WeaponMath {
   }
 
   static terrainBlocksPath(scene, startX, startY, endX, endY) {
-    for (const platform of scene.currentMapPlatforms ?? []) {
-      const intersection = this.lineRectIntersection({ startX, startY, endX, endY }, platform);
-      if (intersection) return intersection;
+    // Check actual Matter.js physics bodies for accurate collision detection
+    // This ensures shots only get blocked by actual solid geometry, not bounding boxes
+    const bodies = scene.matter.world.localWorld.bodies;
+
+    for (const body of bodies) {
+      // Only check terrain bodies (not players or projectiles)
+      if (!body.isTerrain) continue;
+
+      // Use Matter.js collision detection against actual physics shape
+      const intersection = this.lineIntersectsMatterBody(body, startX, startY, endX, endY);
+      if (intersection) {
+        return intersection;
+      }
     }
+
+    return null;
+  }
+
+  // Check if a line intersects a Matter.js body (works with complex PhysicsEditor shapes)
+  static lineIntersectsMatterBody(body, startX, startY, endX, endY) {
+    // Check all parts of the compound body (PhysicsEditor creates compound bodies)
+    const parts = body.parts.length > 1 ? body.parts.slice(1) : [body];
+
+    for (const part of parts) {
+      // Get vertices of the physics shape
+      const vertices = part.vertices;
+      if (!vertices || vertices.length < 3) continue;
+
+      // Check each edge of the polygon
+      for (let i = 0; i < vertices.length; i++) {
+        const v1 = vertices[i];
+        const v2 = vertices[(i + 1) % vertices.length];
+
+        const intersection = this.lineSegmentIntersection(
+          { x1: startX, y1: startY, x2: endX, y2: endY },
+          { x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y },
+        );
+
+        if (intersection) {
+          return intersection;
+        }
+      }
+    }
+
     return null;
   }
 

@@ -1,0 +1,26 @@
+{
+  "name": "combat-crocs-ai",
+  "version": "1.0.0",
+  "description": "AI Training System for Combat Crocs",
+  "type": "module",
+  "scripts": {
+    "test": "node training/test-runner.js",
+    "train": "node training/trainer.js",
+    "train-quick": "node training/trainer.js --generations 5 --population 10",
+    "train-full": "node training/trainer.js --generations 200 --population 50",
+    "train-headless": "node training/trainer.js --headless --generations 200",
+    "train-ui": "node ui/server.js",
+    "simulate": "node training/simulator.js",
+    "validate": "node testing/validator.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "neataptic": "^1.4.7",
+    "puppeteer": "^21.0.0",
+    "ws": "^8.14.0",
+    "chart.js": "^4.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}

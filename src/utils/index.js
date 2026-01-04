@@ -9,3 +9,5 @@ export { default as WeaponManager } from "./weapons.js";
 export { DamageManager } from "./damage-manager.js";
 export { LastStandManager } from "./last-stand-manager.js";
 export { default as HealthPackManager } from "./health-pack-manager.js";
+export { default as GameplayRecorder } from "./gameplay-recorder.js";
+export { default as TerrainScanner } from "./terrain-scanner.js";

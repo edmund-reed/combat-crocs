@@ -4,6 +4,11 @@ import ThemeParkSelectScene from "./scenes/ThemeParkSelectScene.js";
 import MapSelectScene from "./scenes/MapSelectScene.js";
 import PlayerSelectScene from "./scenes/PlayerSelectScene.js";
 import GameScene from "./scenes/GameScene.js";
+import { Maps as MapManager, WeaponManager } from "@utils";
+import StateManager from "./utils/state-manager.js";
+import TerrainScanner from "./utils/terrain-scanner.js";
+import PhysicsManager from "./utils/physics-manager.js";
+import InstantShotResolver from "./weapons/instant-shot-resolver.js";
 
 class CombatCrocsGame {
   constructor() {
@@ -16,13 +21,25 @@ class CombatCrocsGame {
       config: Config,
       gameState: {
         game: { teams: [] },
-        musicOn: true,
-        soundOn: true,
+        musicOn: false, // Muted for AI training
+        soundOn: false, // Muted for AI training
         difficulty: "normal",
         lastScore: 0,
       },
       game: this.game,
     };
+
+    // Mute all audio globally for AI training
+    this.game.sound.mute = true;
+    this.game.sound.volume = 0;
+
+    // Expose managers globally for AI/Puppeteer access
+    window.MapManager = MapManager;
+    window.StateManager = StateManager;
+    window.WeaponManager = WeaponManager;
+    window.TerrainScanner = TerrainScanner; // FIXED: Enable AI terrain vision!
+    window.PhysicsManager = PhysicsManager; // CRITICAL: Enable look-ahead LOS checking!
+    window.InstantShotResolver = InstantShotResolver; // CRITICAL: Enable look-ahead physics simulation!
 
     Logger.gameEvent("Combat Crocs Game Initialized!");
     Logger.gameEvent("Controls: Arrow keys to move/jump, SPACE to jump, Mouse click to shoot");

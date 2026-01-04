@@ -2,6 +2,7 @@
 export { default as ExplosionPhysics } from "./explosion-physics.js";
 export { default as ExplosionSystem } from "./explosion-system.js";
 export { default as HitscanWeapon } from "./hitscan-weapon.js";
+export { default as InstantShotResolver } from "./instant-shot-resolver.js";
 export { default as WeaponSpriteManager } from "./weapon-sprite-manager.js";
 export { default as WeaponMath } from "./weapon-math.js";
 export * from "./weapon-upgrades.js";

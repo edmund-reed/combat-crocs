@@ -5,8 +5,27 @@ import { getWeaponDamage, getWeaponRadius, getExplosionColor, awardXP } from "@w
 import { DamageManager } from "@utils";
 
 class ExplosionSystem {
-  static createExplosion(scene, x, y, projectileOwner = null, weaponType = "BAZOOKA") {
+  static createExplosion(scene, x, y, projectileOwner = null, weaponType = "BAZOOKA", noDamage = false) {
     const attackingPlayer = projectileOwner ? scene.players.find(p => p.id === projectileOwner) : null;
+
+    // CRITICAL: Store explosion coordinates globally for AI training feedback
+    // ONLY track Team 1 (AI) explosions to avoid confusion from enemy shots
+    if (typeof window !== "undefined") {
+      // Only write explosion data for AI's team (Team 1)
+      // Don't overwrite if this is a verification shot (noDamage mode)
+      if (attackingPlayer && attackingPlayer.teamId === 1 && !noDamage) {
+        window.__LAST_EXPLOSION__ = {
+          x: x,
+          y: y,
+          timestamp: Date.now(),
+          weaponType: weaponType,
+        };
+        console.log(`[EXPLOSION] Team 1 shot recorded: (${x.toFixed(0)}, ${y.toFixed(0)})`);
+      } else if (noDamage) {
+        console.log(`[EXPLOSION] Verification shot (no damage): (${x.toFixed(0)}, ${y.toFixed(0)})`);
+      }
+    }
+
     const config = Config.WEAPON_CONFIGS[weaponType];
     const maxDamage = attackingPlayer ? getWeaponDamage(attackingPlayer, weaponType) : config.damage;
     const radius = attackingPlayer ? getWeaponRadius(attackingPlayer, weaponType) : config.radius;
@@ -17,34 +36,135 @@ class ExplosionSystem {
       .fillStyle(getExplosionColor(weaponLevel), 0.8)
       .fillCircle(0, 0, radius);
 
-    scene.tweens.add({
-      targets: explosion,
-      scaleX: 0,
-      scaleY: 0,
-      duration: 300,
-      onComplete: () => explosion.destroy(),
-    });
+    // Create small red dot at explosion center for visual feedback
+    const centerDot = scene.add.graphics({ x, y }).fillStyle(0xff0000, 1.0).fillCircle(0, 0, 5);
+
+    // Skip explosion animation in training mode
+    if (window.__SKIP_ANIMATIONS__) {
+      // TRAINING MODE: Destroy big circle, keep center dot for visual debugging
+      explosion.destroy();
+      // centerDot persists - don't destroy it
+      console.log(`[EXPLOSION] Created at (${x.toFixed(0)}, ${y.toFixed(0)}), radius: ${radius}`);
+    } else {
+      // NORMAL MODE: Animate big circle, destroy both after animation
+      scene.tweens.add({
+        targets: explosion,
+        scaleX: 0,
+        scaleY: 0,
+        duration: 300,
+        onComplete: () => {
+          explosion.destroy();
+          centerDot.destroy();
+        },
+      });
+    }
 
     let totalDamage = 0;
-    const attackerTeamId = attackingPlayer?.teamId ?? null;
+    let selfDamage = 0;
+    const attackerTeam = attackingPlayer?.team ?? null;
+    const enemiesHit = [];
+    let enemiesKilled = 0;
+
+    // Skip damage calculation if this is a verification shot
+    if (noDamage) {
+      if (window.__TRAINING_MODE__) {
+        console.log(`[EXPLOSION DAMAGE] Skipped (verification shot)`);
+      }
+      return projectileOwner;
+    }
+
+    // TRAINING MODE: Detailed damage logging
+    if (window.__TRAINING_MODE__) {
+      console.log(
+        `[EXPLOSION DAMAGE] Attacker: ${attackingPlayer?.id || "none"} (Team ${
+          attackingPlayer?.teamId || "none"
+        })`,
+      );
+      console.log(
+        `[EXPLOSION DAMAGE] Checking ${scene.players.length} players, radius: ${radius}, maxDamage: ${maxDamage}`,
+      );
+    }
 
     scene.players.forEach(player => {
       const distance = Phaser.Math.Distance.Between(x, y, player.x, player.y);
-      if (distance >= radius || PhysicsManager.isExplosionBlocked(x, y, player.x, player.y, scene)) return;
+      const isBlocked = PhysicsManager.isExplosionBlocked(x, y, player.x, player.y, scene);
+
+      // TRAINING MODE: Log each player check
+      if (window.__TRAINING_MODE__) {
+        console.log(
+          `[EXPLOSION DAMAGE] Player ${player.id} (Team ${player.team}): pos=(${player.x.toFixed(
+            0,
+          )}, ${player.y.toFixed(0)}), distance=${distance.toFixed(
+            0,
+          )}, blocked=${isBlocked}, attackerTeam=${attackerTeam}`,
+        );
+      }
+
+      if (distance >= radius || isBlocked) {
+        if (window.__TRAINING_MODE__ && distance < radius) {
+          console.log(`[EXPLOSION DAMAGE] Player ${player.id} BLOCKED by terrain`);
+        }
+        return;
+      }
 
       const damage =
         Math.max(0, maxDamage * (1 - (distance / radius) * 0.75)) *
         (attackingPlayer?.ability?.damageMultiplier ?? 1);
 
       const { actualDamage } = DamageManager.applyDamage(scene, player, damage);
-      if (attackerTeamId !== null && player.teamId !== attackerTeamId) totalDamage += actualDamage;
+
+      // TRAINING MODE: Log damage applied
+      if (window.__TRAINING_MODE__) {
+        console.log(
+          `[EXPLOSION DAMAGE] Player ${player.id}: calculated=${damage.toFixed(
+            1,
+          )}, actual=${actualDamage.toFixed(1)}, health=${player.health}`,
+        );
+      }
+
+      // Track self-damage if this is the attacking player
+      if (attackingPlayer && player.id === attackingPlayer.id) {
+        selfDamage = actualDamage;
+      }
+
+      if (attackerTeam !== null && player.team !== attackerTeam) {
+        totalDamage += actualDamage;
+        enemiesHit.push(player.id);
+        if (player.health <= 0) enemiesKilled++;
+      }
       scene.checkGameEnd?.();
     });
 
+    // TRAINING MODE: Summary
+    if (window.__TRAINING_MODE__) {
+      console.log(
+        `[EXPLOSION DAMAGE] Total enemy damage: ${totalDamage.toFixed(1)}, self damage: ${selfDamage.toFixed(
+          1,
+        )}`,
+      );
+    }
+
     HealthBarManager.updateHealthBars(scene);
     attackingPlayer && totalDamage > 0 && awardXP(attackingPlayer, weaponType, totalDamage, scene);
-    scene.cameras.main.shake(200, 0.02);
+
+    // Skip camera shake in training mode
+    if (!window.__SKIP_ANIMATIONS__) {
+      scene.cameras.main.shake(200, 0.02);
+    }
+
     attackingPlayer && scene.turnManager.markPlayerAttacked(attackingPlayer);
+
+    // Record result for AI training
+    scene.recorder?.recordResult(scene, {
+      damageDealt: totalDamage,
+      enemiesHit: enemiesHit,
+      enemiesKilled: enemiesKilled,
+      hitSuccess: totalDamage > 0,
+      selfDamage: selfDamage,
+      explosionX: x,
+      explosionY: y,
+      explosionBlocked: false, // Could enhance this later
+    });
 
     return projectileOwner;
   }
