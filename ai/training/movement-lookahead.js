@@ -43,47 +43,79 @@ export async function testShot(page) {
 }
 
 /**
- * Move player in specified direction using physics
+ * Move player in specified direction using physics (FLUID MOVEMENT)
+ * Holds arrow key like a real player to allow physics-based terrain traversal
  * @param {Page} page - Puppeteer page
  * @param {string} direction - "left" or "right"
  * @param {number} distance - Distance to attempt (default 250px)
  * @returns {Promise<Object>} { success, newPos, distanceMoved }
  */
 export async function move(page, direction, distance = 250) {
-  const velocity = direction === "left" ? -25 : 25;
-
-  const startInfo = await page.evaluate(vel => {
+  // Get starting position and press arrow key
+  const startInfo = await page.evaluate(dir => {
     const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
     if (!scene) return { success: false };
 
     const playerIndex = scene.turnManager.getCurrentPlayerIndex();
     const player = scene.players[playerIndex];
 
-    scene.matter.body.setVelocity(player.body, {
-      x: vel,
-      y: player.body.velocity.y,
-    });
+    // FLUID MOVEMENT: Hold arrow key down (game applies physics every frame)
+    if (dir === "left") {
+      scene.cursors.left.isDown = true;
+      scene.cursors.right.isDown = false;
+    } else {
+      scene.cursors.right.isDown = true;
+      scene.cursors.left.isDown = false;
+    }
 
     return { success: true, startX: player.x, startY: player.y };
-  }, velocity);
+  }, direction);
 
   if (!startInfo.success) return { success: false };
 
-  // Wait for movement
-  await new Promise(resolve => setTimeout(resolve, 200));
+  // Monitor movement progress and stop when no longer progressing
+  let lastX = startInfo.startX;
+  let noProgressCount = 0;
+  const maxDuration = 1000; // Max 1 second of movement
+  const checkInterval = 50; // Check every 50ms
+  const maxChecks = maxDuration / checkInterval;
 
-  // Stop and get result
+  for (let i = 0; i < maxChecks; i++) {
+    await new Promise(resolve => setTimeout(resolve, checkInterval));
+
+    const currentState = await page.evaluate(() => {
+      const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+      const player = scene.players[scene.turnManager.getCurrentPlayerIndex()];
+      return { x: player.x, y: player.y };
+    });
+
+    // Check if made progress since last check
+    const progressSinceLastCheck = Math.abs(currentState.x - lastX);
+    if (progressSinceLastCheck < 0.5) {
+      noProgressCount++;
+      // Stop if no progress for 4 consecutive checks (200ms)
+      if (noProgressCount >= 4) {
+        break;
+      }
+    } else {
+      noProgressCount = 0; // Reset counter on progress
+    }
+
+    lastX = currentState.x;
+  }
+
+  // Release arrow keys and get final result
   return await page.evaluate(
     (start, dir) => {
       const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
       const playerIndex = scene.turnManager.getCurrentPlayerIndex();
       const player = scene.players[playerIndex];
 
-      // Stop movement
-      scene.matter.body.setVelocity(player.body, { x: 0, y: player.body.velocity.y });
+      // Release arrow keys
+      scene.cursors.left.isDown = false;
+      scene.cursors.right.isDown = false;
 
-      // Measure horizontal progress in intended direction (not just total distance)
-      // This prevents getting stuck looping on steep terrain
+      // Measure horizontal progress in intended direction
       const horizontalDelta = player.x - start.startX;
       const progressInDirection = dir === "right" ? horizontalDelta : -horizontalDelta;
       const moved = progressInDirection > 5; // Made at least 5px progress in intended direction
@@ -127,15 +159,16 @@ export async function jump(page, direction, holdDuration) {
 
   if (!startPos) return { success: false };
 
-  // Wait for peak height (velocity approaches 0)
+  // Wait for NEAR peak height (start movement 450ms earlier than original)
+  // This gives better control over jump trajectory
   await page
     .waitForFunction(
       () => {
         const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
         const player = scene.players[scene.turnManager.getCurrentPlayerIndex()];
         if (!player?.body) return false;
-        // At peak, vertical velocity is near zero
-        return Math.abs(player.body.velocity.y) < 0.5;
+        // Start movement well before peak (velocity < 6 for ~450ms earlier)
+        return Math.abs(player.body.velocity.y) < 6;
       },
       { timeout: 1500 },
     )
@@ -143,7 +176,7 @@ export async function jump(page, direction, holdDuration) {
       console.log("  ⚠️  Peak detection timeout, using fallback timing");
     });
 
-  // Apply directional movement at peak - SIMULATE HOLDING ARROW KEYS
+  // Apply directional movement BEFORE peak - SIMULATE HOLDING ARROW KEYS
   if (direction !== "none") {
     // Press and HOLD the arrow key down (game will apply movement every frame)
     await page.evaluate(dir => {
@@ -451,69 +484,215 @@ export async function findBestShootingPosition(page, gameState) {
 }
 
 /**
- * Explore ground in both directions until positions repeat
+ * Explore ground in both directions with continuous sampling
+ * Tests shots and measures clearance every 25px during fluid movement
  */
 async function exploreGroundFromPosition(page, state, startPos) {
   await teleport(page, startPos);
 
-  // Explore both directions
-  for (const direction of ["left", "right"]) {
+  // Get enemy position to prioritize exploration toward enemy
+  const enemyInfo = await page.evaluate(() => {
+    const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+    const playerIndex = scene.turnManager.getCurrentPlayerIndex();
+    const player = scene.players[playerIndex];
+    const enemies = scene.players.filter(p => p.team !== player.team && p.health > 0);
+    const enemy = enemies[0];
+
+    if (!enemy) return null;
+    return {
+      x: enemy.x,
+      y: enemy.y,
+      direction: enemy.x > player.x ? "right" : "left",
+    };
+  });
+
+  // ENEMY-DIRECTED EXPLORATION: Try enemy direction first, then opposite
+  const enemyDirection = enemyInfo?.direction;
+  const oppositeDir = enemyDirection === "left" ? "right" : "left";
+  const directions = enemyDirection ? [enemyDirection, oppositeDir] : ["left", "right"];
+
+  // Track starting distance/elevation for regression detection
+  const startDistToEnemy = enemyInfo ? Math.abs(startPos.x - enemyInfo.x) : 0;
+  const startElevation = startPos.y;
+
+  // Explore both directions (enemy direction first)
+  for (const direction of directions) {
     console.log(`  → Exploring ${direction}...`);
 
+    // Start fluid movement
+    const moveStarted = await page.evaluate(dir => {
+      const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+      if (!scene) return { success: false };
+
+      const playerIndex = scene.turnManager.getCurrentPlayerIndex();
+      const player = scene.players[playerIndex];
+
+      // Hold arrow key down for fluid movement
+      if (dir === "left") {
+        scene.cursors.left.isDown = true;
+        scene.cursors.right.isDown = false;
+      } else {
+        scene.cursors.right.isDown = true;
+        scene.cursors.left.isDown = false;
+      }
+
+      return { success: true, startX: player.x, startY: player.y };
+    }, direction);
+
+    if (!moveStarted.success) continue;
+
     let lastCheckpointX = startPos.x;
-    let prevClearance = 0;
+    let noProgressCount = 0;
+    let lastX = startPos.x;
 
-    while (true) {
-      const moveResult = await move(page, direction);
+    // NET PROGRESS TRACKING: Track furthest point reached to detect true loops vs oscillation
+    let furthestXReached = startPos.x;
+    let timeSinceAdvancing = 0; // Time since last net advancement
 
-      if (!moveResult.success) {
-        console.log(`  ⚠️  Can't move ${direction} anymore`);
-        break;
-      }
+    const maxDuration = 2000; // Max 2 seconds of movement
+    const checkInterval = 20; // Check every 20ms (increased from 50ms for better sampling)
+    const maxChecks = maxDuration / checkInterval;
 
-      // Check if we've been here before
-      if (state.hasVisited(moveResult.newPos)) {
-        console.log(`  ⚠️  Revisited position, stopping ${direction} exploration`);
-        break;
-      }
+    // Continuous movement with sampling every 25px
+    for (let i = 0; i < maxChecks; i++) {
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
 
-      state.markVisited(moveResult.newPos);
-
-      // Measure overhead clearance at EVERY position to find optimal launch spot
-      const clearanceData = await page.evaluate(pos => {
+      const currentState = await page.evaluate(() => {
         const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
-        if (!scene || !window.TerrainScanner) return { clearance: 0, directions: [] };
+        const player = scene.players[scene.turnManager.getCurrentPlayerIndex()];
+        return { x: player.x, y: player.y };
+      });
 
-        const maxDistance = 2000; // Scan to game boundary
-        const scanResult = window.TerrainScanner.scanTerrainDistances(scene, pos.x, pos.y, maxDistance);
+      // Check if made progress IN INTENDED DIRECTION (tolerates backward slip on steep terrain)
+      const horizontalDelta = currentState.x - lastX;
+      const progressInDirection = direction === "right" ? horizontalDelta : -horizontalDelta;
 
-        return {
-          clearance: scanResult.directions[6] || 0,
-          directions: scanResult.directions,
-          allDirections: JSON.stringify(scanResult.directions),
-        };
-      }, moveResult.newPos);
-
-      console.log(
-        `  🚶 Moved ${direction} ${moveResult.distanceMoved}px to (${Math.round(
-          moveResult.newPos.x,
-        )}, ${Math.round(moveResult.newPos.y)}) - clearance: ${Math.round(clearanceData.clearance)}px`,
-      );
-
-      // Test shot
-      const shotTest = await testShot(page);
-      if (shotTest.canShoot) {
-        console.log("  ✅ Found valid shot during ground exploration!");
-        return {
-          finalPosition: moveResult.newPos,
-          shotDecision: shotTest.shotResult,
-          movementPath: [],
-          totalDistance: 0,
-        };
+      // Only count as "no progress" if not moving forward in intended direction
+      // Small threshold (0.3px) tolerates minor slip while climbing
+      if (progressInDirection < 0.3) {
+        noProgressCount++;
+        // MAXIMUM TOLERANCE: Stop if no forward progress for 30 consecutive checks (600ms at 20ms intervals)
+        // This allows player extensive time to slip and recover while climbing very steep terrain
+        if (noProgressCount >= 30) {
+          break;
+        }
+      } else {
+        noProgressCount = 0; // Reset counter on forward progress
       }
 
-      // Create checkpoint at EVERY position (no 80px spacing limit)
-      state.addCheckpoint(moveResult.newPos, moveResult.newPos.y, clearanceData.clearance);
+      // NET ADVANCEMENT CHECK: Track if we've advanced beyond furthest point reached
+      // This prevents oscillation from stopping exploration while detecting true loops
+      const netAdvancement =
+        direction === "right" ? currentState.x - furthestXReached : furthestXReached - currentState.x;
+
+      if (netAdvancement > 5) {
+        // Advanced 5px beyond previous frontier - making net progress!
+        // Low threshold allows small forward movements on steep terrain to reset timer
+        furthestXReached = currentState.x;
+        timeSinceAdvancing = 0; // Reset timer
+      } else {
+        timeSinceAdvancing += checkInterval; // Accumulate time
+      }
+
+      // Stop if no net advancement for 1000ms (true loop or wall, not just oscillation)
+      if (timeSinceAdvancing > 1000) {
+        console.log(`  ⚠️  No net advancement for 1000ms, stopping ${direction} exploration`);
+        break;
+      }
+
+      // Sample position every 15px traveled (reduced from 25px for better coverage)
+      // This ensures we capture narrow escape zones (e.g., 100px wide gaps)
+      const distanceFromLastCheckpoint = Math.abs(currentState.x - lastCheckpointX);
+      if (distanceFromLastCheckpoint >= 15) {
+        // DEBUG: Log sampling details
+        console.log(
+          `  🔍 [DEBUG] Sampling at x=${Math.round(currentState.x)} (gap: ${Math.round(
+            distanceFromLastCheckpoint,
+          )}px from last checkpoint at x=${Math.round(lastCheckpointX)})`,
+        );
+
+        // NOTE: Removed "revisited position" check - net advancement tracking handles loops
+        state.markVisited(currentState);
+
+        // Measure overhead clearance at this position
+        const clearanceData = await page.evaluate(pos => {
+          const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+          if (!scene || !window.TerrainScanner) return { clearance: 0 };
+
+          const maxDistance = 2000; // Scan to game boundary
+          const scanResult = window.TerrainScanner.scanTerrainDistances(scene, pos.x, pos.y, maxDistance);
+
+          return {
+            clearance: scanResult.directions[6] || 0,
+            allDirections: scanResult.directions, // DEBUG: Get all directions
+          };
+        }, currentState);
+
+        const distanceMoved = Math.round(Math.abs(currentState.x - startPos.x));
+        console.log(
+          `  🚶 Moved ${direction} ${distanceMoved}px to (${Math.round(currentState.x)}, ${Math.round(
+            currentState.y,
+          )}) - clearance: ${Math.round(clearanceData.clearance)}px [ALL: ${clearanceData.allDirections
+            ?.map(d => Math.round(d))
+            .join(",")}]`,
+        );
+
+        // REGRESSION DETECTION: Check if this position represents significant regression
+        // (moving away from enemy AND losing elevation - e.g., falling off platform)
+        const currentDistToEnemy = enemyInfo ? Math.abs(currentState.x - enemyInfo.x) : 0;
+        const elevationLoss = currentState.y - startElevation; // Positive = lost height
+        const distanceRegression = currentDistToEnemy - startDistToEnemy; // Positive = further from enemy
+
+        const isSignificantRegression = enemyInfo && elevationLoss > 50 && distanceRegression > 100;
+
+        if (isSignificantRegression) {
+          console.log(
+            `  ⚠️  Detected regression: lost ${Math.round(elevationLoss)}px height, ${Math.round(
+              distanceRegression,
+            )}px further from enemy - discarding position`,
+          );
+          // Don't add checkpoint, don't test shot - this is a bad path
+          // Stop this direction exploration
+          break;
+        }
+
+        // Test shot at this position
+        const shotTest = await testShot(page);
+        if (shotTest.canShoot) {
+          // Release arrow keys before returning
+          await page.evaluate(() => {
+            const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+            scene.cursors.left.isDown = false;
+            scene.cursors.right.isDown = false;
+          });
+
+          console.log("  ✅ Found valid shot during ground exploration!");
+          return {
+            finalPosition: currentState,
+            shotDecision: shotTest.shotResult,
+            movementPath: [],
+            totalDistance: 0,
+          };
+        }
+
+        // Create checkpoint at this position (only if not regressed)
+        state.addCheckpoint(currentState, currentState.y, clearanceData.clearance);
+
+        lastCheckpointX = currentState.x;
+      }
+
+      lastX = currentState.x;
+    }
+
+    // Release arrow keys
+    await page.evaluate(() => {
+      const scene = window.CombatCrocs?.game?.scene?.getScene("GameScene");
+      scene.cursors.left.isDown = false;
+      scene.cursors.right.isDown = false;
+    });
+
+    if (noProgressCount >= 4) {
+      console.log(`  ⚠️  Can't move ${direction} anymore`);
     }
 
     // Return to start for opposite direction
@@ -582,161 +761,223 @@ async function exploreJumpsFromCheckpoints(page, state) {
     );
   }
 
-  // FILTER: Remove positions with insufficient overhead clearance (< 400px)
-  // This prevents wasting time jumping from positions with terrain overhead
-  let validCheckpoints = sortedCheckpoints.filter(cp => cp.overheadClearance >= 400);
+  // CONTEXT-AWARE CLEARANCE THRESHOLD:
+  // - Ground level (y > 450): Require 400px clearance (avoid hitting ceilings)
+  // - Elevated (y ≤ 450): Require 250px clearance (navigate overhangs on elevated terrain)
+  const originElevation = state.checkpoints[0]?.pos.y || 500; // First checkpoint is origin
+  const minClearance = originElevation > 450 ? 400 : 250;
+
+  console.log(
+    `  📏 Using ${minClearance}px clearance threshold (elevation: ${Math.round(originElevation)}px)`,
+  );
+
+  const validCheckpoints = sortedCheckpoints.filter(cp => cp.overheadClearance >= minClearance);
 
   if (validCheckpoints.length === 0) {
-    console.log("  ⚠️  No positions with sufficient clearance (≥400px), using all checkpoints");
-    validCheckpoints = sortedCheckpoints; // Fallback to all positions
-  } else {
     console.log(
-      `  ✅ Found ${validCheckpoints.length}/${sortedCheckpoints.length} positions with good clearance`,
+      `  ⚠️  No positions with sufficient clearance (≥${minClearance}px), skipping jump exploration`,
+    );
+    return null; // Skip jump phase entirely
+  }
+
+  console.log(
+    `  ✅ Found ${validCheckpoints.length}/${sortedCheckpoints.length} positions with good clearance`,
+  );
+
+  // BUFFER LOGIC: Among max clearance positions, avoid the absolute closest (likely at terrain edge)
+  // Pick 2nd closest to give ~25-50px buffer from where terrain clearance starts dropping
+  if (validCheckpoints.length >= 2) {
+    const maxClearance = validCheckpoints[0].overheadClearance;
+    const maxClearancePositions = validCheckpoints.filter(
+      cp => Math.abs(cp.overheadClearance - maxClearance) <= 10,
     );
 
-    // BUFFER LOGIC: Among max clearance positions, avoid the absolute closest (likely at terrain edge)
-    // Pick 2nd closest to give ~25-50px buffer from where terrain clearance starts dropping
-    if (validCheckpoints.length >= 2) {
-      const maxClearance = validCheckpoints[0].overheadClearance;
-      const maxClearancePositions = validCheckpoints.filter(
-        cp => Math.abs(cp.overheadClearance - maxClearance) <= 10,
-      );
-
-      if (maxClearancePositions.length >= 2) {
-        console.log(`  🛡️  Using 2nd closest position (buffer from terrain edge)`);
-        // Swap first two in validCheckpoints to pick 2nd closest
-        const temp = validCheckpoints[0];
-        validCheckpoints[0] = validCheckpoints[1];
-        validCheckpoints[1] = temp;
-      }
+    if (maxClearancePositions.length >= 2) {
+      console.log(`  🛡️  Using 2nd closest position (buffer from terrain edge)`);
+      // Swap first two in validCheckpoints to pick 2nd closest
+      const temp = validCheckpoints[0];
+      validCheckpoints[0] = validCheckpoints[1];
+      validCheckpoints[1] = temp;
     }
   }
 
-  for (const checkpoint of validCheckpoints) {
-    console.log(
-      `  🦘 Trying jumps from checkpoint (${Math.round(checkpoint.pos.x)}, ${Math.round(
-        checkpoint.pos.y,
-      )}) - clearance: ${Math.round(checkpoint.overheadClearance)}px`,
-    );
+  // GROUP BY CLEARANCE TIERS: Group positions by clearance (50px granularity)
+  // This ensures we try BOTH directions from best positions before moving to worse positions
+  const tierMap = new Map();
+  for (const cp of validCheckpoints) {
+    const tier = Math.floor(cp.overheadClearance / 50) * 50;
+    if (!tierMap.has(tier)) {
+      tierMap.set(tier, []);
+    }
+    tierMap.get(tier).push(cp);
+  }
 
+  // Sort tiers by clearance (best first)
+  const sortedTiers = [...tierMap.keys()].sort((a, b) => b - a);
+  console.log(`  📊 Grouped into ${sortedTiers.length} clearance tiers: ${sortedTiers.join(", ")}px`);
+
+  // Track which checkpoints we've already explored from to prevent looping back
+  const exploredCheckpoints = new Set();
+
+  // Exhaust each tier completely before moving to next tier
+  for (const tier of sortedTiers) {
+    const tierPositions = tierMap.get(tier);
+    console.log(`  🎯 Exploring tier ${tier}px (${tierPositions.length} positions)`);
+
+    // SPATIAL EXPLORATION: Try one direction from ALL positions before trying opposite direction
+    // This finds intermediate platforms (e.g., palm tree) that lead to final goal (e.g., metal coaster)
     for (const direction of DIRECTIONS) {
-      for (const duration of DURATIONS) {
-        // Teleport to checkpoint for each attempt
-        await teleport(page, checkpoint.pos);
+      console.log(`  🧭 Trying ${direction} jumps from all tier positions`);
 
-        const jumpResult = await jump(page, direction, duration);
+      for (const checkpoint of tierPositions) {
+        const checkpointKey = `${Math.round(checkpoint.pos.x)},${Math.round(checkpoint.pos.y)}`;
+        const directionCheckpointKey = `${direction}_${checkpointKey}`;
 
-        if (!jumpResult.success) continue;
+        // Skip if we've already explored THIS DIRECTION from this checkpoint
+        if (exploredCheckpoints.has(directionCheckpointKey)) {
+          continue;
+        }
 
-        // Skip if already visited
-        if (state.hasVisited(jumpResult.newPos)) continue;
-
-        state.markVisited(jumpResult.newPos);
         console.log(
-          `  🦘 Jumped ${direction} (${duration}ms) → (${Math.round(jumpResult.newPos.x)}, ${Math.round(
-            jumpResult.newPos.y,
-          )}), gain: ${Math.round(jumpResult.elevationGain)}px`,
+          `  🦘 Trying ${direction} from (${Math.round(checkpoint.pos.x)}, ${Math.round(
+            checkpoint.pos.y,
+          )}) - clearance: ${Math.round(checkpoint.overheadClearance)}px`,
         );
 
-        // STEEP TERRAIN FIX: If initial landing differs from final, mark it as checkpoint too
-        if (jumpResult.initialLanding && !state.hasVisited(jumpResult.initialLanding)) {
-          const deltaX = Math.abs(jumpResult.initialLanding.x - jumpResult.newPos.x);
-          const deltaY = Math.abs(jumpResult.initialLanding.y - jumpResult.newPos.y);
-          const slid = deltaX > 10 || deltaY > 10;
+        for (const duration of DURATIONS) {
+          // Teleport to checkpoint for each attempt
+          await teleport(page, checkpoint.pos);
 
-          if (slid) {
-            console.log(
-              `  ⚡ Detected steep landing: (${Math.round(jumpResult.initialLanding.x)}, ${Math.round(
-                jumpResult.initialLanding.y,
-              )}) → slid to final`,
-            );
-            state.addCheckpoint(jumpResult.initialLanding, jumpResult.initialLanding.y);
-            state.markVisited(jumpResult.initialLanding);
+          const jumpResult = await jump(page, direction, duration);
 
-            // Test shot from initial steep landing position
-            await teleport(page, jumpResult.initialLanding);
-            const steepShotTest = await testShot(page);
-            if (steepShotTest.canShoot) {
-              console.log("  ✅ Found valid shot from steep landing!");
-              return {
-                finalPosition: jumpResult.initialLanding,
-                shotDecision: steepShotTest.shotResult,
-                movementPath: [],
-                totalDistance: 0,
-              };
-            }
+          if (!jumpResult.success) continue;
 
-            // RECURSIVE CHAINING: Try jumping IMMEDIATELY from steep position to reach stable ground
-            // This creates chains: jump → steep land → jump → stable land
-            // CRITICAL: Do this BEFORE ground exploration to avoid sliding!
-            console.log(`  🔗 Attempting jump chain from steep position...`);
+          // Skip if already visited
+          if (state.hasVisited(jumpResult.newPos)) continue;
 
-            // Try shorter jumps first from steep position (more likely to find stable ground nearby)
-            const CHAIN_DURATIONS = [750, 1500];
-            for (const chainDir of DIRECTIONS) {
-              for (const chainDuration of CHAIN_DURATIONS) {
-                await teleport(page, jumpResult.initialLanding);
+          state.markVisited(jumpResult.newPos);
+          console.log(
+            `  🦘 Jumped ${direction} (${duration}ms) → (${Math.round(jumpResult.newPos.x)}, ${Math.round(
+              jumpResult.newPos.y,
+            )}), gain: ${Math.round(jumpResult.elevationGain)}px`,
+          );
 
-                const chainJump = await jump(page, chainDir, chainDuration);
-                if (!chainJump.success || state.hasVisited(chainJump.newPos)) continue;
+          // STEEP TERRAIN FIX: If initial landing differs from final, mark it as checkpoint too
+          if (jumpResult.initialLanding && !state.hasVisited(jumpResult.initialLanding)) {
+            const deltaX = Math.abs(jumpResult.initialLanding.x - jumpResult.newPos.x);
+            const deltaY = Math.abs(jumpResult.initialLanding.y - jumpResult.newPos.y);
+            const slid = deltaX > 10 || deltaY > 10;
 
-                state.markVisited(chainJump.newPos);
-                console.log(
-                  `  🔗 Chained jump ${chainDir} (${chainDuration}ms) → (${Math.round(
-                    chainJump.newPos.x,
-                  )}, ${Math.round(chainJump.newPos.y)})`,
-                );
+            if (slid) {
+              console.log(
+                `  ⚡ Detected steep landing: (${Math.round(jumpResult.initialLanding.x)}, ${Math.round(
+                  jumpResult.initialLanding.y,
+                )}) → slid to final`,
+              );
+              // DON'T add to exploredCheckpoints - steep positions are handled inline
+              state.addCheckpoint(jumpResult.initialLanding, jumpResult.initialLanding.y);
+              state.markVisited(jumpResult.initialLanding);
 
-                // Test shot from chained position
-                const chainShot = await testShot(page);
-                if (chainShot.canShoot) {
-                  console.log("  ✅ Found valid shot after jump chain!");
-                  return {
-                    finalPosition: chainJump.newPos,
-                    shotDecision: chainShot.shotResult,
-                    movementPath: [],
-                    totalDistance: 0,
-                  };
-                }
+              // Test shot from initial steep landing position (but DON'T return yet!)
+              await teleport(page, jumpResult.initialLanding);
+              const steepShotTest = await testShot(page);
 
-                // If chain landed on stable elevated ground, explore from there
-                if (chainJump.elevationGain > 10) {
-                  state.addCheckpoint(chainJump.newPos, chainJump.newPos.y);
-                  const chainGroundResult = await exploreGroundFromPosition(page, state, chainJump.newPos);
-                  if (chainGroundResult) return chainGroundResult;
+              // RECURSIVE CHAINING: Try jumping IMMEDIATELY from steep position to climb higher
+              // This creates chains: jump → steep land → jump → higher stable ground
+              // PRIORITY: Climb higher first, then use steep shot as fallback
+              console.log(`  🔗 Attempting jump chain from steep position to climb higher...`);
+
+              let foundBetterPosition = false;
+              const CHAIN_DURATIONS = [750, 1500];
+              for (const chainDir of DIRECTIONS) {
+                for (const chainDuration of CHAIN_DURATIONS) {
+                  await teleport(page, jumpResult.initialLanding);
+
+                  const chainJump = await jump(page, chainDir, chainDuration);
+                  if (!chainJump.success || state.hasVisited(chainJump.newPos)) continue;
+
+                  state.markVisited(chainJump.newPos);
+                  console.log(
+                    `  🔗 Chained jump ${chainDir} (${chainDuration}ms) → (${Math.round(
+                      chainJump.newPos.x,
+                    )}, ${Math.round(chainJump.newPos.y)})`,
+                  );
+
+                  // Test shot from chained position
+                  const chainShot = await testShot(page);
+                  if (chainShot.canShoot) {
+                    console.log("  ✅ Found valid shot after jump chain (higher position)!");
+                    foundBetterPosition = true;
+                    return {
+                      finalPosition: chainJump.newPos,
+                      shotDecision: chainShot.shotResult,
+                      movementPath: [],
+                      totalDistance: 0,
+                    };
+                  }
+
+                  // If chain landed on stable elevated ground, explore from there
+                  // DON'T add chain positions to exploredCheckpoints - they're handled inline
+                  if (chainJump.elevationGain > 10) {
+                    state.addCheckpoint(chainJump.newPos, chainJump.newPos.y);
+                    const chainGroundResult = await exploreGroundFromPosition(page, state, chainJump.newPos);
+                    if (chainGroundResult) {
+                      foundBetterPosition = true;
+                      return chainGroundResult;
+                    }
+                  }
                 }
               }
+
+              // Only explore ground from steep position if jump chains didn't find better
+              if (!foundBetterPosition) {
+                const steepGroundResult = await exploreGroundFromPosition(
+                  page,
+                  state,
+                  jumpResult.initialLanding,
+                );
+                if (steepGroundResult) return steepGroundResult;
+              }
+
+              // FALLBACK: Use steep shot only if chaining and ground exploration failed
+              if (steepShotTest.canShoot) {
+                console.log("  ✅ Using steep landing shot (no higher position found)");
+                return {
+                  finalPosition: jumpResult.initialLanding,
+                  shotDecision: steepShotTest.shotResult,
+                  movementPath: [],
+                  totalDistance: 0,
+                };
+              }
+
+              // Return to final position for normal flow
+              await teleport(page, jumpResult.newPos);
             }
+          }
 
-            // Only explore ground from steep position if jump chains didn't work
-            // (Steep terrain can cause sliding during ground exploration)
-            const steepGroundResult = await exploreGroundFromPosition(page, state, jumpResult.initialLanding);
-            if (steepGroundResult) return steepGroundResult;
+          // Test shot from final position
+          const shotTest = await testShot(page);
+          if (shotTest.canShoot) {
+            console.log("  ✅ Found valid shot after jump!");
+            return {
+              finalPosition: jumpResult.newPos,
+              shotDecision: shotTest.shotResult,
+              movementPath: [],
+              totalDistance: 0,
+            };
+          }
 
-            // Return to final position for normal flow
-            await teleport(page, jumpResult.newPos);
+          // If gained elevation, add as checkpoint and explore ground from here
+          if (jumpResult.elevationGain > 10) {
+            state.addCheckpoint(jumpResult.newPos, jumpResult.newPos.y);
+
+            const groundResult = await exploreGroundFromPosition(page, state, jumpResult.newPos);
+            if (groundResult) return groundResult;
           }
         }
 
-        // Test shot from final position
-        const shotTest = await testShot(page);
-        if (shotTest.canShoot) {
-          console.log("  ✅ Found valid shot after jump!");
-          return {
-            finalPosition: jumpResult.newPos,
-            shotDecision: shotTest.shotResult,
-            movementPath: [],
-            totalDistance: 0,
-          };
-        }
-
-        // If gained elevation, add as checkpoint and explore ground from here
-        if (jumpResult.elevationGain > 10) {
-          state.addCheckpoint(jumpResult.newPos, jumpResult.newPos.y);
-
-          const groundResult = await exploreGroundFromPosition(page, state, jumpResult.newPos);
-          if (groundResult) return groundResult;
-        }
+        // Mark checkpoint as explored after trying all durations in this direction
+        exploredCheckpoints.add(checkpointKey);
       }
     }
   }
